@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.ActivityMapper">
+  <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{userId} FOR UPDATE</select>
+  <sql id="stepFilter">
+    user_id=#{userId}
+    <if test="q.startDate != null">AND activity_date &gt;= #{q.startDate}</if>
+    <if test="q.endDate != null">AND activity_date &lt;= #{q.endDate}</if>
+    <if test="q.sourceName != null and q.sourceName != ''">AND source_name=#{q.sourceName}</if>
+  </sql>
+  <select id="steps" resultType="com.health.model.ActivityModels$StepRecord">
+    SELECT * FROM step_records WHERE <include refid="stepFilter"/> ORDER BY start_time DESC,end_time DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="stepCount" resultType="long">SELECT COUNT(*) FROM step_records WHERE <include refid="stepFilter"/></select>
+  <select id="step" resultType="com.health.model.ActivityModels$StepRecord">SELECT * FROM step_records WHERE user_id=#{userId} AND id=#{id}</select>
+  <select id="stepRange" resultType="com.health.model.ActivityModels$StepRecord">
+    SELECT * FROM step_records WHERE user_id=#{userId} AND activity_date BETWEEN #{start} AND #{end}
+    <if test="source != null and source != ''">AND source_name=#{source}</if>
+    ORDER BY start_time,end_time,id
+  </select>
+  <select id="stepDay" resultType="com.health.model.ActivityModels$StepRecord">
+    SELECT * FROM step_records WHERE user_id=#{userId} AND activity_date=#{date} AND source_name=#{source} ORDER BY start_time,end_time,id
+  </select>
+  <insert id="insertStep" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO step_records(user_id,start_time,end_time,activity_date,steps,mode,source_name,note)
+    VALUES(#{userId},#{startTime},#{endTime},#{activityDate},#{steps},#{mode},#{sourceName},#{note})
+  </insert>
+  <update id="updateStep">
+    UPDATE step_records SET start_time=#{startTime},end_time=#{endTime},activity_date=#{activityDate},steps=#{steps},mode=#{mode},source_name=#{sourceName},note=#{note} WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="deleteStep">DELETE FROM step_records WHERE user_id=#{userId} AND id=#{id}</delete>
+  <select id="stepSources" resultType="string">SELECT DISTINCT source_name FROM step_records WHERE user_id=#{userId} ORDER BY source_name</select>
+  <select id="goal" resultType="int">SELECT daily_steps FROM activity_goals WHERE user_id=#{userId}</select>
+  <insert id="saveGoal">
+    INSERT INTO activity_goals(user_id,daily_steps) VALUES(#{userId},#{dailySteps}) ON DUPLICATE KEY UPDATE daily_steps=#{dailySteps}
+  </insert>
+  <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO step_import_batches(user_id,total_rows,valid_rows,invalid_rows,duplicate_rows)
+    VALUES(#{userId},#{totalRows},#{validRows},#{invalidRows},#{duplicateRows})
+  </insert>
+  <insert id="insertRow">
+    INSERT INTO step_import_rows(batch_id,row_number,start_time,end_time,steps,mode,source_name,note,valid,error)
+    VALUES(#{batchId},#{rowNumber},#{startTime},#{endTime},#{steps},#{mode},#{sourceName},#{note},#{valid},#{error})
+  </insert>
+  <select id="batches" resultType="com.health.model.ActivityModels$StepImportBatch">SELECT * FROM step_import_batches WHERE user_id=#{userId} ORDER BY created_at DESC,id DESC</select>
+  <select id="batch" resultType="com.health.model.ActivityModels$StepImportBatch">SELECT * FROM step_import_batches WHERE user_id=#{userId} AND id=#{id}</select>
+  <select id="rows" resultType="com.health.model.ActivityModels$StepImportRow">SELECT * FROM step_import_rows WHERE batch_id=#{batchId} ORDER BY row_number</select>
+  <delete id="deleteRows">DELETE FROM step_import_rows WHERE batch_id=#{batchId}</delete>
+  <update id="confirmBatch">UPDATE step_import_batches SET status='CONFIRMED',duplicate_rows=#{duplicateRows},inserted_rows=#{insertedRows} WHERE id=#{id} AND user_id=#{userId}</update>
+  <sql id="workoutFilter">
+    w.user_id=#{userId}
+    <if test="q.startDate != null">AND w.activity_date &gt;= #{q.startDate}</if>
+    <if test="q.endDate != null">AND w.activity_date &lt;= #{q.endDate}</if>
+    <if test="q.sourceName != null and q.sourceName != ''">AND w.source_name=#{q.sourceName}</if>
+  </sql>
+  <sql id="workoutSelect">
+    SELECT w.*,i.plan_id,i.title AS plan_item_title,
+      CASE WHEN i.id IS NULL THEN NULL ELSE c.id IS NOT NULL END AS plan_item_completed
+    FROM workout_records w LEFT JOIN plan_items i ON i.id=w.plan_item_id
+    LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
+  </sql>
+  <select id="workouts" resultType="com.health.model.ActivityModels$Workout">
+    <include refid="workoutSelect"/> WHERE <include refid="workoutFilter"/> ORDER BY w.start_time DESC,w.id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="workoutCount" resultType="long">SELECT COUNT(*) FROM workout_records w WHERE <include refid="workoutFilter"/></select>
+  <select id="workout" resultType="com.health.model.ActivityModels$Workout">
+    <include refid="workoutSelect"/> WHERE w.user_id=#{userId} AND w.id=#{id}
+  </select>
+  <select id="workoutDuplicate" resultType="com.health.model.ActivityModels$Workout">
+    SELECT * FROM workout_records WHERE user_id=#{userId} AND start_time=#{startTime} AND end_time=#{endTime} AND exercise_type=#{exerciseType} AND source_name=#{sourceName}
+    <if test="id != null">AND id != #{id}</if>
+  </select>
+  <select id="workoutRange" resultType="com.health.model.ActivityModels$Workout">
+    SELECT * FROM workout_records WHERE user_id=#{userId} AND end_time &gt; #{start} AND start_time &lt; #{end}
+    <if test="source != null and source != ''">AND source_name=#{source}</if>
+    ORDER BY start_time,id
+  </select>
+  <insert id="insertWorkout" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO workout_records(user_id,exercise_type,start_time,end_time,activity_date,duration_minutes,source_name,note,plan_item_id)
+    VALUES(#{userId},#{exerciseType},#{startTime},#{endTime},#{activityDate},#{durationMinutes},#{sourceName},#{note},#{planItemId})
+  </insert>
+  <update id="updateWorkout">
+    UPDATE workout_records SET exercise_type=#{exerciseType},start_time=#{startTime},end_time=#{endTime},activity_date=#{activityDate},duration_minutes=#{durationMinutes},source_name=#{sourceName},note=#{note},plan_item_id=#{planItemId} WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="deleteWorkout">DELETE FROM workout_records WHERE user_id=#{userId} AND id=#{id}</delete>
+  <select id="workoutSources" resultType="string">SELECT DISTINCT source_name FROM workout_records WHERE user_id=#{userId} ORDER BY source_name</select>
+  <select id="planItems" resultType="com.health.model.ActivityModels$EligiblePlanItem">
+    SELECT i.id,i.plan_id,i.title,p.title AS plan_title,i.date,c.id IS NOT NULL AS completed
+    FROM plan_items i JOIN plans p ON p.id=i.plan_id
+    LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
+    WHERE p.user_id=#{userId} AND p.status='ACTIVE' AND i.date=#{date}
+    ORDER BY i.time,i.id
+  </select>
+</mapper>
