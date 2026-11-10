@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.NutritionMapper">
+  <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{userId} FOR UPDATE</select>
+  <sql id="recordFilter">
+    user_id=#{userId}
+    <if test="q.startDate != null">AND consumed_at &gt;= #{q.startDate}</if>
+    <if test="q.endDate != null">AND consumed_at &lt; DATE_ADD(#{q.endDate}, INTERVAL 1 DAY)</if>
+    <if test="q.sourceName != null and q.sourceName != ''">AND source_name=#{q.sourceName}</if>
+  </sql>
+  <sql id="rangeFilter">
+    user_id=#{userId} AND consumed_at &gt;= #{start} AND consumed_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+    <if test="source != null and source != ''">AND source_name=#{source}</if>
+  </sql>
+  <select id="meals" resultType="com.health.model.NutritionModels$MealRecord">
+    SELECT * FROM meal_records WHERE <include refid="recordFilter"/>
+    ORDER BY consumed_at DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="mealCount" resultType="long">SELECT COUNT(*) FROM meal_records WHERE <include refid="recordFilter"/></select>
+  <select id="meal" resultType="com.health.model.NutritionModels$MealRecord">
+    SELECT * FROM meal_records WHERE user_id=#{userId} AND id=#{id}
+  </select>
+  <select id="mealRange" resultType="com.health.model.NutritionModels$MealRecord">
+    SELECT * FROM meal_records WHERE <include refid="rangeFilter"/> ORDER BY consumed_at,id
+  </select>
+  <insert id="insertMeal" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO meal_records(user_id,consumed_at,meal_type,food_name,portion_amount,portion_unit,calorie_mode,
+      calories_kcal,reference_amount,reference_calories_kcal,nutrition_source,source_name,note)
+    VALUES(#{userId},#{consumedAt},#{mealType},#{foodName},#{portionAmount},#{portionUnit},#{calorieMode},
+      #{caloriesKcal},#{referenceAmount},#{referenceCaloriesKcal},#{nutritionSource},#{sourceName},#{note})
+  </insert>
+  <update id="updateMeal">
+    UPDATE meal_records SET consumed_at=#{consumedAt},meal_type=#{mealType},food_name=#{foodName},
+      portion_amount=#{portionAmount},portion_unit=#{portionUnit},calorie_mode=#{calorieMode},
+      calories_kcal=#{caloriesKcal},reference_amount=#{referenceAmount},reference_calories_kcal=#{referenceCaloriesKcal},
+      nutrition_source=#{nutritionSource},source_name=#{sourceName},note=#{note},updated_at=CURRENT_TIMESTAMP(6)
+    WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="deleteMeal">DELETE FROM meal_records WHERE user_id=#{userId} AND id=#{id}</delete>
+  <select id="mealSources" resultType="string">
+    SELECT DISTINCT source_name FROM meal_records WHERE user_id=#{userId} ORDER BY source_name
+  </select>
+  <select id="water" resultType="com.health.model.NutritionModels$WaterRecord">
+    SELECT * FROM water_records WHERE <include refid="recordFilter"/>
+    ORDER BY consumed_at DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="waterCount" resultType="long">SELECT COUNT(*) FROM water_records WHERE <include refid="recordFilter"/></select>
+  <select id="waterRecord" resultType="com.health.model.NutritionModels$WaterRecord">
+    SELECT * FROM water_records WHERE user_id=#{userId} AND id=#{id}
+  </select>
+  <select id="waterRange" resultType="com.health.model.NutritionModels$WaterRecord">
+    SELECT * FROM water_records WHERE <include refid="rangeFilter"/> ORDER BY consumed_at,id
+  </select>
+  <insert id="insertWater" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO water_records(user_id,consumed_at,amount_ml,source_name,note)
+    VALUES(#{userId},#{consumedAt},#{amountMl},#{sourceName},#{note})
+  </insert>
+  <update id="updateWater">
+    UPDATE water_records SET consumed_at=#{consumedAt},amount_ml=#{amountMl},source_name=#{sourceName},
+      note=#{note},updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="deleteWater">DELETE FROM water_records WHERE user_id=#{userId} AND id=#{id}</delete>
+  <select id="waterSources" resultType="string">
+    SELECT DISTINCT source_name FROM water_records WHERE user_id=#{userId} ORDER BY source_name
+  </select>
+</mapper>
