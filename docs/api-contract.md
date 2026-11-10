@@ -30,6 +30,16 @@
 - POST /imports/preview multipart file + timezone（IANA，默认档案时区）→ {id,status,totalRows,validRows,invalidRows,duplicateRows,rows:[{rowNumber,startTime,endTime,sourceName,note,valid,error}]}。CSV10MB、最多10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。
 - POST /imports/{id}/confirm → {id,status,insertedRows,duplicateRows,invalidRows}。只入有效未重复行，同批确认幂等。所有来源保留；同一醒来日期内，不同来源时段实际重叠且未选择sourceName时，返回409 SOURCE_SELECTION_REQUIRED，由用户选择后统计。不同来源的非重叠时段可以汇总，不能因来源数量大于1就拒绝统计。
 - GET /imports → 当前用户导入批次概要数组。
+
+### P1 苹果健康文件导入
+
+- POST /imports/apple/preview multipart file → 与CSV相同的导入预览结构，复用 /imports/{id}/confirm 确认入库。接受 export.xml 或包含 export.xml / apple_health_export/export.xml 的 ZIP；文件最多100MB，ZIP总展开内容最多500MB、最多10000个条目，最多10000条SleepAnalysis记录。时间采用文件内偏移并统一到档案时区，不另猜时区。
+- 导入批次新增 format（CSV / APPLE_HEALTH）、skippedRows、unsupportedRows；CSV的后两项为0。Apple的totalRows为全部Record条数；有效、无效、跳过、不支持互斥计数，重复数属于有效数。预览rows仅保留睡眠条目及其问题项，不保存其他健康指标原文。
+- 支持 HKCategoryTypeIdentifierSleepAnalysis 下的 Asleep / AsleepUnspecified、AsleepCore、AsleepDeep、AsleepREM。InBed、Awake不计入睡眠时长，其他指标跳过，未知睡眠值作为不支持项显示。跨日归属使用同来源连续或重叠区间的结束日期，清醒、在床区间仅用于识别连续记录边界，不计入时长，不猜测未记录的间隔。
+- ImportRow新增sleepDate；Apple分段保留原阶段和原始偏移时间于note。CSV仍按结束日期归属。durationMinutes为数值，可包含小数；录入和CSV支持至少1秒的有效区间，统计按秒合并后换算小时，避免截断短睡眠阶段。
+- 只读取压缩包中的数据，不将条目解压到文件系统；XML关闭外部实体和DTD解析。该边界依据需求NF03的文件结构、大小、记录数和资源限制，未引入通用重试或兼容框架。
+- 经用户确认，导入入口按同来源、同睡眠日期检查真实睡眠覆盖范围的档案时区UTC偏移。偏移发生变化时，该组睡眠条目计入unsupportedRows并提示使用UTC档案时区重新导入，不进入正式记录；该判断只在苹果文件解析入口执行。
+- 解析代码是否符合真实导出样本由用户验证；未验证前不记录为已接入设备或已通过样本验收。
 - GET /knowledge?query= → Article[] {id,title,content,sourceName,sourceUrl,updatedAt,published}。只返回已发布资料，关键词检索。
 
 SleepRecord={id,startTime,endTime,sleepDate,durationMinutes,sourceName,note,corrected,createdAt}。sleepDate按醒来日期，durationMinutes由程序计算。

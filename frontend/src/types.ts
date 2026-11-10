@@ -47,6 +47,7 @@ export interface ImportRow {
   rowNumber: number;
   startTime: string | null;
   endTime: string | null;
+  sleepDate: string | null;
   sourceName: string | null;
   note: string | null;
   valid: boolean;
@@ -54,11 +55,14 @@ export interface ImportRow {
 }
 export interface ImportBatch {
   id: number;
+  format: "CSV" | "APPLE_HEALTH";
   status: string;
   totalRows: number;
   validRows: number;
   invalidRows: number;
   duplicateRows: number;
+  skippedRows: number;
+  unsupportedRows: number;
   insertedRows?: number;
   createdAt?: string;
 }

@@ -19,7 +19,7 @@ CREATE TABLE profiles (
 CREATE TABLE sleep_records (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
  start_time DATETIME NOT NULL, end_time DATETIME NOT NULL, sleep_date DATE NOT NULL,
- duration_minutes BIGINT NOT NULL, source_name VARCHAR(100) NOT NULL, note VARCHAR(1000) NOT NULL DEFAULT '',
+ duration_minutes DECIMAL(12,4) NOT NULL, source_name VARCHAR(100) NOT NULL, note VARCHAR(1000) NOT NULL DEFAULT '',
  corrected BOOLEAN NOT NULL DEFAULT FALSE, dedup_key CHAR(64) NOT NULL,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  UNIQUE KEY uk_sleep_dedup(user_id,dedup_key),
@@ -27,13 +27,14 @@ CREATE TABLE sleep_records (
 );
 CREATE TABLE import_batches (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
- status ENUM('PREVIEW','CONFIRMED') NOT NULL DEFAULT 'PREVIEW', total_rows INT NOT NULL,
+ status ENUM('PREVIEW','CONFIRMED') NOT NULL DEFAULT 'PREVIEW', import_format VARCHAR(20) NOT NULL DEFAULT 'CSV', total_rows INT NOT NULL,
  valid_rows INT NOT NULL, invalid_rows INT NOT NULL, duplicate_rows INT NOT NULL,
+ skipped_rows INT NOT NULL DEFAULT 0, unsupported_rows INT NOT NULL DEFAULT 0,
  inserted_rows INT NOT NULL DEFAULT 0, created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_import_user(user_id,created_at)
 );
 CREATE TABLE import_rows (
- batch_id BIGINT NOT NULL, row_number INT NOT NULL, start_time MEDIUMTEXT, end_time MEDIUMTEXT,
+ batch_id BIGINT NOT NULL, row_number INT NOT NULL, start_time MEDIUMTEXT, end_time MEDIUMTEXT, sleep_date DATE,
  source_name MEDIUMTEXT, note MEDIUMTEXT, valid BOOLEAN NOT NULL, error VARCHAR(500), dedup_key CHAR(64),
  PRIMARY KEY(batch_id,row_number)
 );

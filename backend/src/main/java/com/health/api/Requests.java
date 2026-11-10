@@ -68,12 +68,12 @@ public final class Requests {
       @NotNull LocalDateTime endTime,
       @NotBlank @Size(max = 100) String sourceName,
       @NotNull @Size(max = 1000) String note) {
-    @AssertTrue(message = "睡眠结束须晚于开始且至少1分钟")
+    @AssertTrue(message = "睡眠结束须晚于开始且至少1秒")
     @JsonIgnore
     public boolean isIntervalValid() {
       return startTime == null
           || endTime == null
-          || ChronoUnit.MINUTES.between(startTime, endTime) > 0;
+          || ChronoUnit.SECONDS.between(startTime, endTime) > 0;
     }
   }
 

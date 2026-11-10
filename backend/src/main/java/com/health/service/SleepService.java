@@ -23,6 +23,8 @@ public interface SleepService {
 
   ImportBatch preview(Long userId, MultipartFile file, String timezone);
 
+  ImportBatch applePreview(Long userId, MultipartFile file);
+
   ImportBatch confirm(Long userId, Long id);
 
   List<ImportBatch> imports(Long userId);

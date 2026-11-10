@@ -22,11 +22,17 @@ public class SleepServiceImpl implements SleepService {
   private final SleepMapper mapper;
   private final AccountService accounts;
   private final TaskService tasks;
+  private final AppleHealthImporter appleImporter;
 
-  public SleepServiceImpl(SleepMapper mapper, AccountService accounts, TaskService tasks) {
+  public SleepServiceImpl(
+      SleepMapper mapper,
+      AccountService accounts,
+      TaskService tasks,
+      AppleHealthImporter appleImporter) {
     this.mapper = mapper;
     this.accounts = accounts;
     this.tasks = tasks;
+    this.appleImporter = appleImporter;
   }
 
   public Page<SleepRecord> list(Long uid, Requests.SleepQuery q) {
@@ -49,6 +55,9 @@ public class SleepServiceImpl implements SleepService {
     if (old == null) throw ApiException.missing();
     SleepRecord s = record(uid, r);
     s.id = id;
+    if (old.startTime.equals(s.startTime) && old.endTime.equals(s.endTime)) {
+      s.sleepDate = old.sleepDate;
+    }
     mapper.update(s);
     tasks.invalidate(uid, old.sleepDate, old.sourceName);
     if (!old.sleepDate.equals(s.sleepDate) || !old.sourceName.equals(s.sourceName)) {
@@ -94,20 +103,20 @@ public class SleepServiceImpl implements SleepService {
         continue;
       }
       day.sort(Comparator.comparing(s -> s.startTime));
-      long minutes = 0;
+      long seconds = 0;
       LocalDateTime from = day.getFirst().startTime, to = day.getFirst().endTime;
       for (int i = 1; i < day.size(); i++) {
         SleepRecord s = day.get(i);
         if (!s.startTime.isAfter(to)) {
           if (s.endTime.isAfter(to)) to = s.endTime;
         } else {
-          minutes += ChronoUnit.MINUTES.between(from, to);
+          seconds += ChronoUnit.SECONDS.between(from, to);
           from = s.startTime;
           to = s.endTime;
         }
       }
-      minutes += ChronoUnit.MINUTES.between(from, to);
-      double hours = minutes / 60.0;
+      seconds += ChronoUnit.SECONDS.between(from, to);
+      double hours = seconds / 3600.0;
       total += hours;
       valid++;
       daily.add(new Daily(date, round(hours), day.size()));
@@ -162,10 +171,8 @@ public class SleepServiceImpl implements SleepService {
       throw new ApiException(400, "INVALID_TIMEZONE", "无效IANA时区");
     ZoneId zone = ZoneId.of(zoneName), profileZone = ZoneId.of(profileZoneName);
     List<ImportRow> rows = new ArrayList<>();
-    Set<String> seen = new HashSet<>();
     ImportBatch batch = new ImportBatch();
-    batch.userId = uid;
-    batch.status = "PREVIEW";
+    batch.format = "CSV";
     try (Reader reader =
             new InputStreamReader(
                 file.getInputStream(),
@@ -202,16 +209,12 @@ public class SleepServiceImpl implements SleepService {
             throw new IllegalArgumentException("来源必填且不超过100字符，备注最多1000字符，时间最多100字符");
           LocalDateTime start = parseTime(row.startTime, zone, profileZone),
               end = parseTime(row.endTime, zone, profileZone);
-          if (ChronoUnit.MINUTES.between(start, end) <= 0)
-            throw new IllegalArgumentException("睡眠结束须晚于开始且至少1分钟");
+          if (ChronoUnit.SECONDS.between(start, end) <= 0)
+            throw new IllegalArgumentException("睡眠结束须晚于开始且至少1秒");
           row.startTime = start.toString();
           row.endTime = end.toString();
-          row.dedupKey = dedup(start, end, row.sourceName);
+          row.sleepDate = end.toLocalDate();
           row.valid = true;
-          if (!seen.add(row.dedupKey) || mapper.duplicate(uid, row.dedupKey) != null) {
-            row.error = "重复记录，确认时跳过";
-            batch.duplicateRows++;
-          }
           batch.validRows++;
         } catch (DateTimeException | IllegalArgumentException e) {
           row.valid = false;
@@ -224,12 +227,38 @@ public class SleepServiceImpl implements SleepService {
       throw new ApiException(400, "INVALID_CSV", "无法解析UTF-8 CSV：" + e.getMessage());
     }
     batch.totalRows = rows.size();
+    batch.rows = rows;
+    return savePreview(uid, batch);
+  }
+
+  @Transactional
+  public ImportBatch applePreview(Long uid, MultipartFile file) {
+    ImportBatch batch = appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
+    return savePreview(uid, batch);
+  }
+
+  private ImportBatch savePreview(Long uid, ImportBatch batch) {
+    batch.userId = uid;
+    batch.status = "PREVIEW";
+    Set<String> seen = new HashSet<>();
+    for (ImportRow row : batch.rows) {
+      if (row.valid) {
+        row.dedupKey =
+            dedup(
+                LocalDateTime.parse(row.startTime),
+                LocalDateTime.parse(row.endTime),
+                row.sourceName);
+        if (!seen.add(row.dedupKey) || mapper.duplicate(uid, row.dedupKey) != null) {
+          row.error = "重复记录，确认时跳过";
+          batch.duplicateRows++;
+        }
+      }
+    }
     mapper.insertBatch(batch);
-    for (ImportRow row : rows) {
+    for (ImportRow row : batch.rows) {
       row.batchId = batch.id;
       mapper.insertRow(row);
     }
-    batch.rows = rows;
     return batch;
   }
 
@@ -254,14 +283,16 @@ public class SleepServiceImpl implements SleepService {
           b.duplicateRows++;
           continue;
         }
-        mapper.insert(
+        SleepRecord sleep =
             record(
                 uid,
                 new Requests.Sleep(
                     LocalDateTime.parse(row.startTime),
                     LocalDateTime.parse(row.endTime),
                     row.sourceName,
-                    row.note)));
+                    row.note));
+        if (row.sleepDate != null) sleep.sleepDate = row.sleepDate;
+        mapper.insert(sleep);
         b.insertedRows++;
       }
     b.status = "CONFIRMED";
@@ -280,7 +311,7 @@ public class SleepServiceImpl implements SleepService {
     s.startTime = r.startTime().truncatedTo(ChronoUnit.SECONDS);
     s.endTime = r.endTime().truncatedTo(ChronoUnit.SECONDS);
     s.sleepDate = s.endTime.toLocalDate();
-    s.durationMinutes = ChronoUnit.MINUTES.between(s.startTime, s.endTime);
+    s.durationMinutes = ChronoUnit.SECONDS.between(s.startTime, s.endTime) / 60.0;
     s.sourceName = r.sourceName();
     s.note = r.note();
     s.dedupKey = dedup(s.startTime, s.endTime, s.sourceName);

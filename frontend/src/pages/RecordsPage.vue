@@ -241,7 +241,7 @@ onMounted(load);
                   >{{ record.endTime.replace("T", " ") }}</span
                 >
               </td>
-              <td>{{ (record.durationMinutes / 60).toFixed(1) }} 小时</td>
+              <td>{{ Number(record.durationMinutes.toFixed(4)) }} 分钟</td>
               <td>{{ record.sourceName }}</td>
               <td class="note-cell">{{ record.note || "—" }}</td>
               <td>

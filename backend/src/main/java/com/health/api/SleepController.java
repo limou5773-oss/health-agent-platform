@@ -75,6 +75,11 @@ public class SleepController {
     return service.confirm(Identity.user(r).id, id);
   }
 
+  @PostMapping(value = "/imports/apple/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ImportBatch applePreview(HttpServletRequest r, @RequestPart MultipartFile file) {
+    return service.applePreview(Identity.user(r).id, file);
+  }
+
   @GetMapping("/imports")
   public List<ImportBatch> imports(HttpServletRequest r) {
     return service.imports(Identity.user(r).id);

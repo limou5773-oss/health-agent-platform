@@ -42,7 +42,7 @@ public class ErrorHandler {
 
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   ResponseEntity<?> upload(Exception e) {
-    return error(413, "FILE_TOO_LARGE", "CSV不能超过10MB");
+    return error(413, "FILE_TOO_LARGE", "上传文件不能超过100MB；CSV文件最多10MB");
   }
 
   @ExceptionHandler(DuplicateKeyException.class)

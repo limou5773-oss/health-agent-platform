@@ -36,7 +36,7 @@ public final class Models {
     public LocalDateTime startTime;
     public LocalDateTime endTime;
     public LocalDate sleepDate;
-    public long durationMinutes;
+    public double durationMinutes;
     public String sourceName;
     public String note;
     public boolean corrected;
@@ -48,9 +48,12 @@ public final class Models {
     public Long id;
     @JsonIgnore public Long userId;
     public String status;
+    public String format;
     public int totalRows;
     public int validRows;
     public int invalidRows;
+    public int skippedRows;
+    public int unsupportedRows;
     public int duplicateRows;
     public int insertedRows;
     public LocalDateTime createdAt;
@@ -62,6 +65,7 @@ public final class Models {
     public int rowNumber;
     public String startTime;
     public String endTime;
+    public LocalDate sleepDate;
     public String sourceName;
     public String note;
     public boolean valid;

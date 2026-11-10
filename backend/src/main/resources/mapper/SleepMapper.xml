@@ -12,10 +12,10 @@
  <update id="update">UPDATE sleep_records SET start_time=#{startTime},end_time=#{endTime},sleep_date=#{sleepDate},duration_minutes=#{durationMinutes},source_name=#{sourceName},note=#{note},corrected=TRUE,dedup_key=#{dedupKey} WHERE user_id=#{userId} AND id=#{id}</update>
  <delete id="delete">DELETE FROM sleep_records WHERE user_id=#{userId} AND id=#{id}</delete>
  <select id="sources" resultType="string">SELECT DISTINCT source_name FROM sleep_records WHERE user_id=#{userId} ORDER BY source_name</select>
- <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">INSERT INTO import_batches(user_id,total_rows,valid_rows,invalid_rows,duplicate_rows) VALUES(#{userId},#{totalRows},#{validRows},#{invalidRows},#{duplicateRows})</insert>
- <insert id="insertRow">INSERT INTO import_rows(batch_id,row_number,start_time,end_time,source_name,note,valid,error,dedup_key) VALUES(#{batchId},#{rowNumber},#{startTime},#{endTime},#{sourceName},#{note},#{valid},#{error},#{dedupKey})</insert>
- <select id="batches" resultType="com.health.model.Models$ImportBatch">SELECT * FROM import_batches WHERE user_id=#{userId} ORDER BY created_at DESC</select>
- <select id="lockBatch" resultType="com.health.model.Models$ImportBatch">SELECT * FROM import_batches WHERE user_id=#{userId} AND id=#{id} FOR UPDATE</select>
+ <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">INSERT INTO import_batches(user_id,import_format,total_rows,valid_rows,invalid_rows,duplicate_rows,skipped_rows,unsupported_rows) VALUES(#{userId},#{format},#{totalRows},#{validRows},#{invalidRows},#{duplicateRows},#{skippedRows},#{unsupportedRows})</insert>
+ <insert id="insertRow">INSERT INTO import_rows(batch_id,row_number,start_time,end_time,sleep_date,source_name,note,valid,error,dedup_key) VALUES(#{batchId},#{rowNumber},#{startTime},#{endTime},#{sleepDate},#{sourceName},#{note},#{valid},#{error},#{dedupKey})</insert>
+ <select id="batches" resultType="com.health.model.Models$ImportBatch">SELECT *,import_format AS format FROM import_batches WHERE user_id=#{userId} ORDER BY created_at DESC</select>
+ <select id="lockBatch" resultType="com.health.model.Models$ImportBatch">SELECT *,import_format AS format FROM import_batches WHERE user_id=#{userId} AND id=#{id} FOR UPDATE</select>
  <select id="rows" resultType="com.health.model.Models$ImportRow">SELECT * FROM import_rows WHERE batch_id=#{batchId} ORDER BY row_number</select>
  <delete id="deleteRows">DELETE FROM import_rows WHERE batch_id=#{batchId}</delete>
  <update id="confirmBatch">UPDATE import_batches SET status='CONFIRMED',inserted_rows=#{insertedRows},duplicate_rows=#{duplicateRows} WHERE id=#{id}</update>
