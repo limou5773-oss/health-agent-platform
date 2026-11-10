@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.TaskMapper">
+ <select id="get" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id}</select>
+ <select id="lock" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id} FOR UPDATE</select>
+ <insert id="insert">INSERT INTO agent_tasks(id,user_id,kind,goal,status,start_date,end_date,plan_start_date,plan_end_date,source_name,task_token) VALUES(#{id},#{userId},#{kind},#{goal},#{status},#{startDate},#{endDate},#{planStartDate},#{planEndDate},#{sourceName},#{taskToken})</insert>
+ <update id="update">UPDATE agent_tasks SET status=#{status},source_name=#{sourceName},answer=#{answer},question=#{question},error=#{error},retryable=#{retryable},statistics_json=#{statisticsJson},draft_json=#{draftJson},task_token=#{taskToken},pending_input=#{pendingInput},plan_id=#{planId},report_id=#{reportId},confirmed_version=#{confirmedVersion},operation_id=#{operationId},updated_at=CURRENT_TIMESTAMP(6) WHERE id=#{id}</update>
+ <delete id="delete">DELETE FROM agent_tasks WHERE id=#{id}</delete>
+ <select id="list" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT 50</select>
+ <select id="admin" resultType="map">SELECT id,kind,status,start_date AS startDate,end_date AS endDate,NULL AS durationMs,error,created_at AS createdAt FROM agent_tasks ORDER BY created_at DESC LIMIT 200</select>
+ <select id="steps" resultType="com.health.model.Models$Step">SELECT * FROM agent_steps WHERE task_id=#{id} ORDER BY id</select>
+ <insert id="insertStep" useGeneratedKeys="true" keyProperty="id">INSERT INTO agent_steps(task_id,name,status,input_summary,output_summary) VALUES(#{taskId},#{name},#{status},#{inputSummary},#{outputSummary})</insert>
+ <delete id="deleteSteps">DELETE FROM agent_steps WHERE task_id=#{id}</delete>
+ <update id="detachPlans">UPDATE plans SET task_id=NULL WHERE task_id=#{id}</update>
+ <update id="detachReports">UPDATE reports SET task_id=NULL WHERE task_id=#{id}</update>
+ <select id="affected" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE</select>
+ <update id="invalidateReports">UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source})</update>
+ <update id="recoverInterrupted">UPDATE agent_tasks SET status='FAILED',error='Java服务重启中断任务，请手动重试',retryable=TRUE,updated_at=CURRENT_TIMESTAMP(6) WHERE status IN ('QUEUED','RUNNING')</update>
+</mapper>

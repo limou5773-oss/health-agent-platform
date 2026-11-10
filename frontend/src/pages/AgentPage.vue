@@ -1,0 +1,225 @@
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ArrowUpRight, Sparkles } from "@lucide/vue";
+import {
+  api,
+  dateAfter,
+  dateString,
+  errorMessage,
+  json,
+  kindText,
+  recentRange,
+  statusText,
+} from "../api";
+import type { Profile, TaskDetail as Task } from "../types";
+import StateNotice from "../components/StateNotice.vue";
+import TaskDetail from "../components/TaskDetail.vue";
+const route = useRoute(),
+  router = useRouter();
+const planStart = new Date();
+planStart.setDate(planStart.getDate() + 1);
+const planEnd = new Date(planStart);
+planEnd.setDate(planEnd.getDate() + 6);
+const form = reactive({
+  goal: "",
+  kind: "ANALYZE",
+  ...recentRange(),
+  sourceName: "",
+  planStartDate: dateString(planStart),
+  planEndDate: dateString(planEnd),
+});
+const profile = ref<Profile | null>(null),
+  tasks = ref<Task[]>([]),
+  sources = ref<string[]>([]),
+  loading = ref(true),
+  error = ref(""),
+  actionError = ref(""),
+  busy = ref(false);
+const selected = computed(() => {
+  const id = route.query.task;
+  return typeof id === "string" && id ? id : null;
+});
+async function load() {
+  loading.value = true;
+  error.value = "";
+  try {
+    const [p, t, s] = await Promise.all([
+      api<Profile>("/profile"),
+      api<Task[]>("/agent/tasks"),
+      api<string[]>("/sleep/sources"),
+    ]);
+    profile.value = p;
+    tasks.value = t;
+    sources.value = s;
+  } catch (cause) {
+    error.value = errorMessage(cause);
+  } finally {
+    loading.value = false;
+  }
+}
+async function refreshList() {
+  try {
+    tasks.value = await api<Task[]>("/agent/tasks");
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  }
+}
+async function create() {
+  busy.value = true;
+  actionError.value = "";
+  const { planStartDate, planEndDate, sourceName, ...rest } = form;
+  try {
+    const task = await api<Task>(
+      "/agent/tasks",
+      json("POST", {
+        ...rest,
+        ...(sourceName ? { sourceName } : {}),
+        ...(form.kind === "PLAN" ? { planStartDate, planEndDate } : {}),
+      }),
+    );
+    await router.replace({ query: { task: task.id } });
+    await refreshList();
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  } finally {
+    busy.value = false;
+  }
+}
+async function deleted() {
+  await router.replace({ query: {} });
+  await refreshList();
+}
+onMounted(load);
+</script>
+<template>
+  <StateNotice :loading="loading" :error="error" @retry="load" /><template
+    v-if="!loading && !error"
+    ><div v-if="!profile?.aiConsent" class="consent-banner">
+      <div>
+        <strong>先决定是否授权 AI 分析</strong>
+        <p>
+          外部模型将按你的任务读取所选日期的睡眠统计与档案信息。你可以随时在档案中关闭授权。
+        </p>
+      </div>
+      <RouterLink class="button secondary" to="/profile"
+        >查看授权设置<ArrowUpRight :size="16"
+      /></RouterLink>
+    </div>
+    <section class="panel task-create">
+      <div class="section-heading">
+        <div>
+          <h2><Sparkles :size="20" />发起一个健康任务</h2>
+          <p>数据读取范围由你设定；计划需要核对草稿后确认。</p>
+        </div>
+      </div>
+      <form @submit.prevent="create">
+        <label
+          >这次想了解或改善什么？<textarea
+            v-model="form.goal"
+            rows="3"
+            required
+            maxlength="2000"
+            placeholder="描述你的问题、目标，以及需要注意的偏好"
+          />
+        </label>
+        <div class="form-grid three">
+          <label
+            >任务类型<select v-model="form.kind">
+              <option value="ANALYZE">睡眠分析</option>
+              <option value="PLAN">制定计划</option>
+              <option value="REPORT">生成睡眠周报</option>
+            </select></label
+          ><label
+            >分析开始日期<input
+              v-model="form.startDate"
+              type="date"
+              required
+              :max="form.endDate" /></label
+          ><label
+            >分析结束日期<input
+              v-model="form.endDate"
+              type="date"
+              required
+              :min="form.startDate"
+              :max="dateAfter(form.startDate, 365)" /></label
+          ><label
+            >睡眠数据来源<select v-model="form.sourceName">
+              <option value="">全部来源（冲突时补充选择）</option>
+              <option v-for="source in sources" :key="source">
+                {{ source }}
+              </option>
+            </select></label
+          ><template v-if="form.kind === 'PLAN'"
+            ><label
+              >计划执行开始日期<input
+                v-model="form.planStartDate"
+                type="date"
+                required
+                :max="form.planEndDate" /></label
+            ><label
+              >计划执行结束日期<input
+                v-model="form.planEndDate"
+                type="date"
+                required
+                :min="form.planStartDate"
+                :max="dateAfter(form.planStartDate, 30)" /></label
+          ></template>
+        </div>
+        <p class="footnote">
+          分析窗口最多 366 天；计划执行周期最多 31 天。健康建议供日常管理参考。
+        </p>
+        <p v-if="actionError" class="feedback error" role="alert">
+          {{ actionError }}
+        </p>
+        <button :disabled="busy || !profile?.aiConsent">
+          {{ busy ? "正在创建…" : "创建任务" }}<ArrowUpRight :size="16" />
+        </button>
+      </form>
+    </section>
+    <div class="workspace-grid">
+      <section class="panel task-history">
+        <div class="section-heading">
+          <h2>最近任务</h2>
+          <span class="small muted">最近 50 条</span>
+        </div>
+        <p v-if="!tasks.length" class="notice empty">
+          还没有任务。先设定一个你关心的目标。
+        </p>
+        <ul v-else class="selection-list">
+          <li v-for="task in tasks" :key="task.id">
+            <RouterLink
+              :to="{ path: '/agent', query: { task: task.id } }"
+              :class="{ selected: selected === task.id }"
+              ><span class="small muted"
+                >#{{ task.id }} · {{ kindText[task.kind] }}</span
+              ><strong>{{ task.goal }}</strong>
+              <div>
+                <span
+                  class="tag"
+                  :class="{ danger: task.status === 'FAILED' }"
+                  >{{ statusText[task.status] }}</span
+                ><span class="small muted">{{
+                  task.createdAt.slice(0, 10)
+                }}</span>
+              </div></RouterLink
+            >
+          </li>
+        </ul>
+      </section>
+      <TaskDetail
+        v-if="selected"
+        :key="selected"
+        :id="selected"
+        :sources="sources"
+        @changed="refreshList"
+        @deleted="deleted"
+      />
+      <section v-else class="panel workspace-empty">
+        <Sparkles :size="28" />
+        <h2>每一步，都能看见</h2>
+        <p>选择一个任务，查看执行过程、补充信息或确认计划草稿。</p>
+      </section>
+    </div></template
+  >
+</template>

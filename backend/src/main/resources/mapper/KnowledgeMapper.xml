@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.KnowledgeMapper">
+ <select id="list" resultType="com.health.model.Models$Article">SELECT * FROM knowledge_articles WHERE 1=1<if test="!all"> AND published=TRUE</if><if test="query != null and query != ''"> AND (LOCATE(#{query},title)&gt;0 OR LOCATE(#{query},content)&gt;0)</if> ORDER BY updated_at DESC LIMIT 100</select>
+ <select id="get" resultType="com.health.model.Models$Article">SELECT * FROM knowledge_articles WHERE id=#{id}</select>
+ <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO knowledge_articles(title,content,source_name,source_url,published) VALUES(#{title},#{content},#{sourceName},#{sourceUrl},#{published})</insert>
+ <update id="update">UPDATE knowledge_articles SET title=#{title},content=#{content},source_name=#{sourceName},source_url=#{sourceUrl},published=#{published} WHERE id=#{id}</update>
+</mapper>

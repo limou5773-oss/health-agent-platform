@@ -1,0 +1,31 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  application:
+    name: health-agent-backend
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/health_agent?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  sql:
+    init:
+      mode: never
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+app:
+  jwt-secret: ${JWT_SECRET}
+  jwt-ttl-seconds: ${JWT_TTL_SECONDS:7200}
+  internal-service-key: ${INTERNAL_SERVICE_KEY}
+  agent-url: ${AGENT_URL:http://127.0.0.1:8001}
+  admin-username: ${ADMIN_USERNAME:}
+  admin-password: ${ADMIN_PASSWORD:}
