@@ -1,6 +1,6 @@
 # 第一阶段接口契约
 
-实现范围：睡眠健康管理主流程、运动管理及饮食饮水记录。体重趋势、日记、专用品牌格式、提醒及其余P1/P2不伪装为已实现。Java 21 / Spring Boot 3.5 / MyBatis XML / MySQL；Vue 3；FastAPI + LangGraph。所有日期使用 ISO yyyy-MM-dd；时间使用 ISO 本地日期时间并按用户档案时区解释。接口返回原始 JSON，不另套多层 success/data。分页返回 {items,total,page,pageSize}。统一错误 {code,message}。
+实现范围：睡眠健康管理主流程、运动管理、饮食饮水和体重记录与目标。日记、专用品牌格式、提醒及其余P1/P2不伪装为已实现。Java 21 / Spring Boot 3.5 / MyBatis XML / MySQL；Vue 3；FastAPI + LangGraph。所有日期使用 ISO yyyy-MM-dd；时间使用 ISO 本地日期时间并按用户档案时区解释。接口返回原始 JSON，不另套多层 success/data。分页返回 {items,total,page,pageSize}。统一错误 {code,message}。
 
 ## 约束
 
@@ -65,6 +65,12 @@ SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,
 `/api/nutrition` 提供饮食与饮水CRUD、来源、独立每日统计，完整请求、响应与计算约定见[饮食饮水实施契约](nutrition-management.md)。份量未知可保留记录；未记录、手动填写和有依据的估算明确区分。估算由Java按用户提供的份量、同单位参考值与出处计算，未提供依据时不生成热量。
 
 汇总只显示已知部分热量，并提供未知记录数；缺失日期和未知热量返回null，实际0 kcal保留为0。饮水统计为所选范围的实际记录之和。同一事件多来源冲突时返回409 SOURCE_SELECTION_REQUIRED，由用户选择。当前报告与Agent仍仅使用睡眠数据，未增加饮食模型调用或营养数据服务。
+
+## 体重管理
+
+`/api/weight` 提供测量明细、单条详情、来源、每日代表值统计和目标配置/进度，完整字段与口径见[体重实施契约](weight-management.md)。单位固定为千克，保留同日多次记录，趋势取当天最后测量。阶段对比及目标起止值均使用可追溯的日代表记录；无数据不补零或推断基线，目标不设置默认值。
+
+GET /weight/goal和/weight/goal/progress未设置目标时返回204，存在目标时这两个GET返回200结构化JSON。新增测量返回201，删除测量及目标返回204，其余成功查询或修改返回200。目标配置与进度独立，来源冲突不妨碍修改配置。现有档案体重独立保存，体重测量变更不改写档案或使无关睡眠报告失效；跨指标Agent与报告按后续阶段实施。
 
 ## Agent任务
 
