@@ -338,3 +338,53 @@ export interface WaterStatistics {
   dataCutoff: string | null;
   daily: { date: string; amountMl: number | null; recordCount: number }[];
 }
+export interface WeightRecord {
+  id: number;
+  measuredAt: string;
+  weightKg: number;
+  sourceName: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface WeightStatistics {
+  startDate: string;
+  endDate: string;
+  sourceName: string | null;
+  periodDays: number;
+  validDays: number;
+  coverageRate: number;
+  recordCount: number;
+  averageKg: number | null;
+  first: WeightRecord | null;
+  last: WeightRecord | null;
+  changeKg: number | null;
+  dataCutoff: string | null;
+  daily: {
+    date: string;
+    recordCount: number;
+    representative: WeightRecord | null;
+  }[];
+}
+export interface WeightGoal {
+  startDate: string;
+  targetDate: string;
+  targetWeightKg: number;
+  sourceName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface WeightGoalProgress {
+  goal: WeightGoal;
+  periodDays: number;
+  validDays: number;
+  coverageRate: number;
+  baseline: WeightRecord | null;
+  current: WeightRecord | null;
+  changeKg: number | null;
+  differenceToTargetKg: number | null;
+  progressRate: number | null;
+  direction: "LOSE" | "GAIN" | "MAINTAIN" | null;
+  goalReached: boolean | null;
+  dataCutoff: string | null;
+}

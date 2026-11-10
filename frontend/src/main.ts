@@ -33,6 +33,14 @@ const router = createRouter({
       },
     },
     {
+      path: "/weight",
+      component: () => import("./pages/WeightPage.vue"),
+      meta: {
+        title: "体重管理",
+        caption: "保留每次实际测量，按每日代表值回顾变化与个人目标。",
+      },
+    },
+    {
       path: "/agent",
       component: () => import("./pages/AgentPage.vue"),
       meta: {
