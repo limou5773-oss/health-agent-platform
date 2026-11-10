@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.WeightMapper">
+  <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{userId} FOR UPDATE</select>
+  <sql id="recordFilter">
+    user_id=#{userId}
+    <if test="q.startDate != null">AND measured_at &gt;= #{q.startDate}</if>
+    <if test="q.endDate != null">AND measured_at &lt; DATE_ADD(#{q.endDate}, INTERVAL 1 DAY)</if>
+    <if test="q.sourceName != null and q.sourceName != ''">AND source_name=#{q.sourceName}</if>
+  </sql>
+  <select id="records" resultType="com.health.model.WeightModels$WeightRecord">
+    SELECT * FROM weight_records WHERE <include refid="recordFilter"/>
+    ORDER BY measured_at DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="recordCount" resultType="long">SELECT COUNT(*) FROM weight_records WHERE <include refid="recordFilter"/></select>
+  <select id="record" resultType="com.health.model.WeightModels$WeightRecord">
+    SELECT * FROM weight_records WHERE user_id=#{userId} AND id=#{id}
+  </select>
+  <select id="range" resultType="com.health.model.WeightModels$WeightRecord">
+    SELECT * FROM weight_records
+    WHERE user_id=#{userId} AND measured_at &gt;= #{start} AND measured_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+    <if test="source != null and source != ''">AND source_name=#{source}</if>
+    ORDER BY measured_at DESC,id DESC
+  </select>
+  <insert id="insertRecord" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO weight_records(user_id,measured_at,weight_kg,source_name,note)
+    VALUES(#{userId},#{measuredAt},#{weightKg},#{sourceName},#{note})
+  </insert>
+  <update id="updateRecord">
+    UPDATE weight_records SET measured_at=#{measuredAt},weight_kg=#{weightKg},source_name=#{sourceName},
+      note=#{note},updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="deleteRecord">DELETE FROM weight_records WHERE user_id=#{userId} AND id=#{id}</delete>
+  <select id="sources" resultType="string">
+    SELECT DISTINCT source_name FROM weight_records WHERE user_id=#{userId} ORDER BY source_name
+  </select>
+  <select id="goal" resultType="com.health.model.WeightModels$WeightGoal">
+    SELECT * FROM weight_goals WHERE user_id=#{userId}
+  </select>
+  <insert id="saveGoal">
+    INSERT INTO weight_goals(user_id,start_date,target_date,target_weight_kg,source_name)
+    VALUES(#{userId},#{startDate},#{targetDate},#{targetWeightKg},#{sourceName})
+    ON DUPLICATE KEY UPDATE start_date=VALUES(start_date),target_date=VALUES(target_date),
+      target_weight_kg=VALUES(target_weight_kg),source_name=VALUES(source_name),updated_at=CURRENT_TIMESTAMP(6)
+  </insert>
+  <delete id="deleteGoal">DELETE FROM weight_goals WHERE user_id=#{userId}</delete>
+</mapper>
