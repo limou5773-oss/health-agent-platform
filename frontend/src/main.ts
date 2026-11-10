@@ -17,6 +17,11 @@ const router = createRouter({
       meta: { title: "睡眠记录", caption: "让每一晚有迹可循。" },
     },
     {
+      path: "/activity",
+      component: () => import("./pages/ActivityPage.vue"),
+      meta: { title: "运动管理", caption: "记录每一步、每次运动，回顾自己的节奏。" },
+    },
+    {
       path: "/agent",
       component: () => import("./pages/AgentPage.vue"),
       meta: {

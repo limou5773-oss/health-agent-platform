@@ -178,3 +178,92 @@ export interface AdminTask {
   durationMs?: number | null;
   error?: string | null;
 }
+export type StepMode = "CUMULATIVE" | "DELTA";
+export interface StepRecord {
+  id: number;
+  startTime: string;
+  endTime: string;
+  activityDate: string;
+  steps: number;
+  mode: StepMode;
+  sourceName: string;
+  note: string;
+  createdAt: string;
+}
+export interface StepStatistics {
+  startDate: string;
+  endDate: string;
+  sourceName: string | null;
+  periodDays: number;
+  validDays: number;
+  coverageRate: number;
+  totalSteps: number;
+  averageSteps: number | null;
+  dailyGoal: number | null;
+  goalDays: number | null;
+  daily: {
+    date: string;
+    steps: number | null;
+    sourceName: string | null;
+    goalRate: number | null;
+  }[];
+}
+export interface StepImportRow {
+  rowNumber: number;
+  startTime: string | null;
+  endTime: string | null;
+  steps: string | null;
+  mode: string | null;
+  sourceName: string | null;
+  note: string | null;
+  valid: boolean;
+  error: string | null;
+}
+export interface StepImportBatch {
+  id: number;
+  status: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  duplicateRows: number;
+  insertedRows: number;
+  createdAt: string;
+  rows?: StepImportRow[];
+}
+export interface StepImportPreview extends StepImportBatch {
+  rows: StepImportRow[];
+}
+export interface Workout {
+  id: number;
+  exerciseType: string;
+  startTime: string;
+  endTime: string;
+  activityDate: string;
+  durationMinutes: number;
+  sourceName: string;
+  note: string;
+  planItemId: number | null;
+  planId: number | null;
+  planItemTitle: string | null;
+  planItemCompleted: boolean | null;
+  createdAt: string;
+}
+export interface WorkoutStatistics {
+  startDate: string;
+  endDate: string;
+  sourceName: string | null;
+  periodDays: number;
+  validDays: number;
+  coverageRate: number;
+  totalMinutes: number;
+  recordCount: number;
+  daily: { date: string; minutes: number | null; recordCount: number }[];
+}
+export interface ActivityPlanItem {
+  id: number;
+  planId: number;
+  title: string;
+  planTitle: string;
+  date: string;
+  completed: boolean;
+}

@@ -5,6 +5,7 @@ import {
   Activity,
   Moon,
   List,
+  Footprints,
   Sparkles,
   CalendarCheck,
   FileText,
@@ -25,6 +26,7 @@ const menuOpen = ref(false);
 const links = [
   { to: "/", label: "睡眠概览", icon: Moon },
   { to: "/records", label: "睡眠记录", icon: List },
+  { to: "/activity", label: "运动管理", icon: Footprints },
   { to: "/agent", label: "健康助手", icon: Sparkles },
   { to: "/plans", label: "我的计划", icon: CalendarCheck },
   { to: "/reports", label: "睡眠报告", icon: FileText },
