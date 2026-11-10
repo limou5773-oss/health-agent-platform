@@ -15,7 +15,7 @@ Vue 3 + Java 21 / Spring Boot + MyBatis XML + MySQL + FastAPI / LangGraph。以�
 
 ## 本地运行
 
-需要 Java 21、Maven 3.9、Node.js 22.12+、Python 3.11+、MySQL 8。推荐使用 PowerShell 7。
+需要 Java 21、Maven 3.9、Node.js 22.12+、Python 3.11+、MySQL 8.0.17 或更高版本。推荐使用 PowerShell 7。
 
 1. 在 MySQL 中建立本项目独立数据库并导入 `database/schema.sql`。脚本不应导入已有其他项目数据库。MySQL 连接账号由你配置，程序不会自行连接或修改本机其他数据库。
 2. 若已有 `.env`，直接编辑；首次配置可在项目根目录执行 `./scripts/init-env.ps1`，再填写 `DB_USERNAME`、`DB_PASSWORD` 和真实模型配置。脚本只生成本地随机密钥，不打印密钥，不覆盖已有 `.env`。
@@ -61,6 +61,14 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。运动与睡眠分别统计，当前Agent和报告仍限于睡眠，综合多指标分析按后续阶段实施。接口与CSV表头见[运动管理说明](docs/activity-management.md)。Mi Fitness专用原始文件仍需脱敏样本适配，通用CSV不代表已接入其私有格式。
 
 已有库在适用的前序迁移后执行 `database/migrations/004_activity_management.sql`，新库只使用最新schema.sql。脚本由用户自行执行，应用不会自动修改数据库。
+
+## 饮食与饮水
+
+“饮食与饮水”管理三餐、加餐、食物份量、实际进食时间及饮水记录，提供独立的日期/来源筛选、分页和每日汇总。份量未知仍可保存；热量区分未记录、用户录入及按参考值估算。只有实际份量、同单位参考份量、参考热量和出处齐全时才计算估算热量，修改份量后重新计算；平台不自动查询营养数据库或生成热量。
+
+饮食汇总展示已知部分热量、手动/估算合计与未知条数；缺失热量不计成零，也不显示为完整的全天摄入量。饮水按实际记录相加，不预设目标；同一事件存在不同来源时由用户明确选择统计来源。当前不含拍照识别、专用文件导入或跨指标Agent分析。字段和口径见[饮食饮水说明](docs/nutrition-management.md)。
+
+已有库在适用的前序迁移后执行 `database/migrations/005_nutrition_management.sql`，新库只使用最新schema.sql；应用不会自动执行迁移。
 
 ## 开发约定
 
