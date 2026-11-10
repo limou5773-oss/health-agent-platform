@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.DiaryMapper">
+  <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{userId} FOR UPDATE</select>
+  <sql id="filter">
+    user_id=#{userId}
+    <if test="q.startDate != null">AND recorded_at &gt;= #{q.startDate}</if>
+    <if test="q.endDate != null">AND recorded_at &lt; DATE_ADD(#{q.endDate}, INTERVAL 1 DAY)</if>
+    <if test="q.sourceName != null and q.sourceName != ''">AND source_name=#{q.sourceName}</if>
+    <if test="q.agentAllowed != null">AND agent_allowed=#{q.agentAllowed}</if>
+    <if test="q.query != null and q.query != ''">
+      AND (mood LIKE CONCAT('%',#{q.query},'%') OR body_feeling LIKE CONCAT('%',#{q.query},'%')
+        OR events LIKE CONCAT('%',#{q.query},'%') OR tags LIKE CONCAT('%',#{q.query},'%')
+        OR note LIKE CONCAT('%',#{q.query},'%'))
+    </if>
+  </sql>
+  <select id="entries" resultType="com.health.model.DiaryModels$DiaryRecord">
+    SELECT * FROM diary_entries WHERE <include refid="filter"/>
+    ORDER BY recorded_at DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="count" resultType="long">SELECT COUNT(*) FROM diary_entries WHERE <include refid="filter"/></select>
+  <select id="entry" resultType="com.health.model.DiaryModels$DiaryRecord">
+    SELECT * FROM diary_entries WHERE user_id=#{userId} AND id=#{id}
+  </select>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO diary_entries(user_id,recorded_at,mood,stress_level,body_feeling,events,tags,note,source_name,agent_allowed)
+    VALUES(#{userId},#{recordedAt},#{mood},#{stressLevel},#{bodyFeeling},#{events},#{tags},#{note},#{sourceName},#{agentAllowed})
+  </insert>
+  <update id="update">
+    UPDATE diary_entries SET recorded_at=#{recordedAt},mood=#{mood},stress_level=#{stressLevel},
+      body_feeling=#{bodyFeeling},events=#{events},tags=#{tags},note=#{note},source_name=#{sourceName},
+      agent_allowed=#{agentAllowed},updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <update id="permission">
+    UPDATE diary_entries SET agent_allowed=#{allowed},updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="delete">DELETE FROM diary_entries WHERE user_id=#{userId} AND id=#{id}</delete>
+  <select id="sources" resultType="string">
+    SELECT DISTINCT source_name FROM diary_entries WHERE user_id=#{userId} ORDER BY source_name
+  </select>
+  <sql id="authorizedFilter">
+    user_id=#{userId} AND agent_allowed=TRUE
+    AND recorded_at &gt;= #{start} AND recorded_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+  </sql>
+  <select id="authorizedCount" resultType="long">
+    SELECT COUNT(*) FROM diary_entries WHERE <include refid="authorizedFilter"/>
+  </select>
+  <select id="authorized" resultType="com.health.model.DiaryModels$DiaryEntry">
+    SELECT id,recorded_at,mood,stress_level,body_feeling,events,tags,note,source_name
+    FROM diary_entries WHERE <include refid="authorizedFilter"/>
+    ORDER BY recorded_at DESC,id DESC LIMIT 20
+  </select>
+</mapper>

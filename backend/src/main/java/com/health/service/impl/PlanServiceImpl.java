@@ -25,6 +25,10 @@ public class PlanServiceImpl implements PlanService {
     return mapper.list(uid);
   }
 
+  public List<AgentPlan> agentPlans(Long uid) {
+    return mapper.agentPlans(uid);
+  }
+
   public Plan get(Long uid, Long id) {
     Plan p = mapper.get(uid, id);
     if (p == null) throw ApiException.missing();

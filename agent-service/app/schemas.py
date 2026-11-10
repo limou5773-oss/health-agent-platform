@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -19,6 +19,7 @@ class TaskSpec(BaseModel):
     startDate: date
     endDate: date
     sourceName: str | None = Field(default=None, max_length=100)
+    includeDiary: bool = False
     planStartDate: date | None = None
     planEndDate: date | None = None
 
@@ -80,6 +81,35 @@ class SleepStatistics(BaseModel):
     recordCount: int
     dataCutoff: str | None
     daily: list[DailySleep]
+
+
+class DiaryEntry(RequestModel):
+    id: int = Field(gt=0)
+    recordedAt: datetime
+    mood: str = Field(max_length=40)
+    stressLevel: Annotated[int, Field(strict=True, ge=0, le=10)] | None
+    bodyFeeling: str = Field(max_length=500)
+    events: str = Field(max_length=1000)
+    tags: str = Field(max_length=200)
+    note: str = Field(max_length=2000)
+    sourceName: str = Field(min_length=1, max_length=100)
+
+
+class DiaryContext(RequestModel):
+    startDate: date
+    endDate: date
+    limit: Literal[20]
+    totalCount: int = Field(ge=0)
+    returnedCount: int = Field(ge=0, le=20)
+    truncated: bool
+    entries: list[DiaryEntry] = Field(max_length=20)
+
+
+class PlanMetadata(BaseModel):
+    id: int
+    startDate: date
+    endDate: date
+    status: str
 
 
 class DraftItem(RequestModel):

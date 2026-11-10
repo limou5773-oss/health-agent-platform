@@ -66,6 +66,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task create(Long uid, Requests.TaskCreate r) {
+    mapper.lockUser(uid);
     consent(uid);
     Task t = new Task();
     t.id = UUID.randomUUID().toString();
@@ -78,6 +79,7 @@ public class TaskServiceImpl implements TaskService {
     t.planStartDate = r.planStartDate();
     t.planEndDate = r.planEndDate();
     t.sourceName = r.sourceName();
+    t.includeDiary = r.includeDiary();
     t.taskToken = newToken();
     mapper.insert(t);
     afterCommit(() -> run(t.id, "CREATE", null));
@@ -221,6 +223,7 @@ public class TaskServiceImpl implements TaskService {
     result.put("planStartDate", t.planStartDate);
     result.put("planEndDate", t.planEndDate);
     result.put("sourceName", t.sourceName);
+    result.put("includeDiary", t.includeDiary);
     result.put("status", t.status);
     result.put("aiConsent", p.aiConsent);
     result.put("timezone", p.timezone);
@@ -248,21 +251,31 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public void invalidate(Long uid, LocalDate date, String source) {
-    for (Task t : mapper.affected(uid, date, source)) {
+    invalidateTasks(mapper.affected(uid, date, source), "源睡眠记录已变更，相关分析已失效");
+    mapper.invalidateReports(uid, date, source);
+  }
+
+  @Transactional
+  public void invalidateDiary(Long uid, Set<LocalDate> dates) {
+    invalidateTasks(mapper.affectedDiary(uid, dates), "源日记已变更或授权已撤销，相关分析已失效");
+    mapper.invalidateDiaryReports(uid, dates);
+  }
+
+  private void invalidateTasks(List<Task> tasks, String reason) {
+    for (Task t : tasks) {
       deleteCheckpoint(t.id);
       t.answer = null;
       t.question = null;
       t.statisticsJson = null;
       t.draftJson = null;
       t.pendingInput = null;
-      t.error = "源睡眠记录已变更，相关分析已失效";
+      t.error = reason;
       t.retryable = false;
       t.status = "CANCELLED";
       t.taskToken = newToken();
       mapper.update(t);
       mapper.deleteSteps(t.id);
     }
-    mapper.invalidateReports(uid, date, source);
   }
 
   public void recoverInterrupted() {
@@ -296,6 +309,7 @@ public class TaskServiceImpl implements TaskService {
         body.put("planStartDate", t.planStartDate);
         body.put("planEndDate", t.planEndDate);
         body.put("sourceName", t.sourceName);
+        body.put("includeDiary", t.includeDiary);
         result = agent.post().uri("/internal/runs").body(body).retrieve().body(JsonNode.class);
       } else {
         body.put("action", action);
@@ -370,6 +384,7 @@ public class TaskServiceImpl implements TaskService {
         report.startDate = t.startDate;
         report.endDate = t.endDate;
         report.sourceName = t.sourceName;
+        report.includeDiary = t.includeDiary;
         report.statisticsJson = t.statisticsJson;
         report.referencesJson = node.get("references").toString();
         plans.insertReport(report);

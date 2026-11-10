@@ -201,7 +201,8 @@ public final class Requests {
       @NotNull LocalDate endDate,
       @Size(max = 100) String sourceName,
       LocalDate planStartDate,
-      LocalDate planEndDate) {
+      LocalDate planEndDate,
+      boolean includeDiary) {
     @AssertTrue(message = "PLAN须提供1至31天计划周期")
     @JsonIgnore
     public boolean isPlanRangeValid() {

@@ -1,6 +1,7 @@
 package com.health.api;
 
 import com.health.model.Models.*;
+import com.health.model.DiaryModels.DiaryContext;
 import com.health.security.Identity;
 import com.health.service.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,13 +20,15 @@ public class InternalController {
   private final SleepService sleep;
   private final KnowledgeService knowledge;
   private final PlanService plans;
+  private final DiaryService diary;
 
   public InternalController(
-      TaskService tasks, SleepService sleep, KnowledgeService knowledge, PlanService plans) {
+      TaskService tasks, SleepService sleep, KnowledgeService knowledge, PlanService plans, DiaryService diary) {
     this.tasks = tasks;
     this.sleep = sleep;
     this.knowledge = knowledge;
     this.plans = plans;
+    this.diary = diary;
   }
 
   @GetMapping("/context")
@@ -49,9 +52,16 @@ public class InternalController {
     return knowledge.list(query, false);
   }
 
+  @GetMapping("/tools/diary")
+  public DiaryContext diary(HttpServletRequest r) {
+    Task t = (Task) r.getAttribute(TASK);
+    if (!t.includeDiary) throw new ApiException(403, "DIARY_NOT_ENABLED", "本任务未启用日记背景");
+    return diary.authorized(t.userId, t.startDate, t.endDate);
+  }
+
   @GetMapping("/tools/plans")
-  public List<Plan> plans(HttpServletRequest r) {
-    return plans.list(Identity.user(r).id);
+  public List<AgentPlan> plans(HttpServletRequest r) {
+    return plans.agentPlans(Identity.user(r).id);
   }
 
   @PostMapping("/steps")

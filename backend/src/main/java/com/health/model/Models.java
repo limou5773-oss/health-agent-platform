@@ -92,6 +92,7 @@ public final class Models {
     public LocalDate planStartDate;
     public LocalDate planEndDate;
     public String sourceName;
+    public boolean includeDiary;
     public String answer;
     public String question;
     public String error;
@@ -145,6 +146,8 @@ public final class Models {
     public LocalDateTime checkedAt;
   }
 
+  public record AgentPlan(Long id, LocalDate startDate, LocalDate endDate, String status) {}
+
   public static class Report {
     public Long id;
     @JsonIgnore public Long userId;
@@ -155,6 +158,7 @@ public final class Models {
     public LocalDate endDate;
     public LocalDateTime createdAt;
     public boolean sourceDeleted;
+    public boolean includeDiary;
     public String content;
     @JsonIgnore public String statisticsJson;
     @JsonIgnore public String referencesJson;

@@ -6,6 +6,8 @@ import java.util.*;
 import org.apache.ibatis.annotations.Param;
 
 public interface TaskMapper {
+  Long lockUser(Long userId);
+
   Task get(String id);
 
   Task lock(String id);
@@ -35,6 +37,10 @@ public interface TaskMapper {
 
   void invalidateReports(
       @Param("userId") Long userId, @Param("date") LocalDate date, @Param("source") String source);
+
+  List<Task> affectedDiary(@Param("userId") Long userId, @Param("dates") Set<LocalDate> dates);
+
+  void invalidateDiaryReports(@Param("userId") Long userId, @Param("dates") Set<LocalDate> dates);
 
   void recoverInterrupted();
 }

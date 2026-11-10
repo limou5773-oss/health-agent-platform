@@ -4,7 +4,7 @@ from typing import Any
 import httpx
 from pydantic import TypeAdapter
 
-from app.schemas import Article, EmptyArguments, KnowledgeArguments, SleepStatistics, TaskContext
+from app.schemas import Article, DiaryContext, EmptyArguments, KnowledgeArguments, PlanMetadata, SleepStatistics, TaskContext
 
 
 class AgentError(Exception):
@@ -73,11 +73,17 @@ class JavaGateway:
         if name == "get_sleep_statistics":
             statistics = SleepStatistics.model_validate(await self.request("GET", "tools/sleep-statistics"))
             return statistics.model_dump(mode="json"), f"有效{statistics.validDays}/{statistics.periodDays}天，共{statistics.recordCount}条记录"
+        if name == "get_authorized_diary":
+            diary = DiaryContext.model_validate(await self.request("GET", "tools/diary"))
+            return diary.model_dump(mode="json"), (
+                f"读取{diary.returnedCount}/{diary.totalCount}条授权日记，"
+                f"截断：{'是' if diary.truncated else '否'}"
+            )
         if name == "get_profile":
             return await self.request("GET", "tools/profile"), "已读取当前任务用户的健康档案"
         if name == "get_plans":
-            plans = await self.request("GET", "tools/plans")
-            return plans, f"读取到{len(plans)}份已有计划"
+            plans = TypeAdapter(list[PlanMetadata]).validate_python(await self.request("GET", "tools/plans"))
+            return [plan.model_dump(mode="json") for plan in plans], f"读取到{len(plans)}份已有计划"
         raise AgentError(502, "MODEL_TOOL_INVALID", f"模型请求了不支持的工具：{name[:80]}")
 
 
@@ -91,5 +97,11 @@ TOOLS = [
     tool_schema("get_profile", "读取当前任务用户授权的健康档案和偏好，无需提供用户身份。", EmptyArguments),
     tool_schema("get_sleep_statistics", "查询任务保存的分析日期与来源的真实睡眠统计；缺失日为null，不能自行编造或扩大日期范围。", EmptyArguments),
     tool_schema("search_knowledge", "按关键词检索已发布健康知识，引用仅使用真实返回的资料编号。", KnowledgeArguments),
-    tool_schema("get_plans", "查询当前任务用户的已有计划概要，避免制定重复或冲突计划。", EmptyArguments),
+    tool_schema("get_plans", "查询当前任务用户已有计划的编号、日期周期和状态元数据，不包含标题、原因或正文。", EmptyArguments),
 ]
+
+DIARY_TOOL = tool_schema(
+    "get_authorized_diary",
+    "读取任务日期范围内用户逐条授权的自述日记，与睡眠来源筛选独立；最多最近20条，计数与截断仅针对授权记录。日记只作背景，不是诊断或因果证据。",
+    EmptyArguments,
+)

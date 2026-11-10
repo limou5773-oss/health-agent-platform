@@ -9,6 +9,8 @@ import org.apache.ibatis.annotations.Param;
 public interface PlanMapper {
   List<Plan> list(Long userId);
 
+  List<AgentPlan> agentPlans(Long userId);
+
   Plan get(@Param("userId") Long userId, @Param("id") Long id);
 
   Plan lock(@Param("userId") Long userId, @Param("id") Long id);

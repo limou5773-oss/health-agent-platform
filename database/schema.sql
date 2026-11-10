@@ -47,6 +47,7 @@ CREATE TABLE agent_tasks (
  kind ENUM('ANALYZE','PLAN','REPORT') NOT NULL, goal VARCHAR(2000) NOT NULL,
  status ENUM('QUEUED','RUNNING','WAITING_INPUT','WAITING_CONFIRMATION','COMPLETED','FAILED','CANCELLED') NOT NULL,
  start_date DATE NOT NULL, end_date DATE NOT NULL, plan_start_date DATE, plan_end_date DATE, source_name VARCHAR(100),
+ include_diary BOOLEAN NOT NULL DEFAULT FALSE,
  answer MEDIUMTEXT, question TEXT, error VARCHAR(1000), retryable BOOLEAN NOT NULL DEFAULT FALSE,
  statistics_json JSON, draft_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),
  plan_id BIGINT, report_id BIGINT, confirmed_version INT, operation_id VARCHAR(100),
@@ -82,6 +83,7 @@ CREATE TABLE checkins (
 CREATE TABLE reports (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL, task_id CHAR(36) UNIQUE,
  title VARCHAR(200) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, source_name VARCHAR(100),
+ include_diary BOOLEAN NOT NULL DEFAULT FALSE,
  content MEDIUMTEXT, statistics_json JSON, references_json JSON, source_deleted BOOLEAN NOT NULL DEFAULT FALSE,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_report_user(user_id)
@@ -194,4 +196,19 @@ CREATE TABLE weight_goals (
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  CHECK(target_weight_kg > 0),
  CHECK(DATEDIFF(target_date,start_date) BETWEEN 0 AND 365)
+);
+
+-- Diary entries remain independent even when their recorded times are identical.
+CREATE TABLE diary_entries (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
+ recorded_at DATETIME NOT NULL, mood VARCHAR(40) NOT NULL, stress_level INT,
+ body_feeling VARCHAR(500) NOT NULL, events VARCHAR(1000) NOT NULL,
+ tags VARCHAR(200) NOT NULL, note VARCHAR(2000) NOT NULL,
+ source_name VARCHAR(100) COLLATE utf8mb4_0900_bin NOT NULL,
+ agent_allowed BOOLEAN NOT NULL DEFAULT FALSE,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ KEY ix_diary_user_time(user_id,recorded_at,id),
+ KEY ix_diary_user_permission_time(user_id,agent_allowed,recorded_at,id),
+ CHECK(stress_level IS NULL OR stress_level BETWEEN 0 AND 10)
 );

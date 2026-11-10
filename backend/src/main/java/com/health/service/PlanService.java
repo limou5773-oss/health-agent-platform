@@ -7,6 +7,8 @@ import java.util.*;
 public interface PlanService {
   List<Plan> list(Long uid);
 
+  List<AgentPlan> agentPlans(Long uid);
+
   Plan get(Long uid, Long id);
 
   Plan status(Long uid, Long id, String status);

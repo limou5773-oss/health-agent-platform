@@ -2,6 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.health.mapper.PlanMapper">
  <select id="list" resultType="com.health.model.Models$Plan">SELECT * FROM plans WHERE user_id=#{userId} ORDER BY created_at DESC</select>
+ <select id="agentPlans" resultType="com.health.model.Models$AgentPlan">SELECT id,start_date,end_date,status FROM plans WHERE user_id=#{userId} ORDER BY created_at DESC</select>
  <select id="get" resultType="com.health.model.Models$Plan">SELECT * FROM plans WHERE user_id=#{userId} AND id=#{id}</select>
  <select id="lock" resultType="com.health.model.Models$Plan">SELECT * FROM plans WHERE user_id=#{userId} AND id=#{id} FOR UPDATE</select>
  <select id="items" resultType="com.health.model.Models$PlanItem">SELECT p.*,c.id IS NOT NULL AS completed,c.checked_at FROM plan_items p LEFT JOIN checkins c ON c.item_id=p.id AND c.date=p.date WHERE p.plan_id=#{planId} ORDER BY p.date,p.time,p.id</select>
@@ -12,7 +13,7 @@
  <select id="checkin" resultType="map">SELECT id,TRUE AS completed,checked_at AS checkedAt FROM checkins WHERE item_id=#{itemId} FOR UPDATE</select>
  <insert id="insertCheckin">INSERT INTO checkins(item_id,date) VALUES(#{id},#{date})</insert>
  <delete id="deleteCheckin">DELETE FROM checkins WHERE item_id=#{itemId}</delete>
- <select id="reports" resultType="com.health.model.Models$Report">SELECT id,title,start_date,end_date,created_at,source_deleted FROM reports WHERE user_id=#{userId} ORDER BY created_at DESC</select>
+ <select id="reports" resultType="com.health.model.Models$Report">SELECT id,title,start_date,end_date,created_at,source_deleted,include_diary FROM reports WHERE user_id=#{userId} ORDER BY created_at DESC</select>
  <select id="report" resultType="com.health.model.Models$Report">SELECT * FROM reports WHERE user_id=#{userId} AND id=#{id}</select>
- <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">INSERT INTO reports(user_id,task_id,title,start_date,end_date,source_name,content,statistics_json,references_json) VALUES(#{userId},#{taskId},#{title},#{startDate},#{endDate},#{sourceName},#{content},#{statisticsJson},#{referencesJson})</insert>
+ <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">INSERT INTO reports(user_id,task_id,title,start_date,end_date,source_name,include_diary,content,statistics_json,references_json) VALUES(#{userId},#{taskId},#{title},#{startDate},#{endDate},#{sourceName},#{includeDiary},#{content},#{statisticsJson},#{referencesJson})</insert>
 </mapper>
