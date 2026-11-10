@@ -19,7 +19,18 @@ const router = createRouter({
     {
       path: "/activity",
       component: () => import("./pages/ActivityPage.vue"),
-      meta: { title: "运动管理", caption: "记录每一步、每次运动，回顾自己的节奏。" },
+      meta: {
+        title: "运动管理",
+        caption: "记录每一步、每次运动，回顾自己的节奏。",
+      },
+    },
+    {
+      path: "/nutrition",
+      component: () => import("./pages/NutritionPage.vue"),
+      meta: {
+        title: "饮食与饮水",
+        caption: "记录实际饮食与饮水，保留份量、热量依据和数据缺口。",
+      },
     },
     {
       path: "/agent",

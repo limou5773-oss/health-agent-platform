@@ -267,3 +267,74 @@ export interface ActivityPlanItem {
   date: string;
   completed: boolean;
 }
+export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+export type PortionUnit = "G" | "ML" | "SERVING";
+export type CalorieMode = "UNKNOWN" | "MANUAL" | "ESTIMATED";
+export interface MealRecord {
+  id: number;
+  consumedAt: string;
+  mealType: MealType;
+  foodName: string;
+  portionAmount: number | null;
+  portionUnit: PortionUnit;
+  calorieMode: CalorieMode;
+  caloriesKcal: number | null;
+  referenceAmount: number | null;
+  referenceCaloriesKcal: number | null;
+  nutritionSource: string;
+  sourceName: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface WaterRecord {
+  id: number;
+  consumedAt: string;
+  amountMl: number;
+  sourceName: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface MealDailyStatistics {
+  date: string;
+  recordCount: number;
+  knownCaloriesCount: number;
+  unknownCaloriesCount: number;
+  manualCaloriesCount: number;
+  estimatedCaloriesCount: number;
+  manualCaloriesKcal: number | null;
+  estimatedCaloriesKcal: number | null;
+  knownCaloriesKcal: number | null;
+}
+export interface MealStatistics {
+  startDate: string;
+  endDate: string;
+  sourceName: string | null;
+  periodDays: number;
+  validDays: number;
+  coverageRate: number;
+  recordCount: number;
+  knownCaloriesCount: number;
+  unknownCaloriesCount: number;
+  manualCaloriesCount: number;
+  estimatedCaloriesCount: number;
+  manualCaloriesKcal: number | null;
+  estimatedCaloriesKcal: number | null;
+  knownCaloriesKcal: number | null;
+  dataCutoff: string | null;
+  daily: MealDailyStatistics[];
+}
+export interface WaterStatistics {
+  startDate: string;
+  endDate: string;
+  sourceName: string | null;
+  periodDays: number;
+  validDays: number;
+  coverageRate: number;
+  recordCount: number;
+  totalMl: number;
+  averageMl: number | null;
+  dataCutoff: string | null;
+  daily: { date: string; amountMl: number | null; recordCount: number }[];
+}
