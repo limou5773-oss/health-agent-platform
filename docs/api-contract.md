@@ -1,6 +1,6 @@
 # 第一阶段接口契约
 
-实现范围：睡眠健康管理主流程、运动管理、饮食饮水和体重记录与目标。日记、专用品牌格式、提醒及其余P1/P2不伪装为已实现。Java 21 / Spring Boot 3.5 / MyBatis XML / MySQL；Vue 3；FastAPI + LangGraph。所有日期使用 ISO yyyy-MM-dd；时间使用 ISO 本地日期时间并按用户档案时区解释。接口返回原始 JSON，不另套多层 success/data。分页返回 {items,total,page,pageSize}。统一错误 {code,message}。
+实现范围：睡眠健康管理主流程、运动管理、饮食饮水、体重记录与目标、情绪与日记及可选的日记背景读取。专用品牌格式、提醒及其余P1/P2不伪装为已实现。Java 21 / Spring Boot 3.5 / MyBatis XML / MySQL；Vue 3；FastAPI + LangGraph。所有日期使用 ISO yyyy-MM-dd；时间使用 ISO 本地日期时间并按用户档案时区解释。接口返回原始 JSON，不另套多层 success/data。分页返回 {items,total,page,pageSize}。统一错误 {code,message}。
 
 ## 约束
 
@@ -58,13 +58,13 @@ SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,
 
 步数、运动、步数目标、CSV预览确认及计划任务关联使用独立的 `/api/activity` 接口，完整字段与口径见[运动管理实施契约](activity-management.md)。JWT、身份隔离、分页和统一错误格式沿用本契约。
 
-累计步数取同来源当日最新快照，增量按不重叠区间累加；同日多个来源须明确选择。目标未设置时不推断目标。保存或删除运动记录不自动更改既有打卡状态。运动和睡眠目前分别统计，Agent工具与报告仍限于既有睡眠流程；跨指标分析按后续阶段扩展。
+累计步数取同来源当日最新快照，增量按不重叠区间累加；同日多个来源须明确选择。目标未设置时不推断目标。保存或删除运动记录不自动更改既有打卡状态。运动和睡眠目前分别统计，Agent以睡眠统计为主并可选授权日记背景；活动等指标的综合分析按后续阶段扩展。
 
 ## 饮食与饮水
 
 `/api/nutrition` 提供饮食与饮水CRUD、来源、独立每日统计，完整请求、响应与计算约定见[饮食饮水实施契约](nutrition-management.md)。份量未知可保留记录；未记录、手动填写和有依据的估算明确区分。估算由Java按用户提供的份量、同单位参考值与出处计算，未提供依据时不生成热量。
 
-汇总只显示已知部分热量，并提供未知记录数；缺失日期和未知热量返回null，实际0 kcal保留为0。饮水统计为所选范围的实际记录之和。同一事件多来源冲突时返回409 SOURCE_SELECTION_REQUIRED，由用户选择。当前报告与Agent仍仅使用睡眠数据，未增加饮食模型调用或营养数据服务。
+汇总只显示已知部分热量，并提供未知记录数；缺失日期和未知热量返回null，实际0 kcal保留为0。饮水统计为所选范围的实际记录之和。同一事件多来源冲突时返回409 SOURCE_SELECTION_REQUIRED，由用户选择。当前报告以睡眠统计为主，可选授权日记背景；未增加饮食模型调用或营养数据服务。
 
 ## 体重管理
 
@@ -72,9 +72,15 @@ SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,
 
 GET /weight/goal和/weight/goal/progress未设置目标时返回204，存在目标时这两个GET返回200结构化JSON。新增测量返回201，删除测量及目标返回204，其余成功查询或修改返回200。目标配置与进度独立，来源冲突不妨碍修改配置。现有档案体重独立保存，体重测量变更不改写档案或使无关睡眠报告失效；跨指标Agent与报告按后续阶段实施。
 
+## 情绪与健康日记
+
+`/api/diary` 提供本人日记增删改查、关键词/日期/来源/Agent权限筛选、逐条权限修改及原始详情，完整字段与授权规则见[日记实施契约](diary-management.md)。自述文字及主观压力不作诊断；agentAllowed默认为界面未勾选，API须明确传入boolean。
+
+Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowed=true才能读取任务周期内最近20条授权日记。内容变更或撤销使相关任务/草稿/检查点和标记包含日记的报告失效；正式计划保留，内部计划工具仅返回日期及状态等元数据，避免计划内衍生文字再次进入模型。
+
 ## Agent任务
 
-- POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?} → 202 TaskDetail；kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。
+- POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。
 - GET /agent/tasks → 当前用户TaskDetail概要数组（最多50条，按创建倒序）。
 - GET /agent/tasks/{id} → TaskDetail。
 - POST /agent/tasks/{id}/input {input,sourceName?} → 202 TaskDetail，待补充时继续同一任务；来源冲突时由用户明确选择sourceName，Java更新任务来源后恢复，模型不能擅自选择来源。
@@ -84,7 +90,7 @@ GET /weight/goal和/weight/goal/progress未设置目标时返回204，存在目�
 - POST /agent/tasks/{id}/retry → 202 TaskDetail，只允许FAILED并由用户手动重试，不能重试权限/参数错误（标记retryable）；使用同一个任务/检查点；不新增自动重试。
 - DELETE /agent/tasks/{id} → 204，删除会话/任务及Python检查点，不泄露历史个人数据。
 
-TaskDetail={id,kind,goal,status,startDate,endDate,planStartDate,planEndDate,sourceName,answer,question,error,retryable,statistics,draft,planId,reportId,steps,createdAt}。
+TaskDetail={id,kind,goal,status,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,answer,question,error,retryable,statistics,draft,planId,reportId,steps,createdAt}。
 status QUEUED/RUNNING/WAITING_INPUT/WAITING_CONFIRMATION/COMPLETED/FAILED/CANCELLED。
 draft={version,title,reason,startDate,endDate,items:[{date,time,title,description}]}。草稿日期范围最多31天，items最多93条，均须在草稿周期内。
 steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/COMPLETED/FAILED。摘要不保存密钥、完整健康文件或内部思维链。
@@ -96,7 +102,7 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 - PATCH /plans/{id}/status {status:"ACTIVE"|"PAUSED"|"ENDED"} → Plan。
 - POST /plan-items/{id}/checkins {date} → {id,completed:true,checkedAt}。任务date必须匹配，所属计划ACTIVE，同任务日期唯一，重复返回已有打卡。
 - DELETE /plan-items/{id}/checkins → 204，当前用户撤销该项打卡。
-- GET /reports → [{id,title,startDate,endDate,createdAt,sourceDeleted}]。
+- GET /reports → [{id,title,startDate,endDate,createdAt,sourceDeleted,includeDiary}]。
 - GET /reports/{id} → 同上 + {content,statistics,references}，失效源不再返回旧健康明细。
 
 ## 后台
@@ -114,7 +120,7 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 ## Java → Python
 
 所有请求头 X-Service-Key: INTERNAL_SERVICE_KEY。
-POST /internal/runs {taskId:string,taskToken:string,goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?}。PLAN草稿采用单独的计划执行周期，不把历史分析窗口当作执行日期。
+POST /internal/runs {taskId:string,taskToken:string,goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary}。PLAN草稿采用单独的计划执行周期，不把历史分析窗口当作执行日期。实际任务范围仍以Java授权context为准。
 POST /internal/runs/{taskId}/resume {taskToken,action:"INPUT"|"CONFIRM"|"RETRY",input?,planId?}。
 DELETE /internal/runs/{taskId} → 204，清除检查点。
 GET /health → {status:"ok",modelConfigured:boolean}，无模型配置不假装分析可用。
@@ -126,11 +132,12 @@ Python使用OpenAI兼容外部模型接口，通过OPENAI_API_KEY/OPENAI_BASE_UR
 ## Python → Java工具
 
 头 X-Service-Key + X-Task-Token。任务编号作为路径，Java根据任务确定用户及当前授权，在统一内部入口校验一次。
-- GET /internal/agent/tasks/{id}/context → {id,goal,kind,startDate,endDate,planStartDate,planEndDate,sourceName,status,aiConsent,timezone,planId}。
+- GET /internal/agent/tasks/{id}/context → {id,goal,kind,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,status,aiConsent,timezone,planId}。
 - GET /internal/agent/tasks/{id}/tools/profile → Profile。
 - GET /internal/agent/tasks/{id}/tools/sleep-statistics → SleepStatistics（直接使用任务保存的日期与来源，不允许模型扩大范围）。
 - GET /internal/agent/tasks/{id}/tools/knowledge?query= → Article[]。
-- GET /internal/agent/tasks/{id}/tools/plans → 当前用户计划概要。
+- GET /internal/agent/tasks/{id}/tools/plans → 当前用户[{id,startDate,endDate,status}]，不返回标题、原因或正文；公共计划页面的接口不变。
+- GET /internal/agent/tasks/{id}/tools/diary → DiaryContext（结构见diary-management.md），仅任务显式includeDiary=true时可读，否则403 DIARY_NOT_ENABLED；只返回该用户、任务日期内当前已授权日记及其授权范围计数。
 - POST /internal/agent/tasks/{id}/steps {name,status,inputSummary,outputSummary} → 201 {id}。
 
 ## 环境统一
