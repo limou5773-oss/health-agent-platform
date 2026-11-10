@@ -146,10 +146,22 @@ onUnmounted(() => {
           <dd>{{ task.planStartDate }} 至 {{ task.planEndDate }}</dd>
         </div>
         <div>
-          <dt>数据来源</dt>
+          <dt>睡眠来源</dt>
           <dd>{{ task.sourceName || "未指定；多来源冲突时需要补充" }}</dd>
         </div>
+        <div>
+          <dt>日记背景</dt>
+          <dd>
+            <span class="tag" :class="{ warm: !task.includeDiary }">{{
+              task.includeDiary ? "已启用授权日记" : "未启用日记"
+            }}</span>
+          </dd>
+        </div>
       </dl>
+      <p v-if="task.includeDiary" class="footnote">
+        本次允许读取分析日期内逐条授权的日记，最多最近 20
+        条，独立于睡眠来源。是否实际读取及使用范围以执行过程和结果说明为准；日记是个人自述，不是诊断依据。相关授权或内容变更会使任务及报告失效。
+      </p>
       <p
         v-if="['QUEUED', 'RUNNING'].includes(task.status)"
         class="feedback"

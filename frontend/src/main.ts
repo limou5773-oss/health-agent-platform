@@ -41,6 +41,14 @@ const router = createRouter({
       },
     },
     {
+      path: "/diary",
+      component: () => import("./pages/DiaryPage.vue"),
+      meta: {
+        title: "情绪与日记",
+        caption: "用自己的文字记录感受，决定哪些内容可供健康助手参考。",
+      },
+    },
+    {
       path: "/agent",
       component: () => import("./pages/AgentPage.vue"),
       meta: {

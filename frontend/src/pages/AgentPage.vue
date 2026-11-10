@@ -26,6 +26,7 @@ const form = reactive({
   kind: "ANALYZE",
   ...recentRange(),
   sourceName: "",
+  includeDiary: false,
   planStartDate: dateString(planStart),
   planEndDate: dateString(planEnd),
 });
@@ -78,6 +79,7 @@ async function create() {
         ...(form.kind === "PLAN" ? { planStartDate, planEndDate } : {}),
       }),
     );
+    form.includeDiary = false;
     await router.replace({ query: { task: task.id } });
     await refreshList();
   } catch (cause) {
@@ -100,6 +102,7 @@ onMounted(load);
         <strong>先决定是否授权 AI 分析</strong>
         <p>
           外部模型将按你的任务读取所选日期的睡眠统计与档案信息。你可以随时在档案中关闭授权。
+          如果主动启用日记，还可读取相同日期内逐条授权的日记。
         </p>
       </div>
       <RouterLink class="button secondary" to="/profile"
@@ -166,6 +169,20 @@ onMounted(load);
                 :max="dateAfter(form.planStartDate, 30)" /></label
           ></template>
         </div>
+        <label class="checkbox-label">
+          <input
+            v-model="form.includeDiary"
+            type="checkbox"
+            :disabled="busy || !profile?.aiConsent"
+            aria-describedby="task-diary-hint"
+          />
+          本次任务允许读取已授权日记（可选）
+        </label>
+        <p id="task-diary-hint" class="footnote">
+          需同时开启个人档案 AI
+          授权、逐条允许日记读取、并勾选本项。仅限分析日期内已授权日记，日记来源不受睡眠来源筛选限制。最多读取最近
+          20 条，作为个人自述背景，不作诊断。
+        </p>
         <p class="footnote">
           分析窗口最多 366 天；计划执行周期最多 31 天。健康建议供日常管理参考。
         </p>
@@ -199,6 +216,9 @@ onMounted(load);
                   class="tag"
                   :class="{ danger: task.status === 'FAILED' }"
                   >{{ statusText[task.status] }}</span
+                ><span class="tag" :class="{ warm: !task.includeDiary }">{{
+                  task.includeDiary ? "已启用授权日记" : "未启用日记"
+                }}</span
                 ><span class="small muted">{{
                   task.createdAt.slice(0, 10)
                 }}</span>

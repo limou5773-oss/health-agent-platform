@@ -76,6 +76,9 @@ onMounted(load);
             ><strong>{{ entry.title }}</strong
             ><span class="small muted"
               >{{ entry.startDate }} — {{ entry.endDate }}</span
+            ><span class="tag" :class="{ warm: !entry.includeDiary }">{{
+              entry.includeDiary ? "已启用授权日记" : "仅睡眠数据"
+            }}</span
             ><span v-if="entry.sourceDeleted" class="tag warm">数据已失效</span
             ><span v-else class="small muted"
               >生成于 {{ entry.createdAt.slice(0, 10) }}</span
@@ -96,10 +99,20 @@ onMounted(load);
           {{ report.startDate }} 至 {{ report.endDate }} ·
           {{ report.createdAt.replace("T", " ") }}
         </p>
+        <p class="small">
+          <span class="tag" :class="{ warm: !report.includeDiary }">{{
+            report.includeDiary
+              ? "来源设置：睡眠与授权日记"
+              : "来源设置：睡眠数据"
+          }}</span>
+        </p>
+        <p v-if="report.includeDiary" class="footnote">
+          生成时启用了授权日记背景，实际读取范围以正文说明为准。日记是用户自述，不作诊断；日记内容或授权变化会使相关报告失效。
+        </p>
         <div v-if="report.sourceDeleted" class="notice error" role="status">
           <strong>这份报告的数据已失效</strong>
           <p>
-            关联睡眠记录已删除，原有健康明细不再展示。请使用当前有效数据重新生成报告。
+            关联健康记录或日记授权已发生变化，原有健康明细不再展示。请使用当前有效数据重新生成报告。
           </p>
           <RouterLink class="button secondary" to="/agent"
             >重新生成报告</RouterLink

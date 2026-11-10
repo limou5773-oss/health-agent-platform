@@ -116,6 +116,7 @@ export interface TaskDetail {
   planStartDate: string | null;
   planEndDate: string | null;
   sourceName: string | null;
+  includeDiary: boolean;
   answer: string | null;
   question: string | null;
   error: string | null;
@@ -155,6 +156,7 @@ export interface Report {
   endDate: string;
   createdAt: string;
   sourceDeleted: boolean;
+  includeDiary: boolean;
   content?: string;
   statistics?: SleepStatistics | null;
   references?: {
@@ -387,4 +389,18 @@ export interface WeightGoalProgress {
   direction: "LOSE" | "GAIN" | "MAINTAIN" | null;
   goalReached: boolean | null;
   dataCutoff: string | null;
+}
+export interface DiaryRecord {
+  id: number;
+  recordedAt: string;
+  mood: string;
+  stressLevel: number | null;
+  bodyFeeling: string;
+  events: string;
+  tags: string;
+  note: string;
+  sourceName: string;
+  agentAllowed: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
