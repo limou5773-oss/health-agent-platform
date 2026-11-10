@@ -1,6 +1,6 @@
 # 基于 Agent 与多源健康数据的智能健康管理平台
 
-Vue 3 + Java 21 / Spring Boot + MyBatis XML + MySQL + FastAPI / LangGraph。首个版本以睡眠数据为主，将真实记录、Agent 工具调用、用户确认、正式计划与打卡报告连接起来。
+Vue 3 + Java 21 / Spring Boot + MyBatis XML + MySQL + FastAPI / LangGraph。以睡眠数据为首个完整流程，将真实记录、Agent工具调用、用户确认、正式计划与打卡报告连接起来，按开发文档继续增加运动管理等指标。
 
 ## 目录
 
@@ -53,6 +53,14 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 苹果健康导入新增了批次格式、质量计数和分段归属字段，并将分钟时长改为小数。升级既有数据库时执行 `database/migrations/002_apple_health_import.sql`；新库直接导入最新 `database/schema.sql`。若旧库还保留外键，另先执行适用的001迁移。程序不会自动修改已有数据库。
 
 设备统一导入在批次和睡眠记录中新增App、品牌、类型及型号字段。已有库在适用的前序迁移后执行 `database/migrations/003_wearable_import.sql`；新库仍只导入最新schema.sql。历史硬件信息不作推断。
+
+## 运动管理
+
+“运动管理”提供每日步数、运动记录、步数目标、通用步数CSV预览确认和计划任务关联。累计步数取当天同来源最新快照，增量步数只累计不重叠区间；同日多来源不直接相加，由用户选择。真实零步与缺失日期分别展示，未设置目标时不生成默认目标。
+
+运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。运动与睡眠分别统计，当前Agent和报告仍限于睡眠，综合多指标分析按后续阶段实施。接口与CSV表头见[运动管理说明](docs/activity-management.md)。Mi Fitness专用原始文件仍需脱敏样本适配，通用CSV不代表已接入其私有格式。
+
+已有库在适用的前序迁移后执行 `database/migrations/004_activity_management.sql`，新库只使用最新schema.sql。脚本由用户自行执行，应用不会自动修改数据库。
 
 ## 开发约定
 

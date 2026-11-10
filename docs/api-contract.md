@@ -1,6 +1,6 @@
 # 第一阶段接口契约
 
-实现范围：可运行的睡眠健康管理主流程。其他指标、品牌解析、提醒及P2不伪装为已实现。Java 21 / Spring Boot 3.5 / MyBatis XML / MySQL；Vue 3；FastAPI + LangGraph。所有日期使用 ISO yyyy-MM-dd；时间使用 ISO 本地日期时间并按用户档案时区解释。接口返回原始 JSON，不另套多层 success/data。分页返回 {items,total,page,pageSize}。统一错误 {code,message}。
+实现范围：睡眠健康管理主流程及运动管理。饮食饮水、体重趋势、日记、专用品牌格式、提醒及其余P1/P2不伪装为已实现。Java 21 / Spring Boot 3.5 / MyBatis XML / MySQL；Vue 3；FastAPI + LangGraph。所有日期使用 ISO yyyy-MM-dd；时间使用 ISO 本地日期时间并按用户档案时区解释。接口返回原始 JSON，不另套多层 success/data。分页返回 {items,total,page,pageSize}。统一错误 {code,message}。
 
 ## 约束
 
@@ -53,6 +53,12 @@
 SleepRecord={id,startTime,endTime,sleepDate,durationMinutes,sourceName,sourceApp,deviceBrand,deviceType,deviceModel,note,corrected,createdAt}。sleepDate按醒来日期，durationMinutes由程序计算。
 
 SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,averageHours,totalHours,recordCount,dataCutoff,daily:[{date,hours,recordCount}]}。coverageRate百分数0..100；无有效日期均值null，daily缺失日hours=null。按日期合并区间并集，不重叠累加重复时段。日期范围最多366天（交互限制在入口校验一次），缺失日不补零。
+
+## 运动管理
+
+步数、运动、步数目标、CSV预览确认及计划任务关联使用独立的 `/api/activity` 接口，完整字段与口径见[运动管理实施契约](activity-management.md)。JWT、身份隔离、分页和统一错误格式沿用本契约。
+
+累计步数取同来源当日最新快照，增量按不重叠区间累加；同日多个来源须明确选择。目标未设置时不推断目标。保存或删除运动记录不自动更改既有打卡状态。运动和睡眠目前分别统计，Agent工具与报告仍限于既有睡眠流程；跨指标分析按后续阶段扩展。
 
 ## Agent任务
 
