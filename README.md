@@ -36,7 +36,9 @@ Vue 3 + Java 21 / Spring Boot + MyBatis XML + MySQL + FastAPI / LangGraph。首�
 
 JWT 通过 `Authorization: Bearer <token>` 发送，签名、过期与账号状态在统一入口检查一次。前端保存于 `sessionStorage`，退出会清除；已签发令牌不提供额外的退出黑名单机制。业务按绑定用户身份隔离，模型不能指定其他用户。
 
-在“睡眠记录”的导入区选择通用CSV或苹果健康XML/ZIP，先预览再确认入库。CSV表头为 `startTime,endTime,sourceName,note`，可下载空白模板；CSV最多10MB、10000行。苹果健康文件最多100MB、10000条睡眠记录，ZIP展开内容最多500MB、10000个条目，读取 `export.xml` 或 `apple_health_export/export.xml`。只将未分期、核心、深睡、REM计入睡眠，清醒、在床及其他指标跳过并计数，未知睡眠类型展示为不支持。
+在“睡眠记录 → 可穿戴设备数据导入”选择来源App、品牌、手环或手表及型号，再选择通用CSV或苹果健康XML/ZIP，先预览再确认入库。小米、红米的Mi Fitness数据当前使用通用CSV；原始Mi Fitness导出包尚未适配，不支持直接上传。每批对应同一设备，设备说明保存在批次和正式记录中；不同设备应使用不同sourceName，设备说明不改变去重规则。详见[统一导入说明](docs/wearable-import.md)。
+
+CSV表头为 `startTime,endTime,sourceName,note`，可下载空白模板；CSV最多10MB、10000行。苹果健康文件最多100MB、10000条睡眠记录，ZIP展开内容最多500MB、10000个条目，读取 `export.xml` 或 `apple_health_export/export.xml`。只将未分期、核心、深睡、REM计入睡眠，清醒、在床及其他指标跳过并计数，未知睡眠类型展示为不支持。
 
 来源重叠需要明确选择统计来源；分段睡眠按同来源连续区间的结束日期归属，统计采用实际睡眠区间并集，以秒计算后换算小时。缺失日期不补零。苹果健康的原始阶段和偏移时间保留在记录备注中，文件导入不等于设备自动同步。真实导出样本仍需由用户验证，当前不声称已通过样本验收。
 
@@ -49,6 +51,8 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 若已经使用旧版建表脚本创建了数据库，执行 `database/migrations/001_remove_foreign_keys.sql` 移除原有外键。新建数据库只使用当前 `database/schema.sql`，无需运行该迁移。迁移脚本仅针对本项目旧版自动生成的约束名称，保留表中数据及原有索引，不会由应用自动执行。
 
 苹果健康导入新增了批次格式、质量计数和分段归属字段，并将分钟时长改为小数。升级既有数据库时执行 `database/migrations/002_apple_health_import.sql`；新库直接导入最新 `database/schema.sql`。若旧库还保留外键，另先执行适用的001迁移。程序不会自动修改已有数据库。
+
+设备统一导入在批次和睡眠记录中新增App、品牌、类型及型号字段。已有库在适用的前序迁移后执行 `database/migrations/003_wearable_import.sql`；新库仍只导入最新schema.sql。历史硬件信息不作推断。
 
 ## 开发约定
 

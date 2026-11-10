@@ -19,7 +19,13 @@ export interface Page<T> {
   page: number;
   pageSize: number;
 }
-export interface SleepRecord {
+export interface WearableSource {
+  sourceApp: "MI_FITNESS" | "APPLE_HEALTH" | "OTHER";
+  deviceBrand: "XIAOMI" | "REDMI" | "APPLE" | "OTHER";
+  deviceType: "BAND" | "WATCH" | "OTHER";
+  deviceModel: string;
+}
+export interface SleepRecord extends WearableSource {
   id: number;
   startTime: string;
   endTime: string;
@@ -53,7 +59,7 @@ export interface ImportRow {
   valid: boolean;
   error: string | null;
 }
-export interface ImportBatch {
+export interface ImportBatch extends WearableSource {
   id: number;
   format: "CSV" | "APPLE_HEALTH";
   status: string;

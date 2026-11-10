@@ -162,7 +162,19 @@ public class SleepServiceImpl implements SleepService {
   }
 
   @Transactional
-  public ImportBatch preview(Long uid, MultipartFile file, String timezone) {
+  public ImportBatch preview(Long uid, MultipartFile file, Requests.ImportOptions options) {
+    ImportBatch batch =
+        "CSV".equals(options.format)
+            ? parseCsv(uid, file, options.timezone)
+            : appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
+    batch.sourceApp = options.sourceApp;
+    batch.deviceBrand = options.deviceBrand;
+    batch.deviceType = options.deviceType;
+    batch.deviceModel = options.deviceModel.strip();
+    return savePreview(uid, batch);
+  }
+
+  private ImportBatch parseCsv(Long uid, MultipartFile file, String timezone) {
     if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024)
       throw new ApiException(400, "INVALID_CSV", "CSV不能为空且不能超过10MB");
     String profileZoneName = accounts.profile(uid).timezone;
@@ -228,13 +240,7 @@ public class SleepServiceImpl implements SleepService {
     }
     batch.totalRows = rows.size();
     batch.rows = rows;
-    return savePreview(uid, batch);
-  }
-
-  @Transactional
-  public ImportBatch applePreview(Long uid, MultipartFile file) {
-    ImportBatch batch = appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
-    return savePreview(uid, batch);
+    return batch;
   }
 
   private ImportBatch savePreview(Long uid, ImportBatch batch) {
@@ -292,6 +298,10 @@ public class SleepServiceImpl implements SleepService {
                     row.sourceName,
                     row.note));
         if (row.sleepDate != null) sleep.sleepDate = row.sleepDate;
+        sleep.sourceApp = b.sourceApp;
+        sleep.deviceBrand = b.deviceBrand;
+        sleep.deviceType = b.deviceType;
+        sleep.deviceModel = b.deviceModel;
         mapper.insert(sleep);
         b.insertedRows++;
       }

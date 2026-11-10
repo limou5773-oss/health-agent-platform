@@ -12,6 +12,7 @@ import {
 import type { Page, SleepRecord } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import ImportPanel from "../components/ImportPanel.vue";
+import { wearableLabel } from "../wearables";
 const filters = reactive({ ...recentRange(), sourceName: "" });
 const data = ref<Page<SleepRecord> | null>(null),
   sources = ref<string[]>([]),
@@ -214,7 +215,7 @@ onMounted(load);
       :error="error"
       :empty="data?.items.length === 0"
       title="还没有这个时间段的记录"
-      description="新增一条记录，或在下方导入 CSV 文件。"
+      description="新增一条记录，或在下方导入可穿戴设备的睡眠文件。"
       @retry="load"
     /><template v-if="data && !loading && !error && data.items.length"
       ><div class="table-wrap">
@@ -242,7 +243,10 @@ onMounted(load);
                 >
               </td>
               <td>{{ Number(record.durationMinutes.toFixed(4)) }} 分钟</td>
-              <td>{{ record.sourceName }}</td>
+              <td>
+                {{ record.sourceName }}
+                <p class="small">{{ wearableLabel(record) }}</p>
+              </td>
               <td class="note-cell">{{ record.note || "—" }}</td>
               <td>
                 <div class="actions">

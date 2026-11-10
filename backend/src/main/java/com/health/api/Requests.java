@@ -77,6 +77,38 @@ public final class Requests {
     }
   }
 
+  public static class ImportOptions {
+    @NotBlank @Pattern(regexp = "CSV|APPLE_HEALTH")
+    public String format = "CSV";
+
+    public String timezone;
+
+    @NotBlank @Pattern(regexp = "MI_FITNESS|APPLE_HEALTH|OTHER")
+    public String sourceApp = "OTHER";
+
+    @NotBlank @Pattern(regexp = "XIAOMI|REDMI|APPLE|OTHER")
+    public String deviceBrand = "OTHER";
+
+    @NotBlank @Pattern(regexp = "BAND|WATCH|OTHER")
+    public String deviceType = "OTHER";
+
+    @NotNull @Size(max = 80)
+    public String deviceModel = "";
+
+    public String getFormat() { return format; }
+    public void setFormat(String value) { format = value; }
+    public String getTimezone() { return timezone; }
+    public void setTimezone(String value) { timezone = value; }
+    public String getSourceApp() { return sourceApp; }
+    public void setSourceApp(String value) { sourceApp = value; }
+    public String getDeviceBrand() { return deviceBrand; }
+    public void setDeviceBrand(String value) { deviceBrand = value; }
+    public String getDeviceType() { return deviceType; }
+    public void setDeviceType(String value) { deviceType = value; }
+    public String getDeviceModel() { return deviceModel; }
+    public void setDeviceModel(String value) { deviceModel = value; }
+  }
+
   public static class SleepQuery {
     @Min(1)
     public int page = 1;

@@ -1,11 +1,28 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { Download, Upload } from "@lucide/vue";
 import { api, errorMessage, json, saveBlob } from "../api";
-import type { ImportBatch, ImportPreview, Profile } from "../types";
+import type {
+  ImportBatch,
+  ImportPreview,
+  Profile,
+  WearableSource,
+} from "../types";
+import {
+  sourceApps,
+  deviceBrands,
+  deviceTypes,
+  wearableLabel,
+} from "../wearables";
 import StateNotice from "./StateNotice.vue";
 const emit = defineEmits<{ imported: [] }>();
 const format = ref<"CSV" | "APPLE_HEALTH">("CSV");
+const device = reactive<WearableSource>({
+  sourceApp: "MI_FITNESS",
+  deviceBrand: "OTHER",
+  deviceType: "OTHER",
+  deviceModel: "",
+});
 const profileTimezone = ref("");
 const timezone = ref(""),
   file = ref<File | null>(null),
@@ -68,11 +85,11 @@ async function upload() {
   result.value = null;
   const form = new FormData();
   form.append("file", file.value);
+  form.append("format", format.value);
+  for (const [key, value] of Object.entries(device)) form.append(key, value);
   if (format.value === "CSV") form.append("timezone", timezone.value);
   try {
-    const path =
-      format.value === "CSV" ? "/imports/preview" : "/imports/apple/preview";
-    preview.value = await api<ImportPreview>(path, {
+    preview.value = await api<ImportPreview>("/imports/preview", {
       method: "POST",
       body: form,
     });
@@ -107,8 +124,8 @@ onMounted(load);
   <section class="panel">
     <div class="section-heading">
       <div>
-        <h2>导入健康记录</h2>
-        <p>先预览并核对，再确认写入睡眠记录。</p>
+        <h2>可穿戴设备数据导入</h2>
+        <p>小米、红米及其他品牌共用导入流程，先预览再确认写入睡眠记录。</p>
       </div>
       <button
         v-if="format === 'CSV'"
@@ -121,11 +138,56 @@ onMounted(load);
     </div>
     <StateNotice :loading="loading" :error="error" @retry="load" /><template
       v-if="!loading && !error"
-      ><form class="import-form" @submit.prevent="upload">
+      ><form class="form-grid" @submit.prevent="upload">
         <label
-          >接入格式
+          >数据来源 App
+          <select v-model="device.sourceApp" :disabled="busy">
+            <option
+              v-for="(label, value) in sourceApps"
+              :key="value"
+              :value="value"
+            >
+              {{ label }}
+            </option>
+          </select>
+        </label>
+        <label
+          >设备品牌
+          <select v-model="device.deviceBrand" :disabled="busy">
+            <option
+              v-for="(label, value) in deviceBrands"
+              :key="value"
+              :value="value"
+            >
+              {{ label }}
+            </option>
+          </select>
+        </label>
+        <label
+          >设备类型
+          <select v-model="device.deviceType" :disabled="busy">
+            <option
+              v-for="(label, value) in deviceTypes"
+              :key="value"
+              :value="value"
+            >
+              {{ label }}
+            </option>
+          </select>
+        </label>
+        <label
+          >设备型号（选填）
+          <input
+            v-model="device.deviceModel"
+            :disabled="busy"
+            maxlength="80"
+            placeholder="填写实际型号，如 Redmi Watch 系列"
+          />
+        </label>
+        <label
+          >文件格式
           <select v-model="format" :disabled="busy">
-            <option value="CSV">通用 CSV</option>
+            <option value="CSV">通用睡眠 CSV（各品牌）</option>
             <option value="APPLE_HEALTH">苹果健康 XML / ZIP（睡眠）</option>
           </select>
         </label>
@@ -146,15 +208,20 @@ onMounted(load);
           >文件时区<input
             v-model="timezone"
             required
-            placeholder="Asia/Shanghai" /></label
-        ><button :disabled="busy || !file">
-          <Upload :size="16" />{{ busy ? "处理中…" : "上传并预览" }}
-        </button>
+            placeholder="Asia/Shanghai"
+        /></label>
+        <div class="span-all actions">
+          <button :disabled="busy || !file">
+            <Upload :size="16" />{{ busy ? "处理中…" : "上传并预览" }}
+          </button>
+        </div>
       </form>
       <p v-if="format === 'CSV'" class="footnote">
         最多 10 MB / 10,000 行。表头为
         startTime,endTime,sourceName,note；时间格式如
         2026-11-01T23:00:00。此处格式仅作说明，请填入自己的真实数据。
+        小米、红米手环或手表的数据须先整理为此模板；不同设备请使用不同的
+        sourceName。
       </p>
       <p v-else class="footnote">
         上传苹果健康导出的 export.xml 或包含该文件的 ZIP，单文件最多 100 MB，
@@ -163,6 +230,11 @@ onMounted(load);
         纳入睡眠时长；清醒、在床及其他健康指标跳过并计数。
         时间按原始偏移换算为档案时区
         {{ profileTimezone }}。此处为文件导入，不含设备自动同步。
+      </p>
+      <p class="footnote">
+        每批对应同一设备，所选 App、品牌、类型及型号会保存到批次和正式记录。 Mi
+        Fitness 原始导出包尚未适配，请使用通用
+        CSV；选择设备不代表已连接设备或账号。
       </p>
       <p v-if="actionError" class="feedback error" role="alert">
         {{ actionError }}
@@ -174,11 +246,13 @@ onMounted(load);
           跳过 {{ result.skippedRows }} 条，不支持
           {{ result.unsupportedRows }} 条。
         </template>
+        {{ wearableLabel(result) }}。
       </p>
       <div v-if="preview" class="import-preview">
         <div class="section-heading">
           <div>
             <h3>导入预览 · 批次 #{{ preview.id }}</h3>
+            <p>{{ wearableLabel(preview) }} · 核对下方来源与时间后确认。</p>
             <p>
               文件共 {{ preview.totalRows }} 条记录 · 有效
               {{ preview.validRows }} · 无效 {{ preview.invalidRows }} · 重复
@@ -258,6 +332,7 @@ onMounted(load);
               <tr>
                 <th>批次</th>
                 <th>格式</th>
+                <th>App / 设备</th>
                 <th>状态</th>
                 <th>总记录数</th>
                 <th>有效 / 无效 / 重复</th>
@@ -270,6 +345,7 @@ onMounted(load);
                 <td>
                   {{ batch.format === "APPLE_HEALTH" ? "苹果健康" : "CSV" }}
                 </td>
+                <td>{{ wearableLabel(batch) }}</td>
                 <td>{{ batch.status }}</td>
                 <td>{{ batch.totalRows }}</td>
                 <td>

@@ -66,8 +66,8 @@ public class SleepController {
   public ImportBatch preview(
       HttpServletRequest r,
       @RequestPart MultipartFile file,
-      @RequestParam(required = false) String timezone) {
-    return service.preview(Identity.user(r).id, file, timezone);
+      @Valid @ModelAttribute Requests.ImportOptions options) {
+    return service.preview(Identity.user(r).id, file, options);
   }
 
   @PostMapping("/imports/{id}/confirm")
@@ -77,7 +77,10 @@ public class SleepController {
 
   @PostMapping(value = "/imports/apple/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ImportBatch applePreview(HttpServletRequest r, @RequestPart MultipartFile file) {
-    return service.applePreview(Identity.user(r).id, file);
+    Requests.ImportOptions options = new Requests.ImportOptions();
+    options.format = "APPLE_HEALTH";
+    options.sourceApp = "APPLE_HEALTH";
+    return service.preview(Identity.user(r).id, file, options);
   }
 
   @GetMapping("/imports")

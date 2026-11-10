@@ -21,9 +21,7 @@ public interface SleepService {
 
   byte[] export(Long userId, Requests.SleepQuery q);
 
-  ImportBatch preview(Long userId, MultipartFile file, String timezone);
-
-  ImportBatch applePreview(Long userId, MultipartFile file);
+  ImportBatch preview(Long userId, MultipartFile file, Requests.ImportOptions options);
 
   ImportBatch confirm(Long userId, Long id);
 

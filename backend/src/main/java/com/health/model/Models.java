@@ -38,6 +38,10 @@ public final class Models {
     public LocalDate sleepDate;
     public double durationMinutes;
     public String sourceName;
+    public String sourceApp = "OTHER";
+    public String deviceBrand = "OTHER";
+    public String deviceType = "OTHER";
+    public String deviceModel = "";
     public String note;
     public boolean corrected;
     public LocalDateTime createdAt;
@@ -49,6 +53,10 @@ public final class Models {
     @JsonIgnore public Long userId;
     public String status;
     public String format;
+    public String sourceApp;
+    public String deviceBrand;
+    public String deviceType;
+    public String deviceModel;
     public int totalRows;
     public int validRows;
     public int invalidRows;
