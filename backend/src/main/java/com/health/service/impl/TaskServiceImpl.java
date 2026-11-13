@@ -14,6 +14,7 @@ import java.security.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -318,6 +319,7 @@ public class TaskServiceImpl implements TaskService {
 
   private void run(String id, String action, String input) {
     Task t = null;
+    long startedAt = 0;
     try {
       t =
           tx.execute(
@@ -331,6 +333,7 @@ public class TaskServiceImpl implements TaskService {
                 return task;
               });
       if (t == null) return;
+      startedAt = System.nanoTime();
       Map<String, Object> body = new LinkedHashMap<>();
       body.put("taskToken", t.taskToken);
       JsonNode result;
@@ -357,12 +360,18 @@ public class TaskServiceImpl implements TaskService {
                 .body(JsonNode.class);
       }
       final Task started = t;
-      tx.executeWithoutResult(status -> applyResult(started, result));
+      long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+      tx.executeWithoutResult(status -> {
+        applyResult(started, result);
+        mapper.addDuration(id, elapsedMs);
+      });
     } catch (Exception e) {
       final Task started = t;
+      long elapsedMs = started == null ? 0 : TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
       log.warn("Agent task {} failed ({})", id, e.getClass().getSimpleName());
       tx.executeWithoutResult(
           status -> {
+            if (started != null) mapper.addDuration(id, elapsedMs);
             Task current = mapper.lock(id);
             if (current == null || !Set.of("QUEUED", "RUNNING").contains(current.status)) return;
             if (started != null && !current.taskToken.equals(started.taskToken)) return;

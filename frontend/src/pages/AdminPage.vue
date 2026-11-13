@@ -7,6 +7,7 @@ import StateNotice from "../components/StateNotice.vue";
 import AdminImports from "../components/AdminImports.vue";
 import AdminPlanTemplates from "../components/AdminPlanTemplates.vue";
 import AdminSystemSettings from "../components/AdminSystemSettings.vue";
+import AdminRuntimeStats from "../components/AdminRuntimeStats.vue";
 const tab = ref("users"),
   users = ref<AdminUser[]>([]),
   tasks = ref<AdminTask[]>([]),
@@ -136,10 +137,14 @@ onMounted(load);
     <button :class="{ active: tab === 'system' }" :aria-pressed="tab === 'system'" @click="tab = 'system'">
       系统配置
     </button>
+    <button :class="{ active: tab === 'runtime' }" :aria-pressed="tab === 'runtime'" @click="tab = 'runtime'">
+      运行统计
+    </button>
   </div>
   <AdminImports v-if="tab === 'imports'" />
   <AdminPlanTemplates v-if="tab === 'templates'" />
   <AdminSystemSettings v-if="tab === 'system'" />
+  <AdminRuntimeStats v-if="tab === 'runtime'" />
   <p v-if="actionError" class="feedback error" role="alert">
     {{ actionError }}
   </p>

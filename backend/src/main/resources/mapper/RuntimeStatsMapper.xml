@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.RuntimeStatsMapper">
+  <sql id="createdWindow">created_at &gt;= #{start} AND created_at &lt; #{until}</sql>
+  <select id="statuses" resultType="com.health.model.RuntimeStats$StatusCount">
+    SELECT status,COUNT(*) AS count FROM agent_tasks
+    WHERE <include refid="createdWindow"/> GROUP BY status ORDER BY status
+  </select>
+  <select id="timing" resultType="com.health.model.RuntimeStats$Timing">
+    SELECT COUNT(duration_ms) AS timed_tasks,ROUND(AVG(duration_ms),2) AS average_duration_ms
+    FROM agent_tasks WHERE <include refid="createdWindow"/>
+  </select>
+  <select id="toolFailures" resultType="com.health.model.RuntimeStats$ToolFailure">
+    SELECT CASE WHEN name='睡眠统计来源选择' THEN 'get_sleep_statistics' ELSE name END AS tool, COUNT(*) AS count
+    FROM agent_steps WHERE status='FAILED' AND <include refid="createdWindow"/>
+      AND name IN ('睡眠统计来源选择','get_sleep_statistics','get_profile','get_plans','search_knowledge','get_authorized_diary')
+    GROUP BY tool ORDER BY count DESC,tool
+  </select>
+  <sql id="volumeColumns">
+    COUNT(*) AS batches,COUNT(CASE WHEN status='CONFIRMED' THEN 1 END) AS confirmed,
+    COALESCE(SUM(total_rows),0) AS input_rows,COALESCE(SUM(inserted_rows),0) AS inserted_rows
+  </sql>
+  <select id="imports" resultType="com.health.model.RuntimeStats$ImportVolume">
+    SELECT 'SLEEP' AS kind,b.batches,b.confirmed,
+      (SELECT COUNT(*) FROM rejected_imports WHERE kind='SLEEP' AND <include refid="createdWindow"/>) AS rejected,
+      b.input_rows,b.inserted_rows
+    FROM (SELECT <include refid="volumeColumns"/> FROM import_batches WHERE <include refid="createdWindow"/>) b
+    UNION ALL
+    SELECT 'STEPS',b.batches,b.confirmed,
+      (SELECT COUNT(*) FROM rejected_imports WHERE kind='STEPS' AND <include refid="createdWindow"/>),
+      b.input_rows,b.inserted_rows
+    FROM (SELECT <include refid="volumeColumns"/> FROM step_import_batches WHERE <include refid="createdWindow"/>) b
+  </select>
+  <select id="completion" resultType="com.health.model.RuntimeStats$Completion">
+    SELECT COUNT(*) AS scheduled,COUNT(c.id) AS completed
+    FROM plan_items i JOIN plans p ON p.id=i.plan_id
+    LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
+    WHERE i.retired=FALSE AND i.date &gt;= #{start} AND i.date &lt; #{until}
+  </select>
+</mapper>

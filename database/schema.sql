@@ -122,6 +122,7 @@ CREATE TABLE agent_tasks (
  statistics_json JSON, draft_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),
  plan_id BIGINT, report_id BIGINT, confirmed_version INT, operation_id VARCHAR(100),
  template_id BIGINT, template_version INT,
+ duration_ms BIGINT,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_task_user(user_id,created_at), CHECK(end_date >= start_date)

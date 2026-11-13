@@ -16,6 +16,7 @@ public interface TaskMapper {
   void insert(Task task);
 
   void update(Task task);
+  void addDuration(@Param("id") String id, @Param("elapsedMs") long elapsedMs);
 
   void delete(String id);
 

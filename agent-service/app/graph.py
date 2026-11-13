@@ -7,6 +7,8 @@ Patterns: https://docs.langchain.com/oss/python/langgraph/quickstart
 from dataclasses import dataclass
 import json
 from typing import Annotated, TypedDict
+import httpx
+from pydantic import ValidationError
 
 from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
@@ -120,6 +122,9 @@ def build_graph(saver: AsyncSqliteSaver):
                 observation = {"code": exc.code, "message": exc.message}
                 await gateway.step("睡眠统计来源选择", "查询任务日期内的睡眠统计", exc.message, "FAILED")
                 source_required = True
+            except (AgentError, httpx.HTTPError, ValidationError):
+                await gateway.step(name, "执行已授权只读工具", "工具执行失败", "FAILED")
+                raise
             else:
                 if name == "get_sleep_statistics":
                     statistics = observation

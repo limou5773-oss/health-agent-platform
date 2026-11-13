@@ -134,6 +134,7 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 ## 后台
 
 全部 /admin 校验ADMIN角色。
+- `GET /admin/runtime-stats` 按日期范围查询任务、工具、导入及计划汇总。详见[系统运行统计](runtime-stats.md)。
 - `/admin/system-settings` 管理平台规则、模型名称和超时，并提供模型连接检查。详见[系统配置接口](system-settings.md)。
 - `/admin/plan-templates` 管理计划模板，`/plan-templates` 提供用户选择及草稿生成。详见[计划模板接口](plan-templates.md)。
 - GET /admin/imports、GET /admin/imports/{kind}/{id}/issues、PUT /admin/import-templates/{kind} 提供批次查询、问题分类和模板说明维护。详见[后台导入管理](import-admin.md)。
