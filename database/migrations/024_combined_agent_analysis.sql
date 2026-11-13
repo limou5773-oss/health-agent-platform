@@ -1,0 +1,3 @@
+USE health_agent;
+
+ALTER TABLE agent_tasks MODIFY COLUMN kind ENUM('ANALYZE','PLAN','REPORT','COMBINED') NOT NULL;

@@ -6,6 +6,7 @@ import type { TaskDetail } from "../types";
 import StateNotice from "./StateNotice.vue";
 import DraftEditor from "./DraftEditor.vue";
 import SleepSummary from "./SleepSummary.vue";
+import CombinedAnalysisSummary from "./CombinedAnalysisSummary.vue";
 const props = defineProps<{ id: string; sources: string[] }>();
 const emit = defineEmits<{ changed: []; deleted: [] }>();
 const task = ref<TaskDetail | null>(null),
@@ -241,8 +242,9 @@ onUnmounted(() => {
         <h3>分析结果</h3>
         <div class="prose">{{ task.answer }}</div>
       </section>
+      <CombinedAnalysisSummary v-if="task.statistics && 'metrics' in task.statistics" :statistics="task.statistics" />
       <SleepSummary
-        v-if="task.statistics"
+        v-else-if="task.statistics"
         :statistics="task.statistics"
       /><DraftEditor
         v-if="task.status === 'WAITING_CONFIRMATION' && task.draft"

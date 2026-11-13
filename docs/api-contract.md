@@ -176,6 +176,7 @@ Python使用OpenAI兼容外部模型接口，通过OPENAI_API_KEY/OPENAI_BASE_UR
 - GET /internal/agent/tasks/{id}/context → {id,goal,kind,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,status,aiConsent,timezone,planId}。
 - GET /internal/agent/tasks/{id}/tools/profile → Profile。
 - GET /internal/agent/tasks/{id}/tools/sleep-statistics → SleepStatistics（直接使用任务保存的日期与来源，不允许模型扩大范围）。
+- GET /internal/agent/tasks/{id}/tools/combined-statistics → CombinedStatistics（仅 COMBINED 任务；使用任务保存的日期、用户与睡眠来源，返回同期五项指标的逐日数值和覆盖）。
 - GET /internal/agent/tasks/{id}/tools/knowledge?query= → Article[]。
 - GET /internal/agent/tasks/{id}/tools/plans → 当前用户[{id,startDate,endDate,status}]，不返回标题、原因或正文；公共计划页面的接口不变。
 - GET /internal/agent/tasks/{id}/tools/diary → DiaryContext（结构见diary-management.md），仅任务显式includeDiary=true时可读，否则403 DIARY_NOT_ENABLED；只返回该用户、任务日期内当前已授权日记及其授权范围计数。

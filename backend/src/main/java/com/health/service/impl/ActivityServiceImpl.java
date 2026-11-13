@@ -10,6 +10,7 @@ import com.health.model.Models.Page;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
 import com.health.service.NotificationService;
+import com.health.service.TaskService;
 import jakarta.validation.Validator;
 import java.io.*;
 import java.math.BigDecimal;
@@ -32,16 +33,18 @@ public class ActivityServiceImpl implements ActivityService {
   private final Validator validator;
   private final NotificationService notifications;
   private final ImportAdminService importAdmin;
+  private final TaskService tasks;
 
   public ActivityServiceImpl(ActivityMapper mapper, PlanMapper plans, AccountService accounts,
       Validator validator, NotificationService notifications,
-      ImportAdminService importAdmin) {
+      ImportAdminService importAdmin, TaskService tasks) {
     this.mapper = mapper;
     this.plans = plans;
     this.accounts = accounts;
     this.validator = validator;
     this.notifications = notifications;
     this.importAdmin = importAdmin;
+    this.tasks = tasks;
   }
 
   public Page<StepRecord> steps(Long uid, Requests.SleepQuery q) {
@@ -66,6 +69,7 @@ public class ActivityServiceImpl implements ActivityService {
     record.id = id;
     checkStep(record, mapper.stepDay(uid, record.activityDate, record.sourceName), false);
     mapper.updateStep(record);
+    tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
     plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
     return mapper.step(uid, id);
   }
@@ -76,6 +80,7 @@ public class ActivityServiceImpl implements ActivityService {
     StepRecord existing = mapper.step(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteStep(uid, id);
+    tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
     plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
   }
 
@@ -291,6 +296,7 @@ public class ActivityServiceImpl implements ActivityService {
         || !existing.activityDate.equals(record.activityDate)) validatePlan(uid, record);
     if (mapper.workoutDuplicate(record) != null) throw new ApiException(409, "DUPLICATE_RECORD", "相同起止时间、类型及来源的运动记录已存在");
     mapper.updateWorkout(record);
+    tasks.invalidateCombined(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
     plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
     return mapper.workout(uid, id);
   }
@@ -326,6 +332,7 @@ public class ActivityServiceImpl implements ActivityService {
     Workout existing = mapper.workout(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteWorkout(uid, id);
+    tasks.invalidateCombined(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
     plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
   }
 

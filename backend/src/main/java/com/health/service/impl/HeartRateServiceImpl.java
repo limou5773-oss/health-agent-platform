@@ -9,6 +9,7 @@ import com.health.mapper.TaskMapper;
 import com.health.model.HeartRateModels.*;
 import com.health.model.Models.Page;
 import com.health.service.HeartRateService;
+import com.health.service.TaskService;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -22,11 +23,13 @@ public class HeartRateServiceImpl implements HeartRateService {
   private final HeartRateMapper mapper;
   private final TaskMapper tasks;
   private final PlanMapper reports;
+  private final TaskService agentTasks;
 
-  public HeartRateServiceImpl(HeartRateMapper mapper, TaskMapper tasks, PlanMapper reports) {
+  public HeartRateServiceImpl(HeartRateMapper mapper, TaskMapper tasks, PlanMapper reports, TaskService agentTasks) {
     this.mapper = mapper;
     this.tasks = tasks;
     this.reports = reports;
+    this.agentTasks = agentTasks;
   }
 
   @Transactional(readOnly = true)
@@ -68,6 +71,7 @@ public class HeartRateServiceImpl implements HeartRateService {
       sample.sourceName = previous.sourceName;
       mapper.update(sample);
       LocalDate previousDate = previous.measuredAt.toLocalDate();
+      agentTasks.invalidateCombined(userId, previousDate, previousDate);
       LocalDate newDate = sample.measuredAt.toLocalDate();
       reports.invalidateHeartRateReports(userId, previousDate);
       if (!newDate.equals(previousDate)) reports.invalidateHeartRateReports(userId, newDate);
@@ -81,6 +85,7 @@ public class HeartRateServiceImpl implements HeartRateService {
     Sample sample = mapper.record(userId, id);
     if (sample == null) throw ApiException.missing();
     mapper.delete(userId, id);
+    agentTasks.invalidateCombined(userId, sample.measuredAt.toLocalDate(), sample.measuredAt.toLocalDate());
     reports.invalidateHeartRateReports(userId, sample.measuredAt.toLocalDate());
   }
 

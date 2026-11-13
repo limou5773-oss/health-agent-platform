@@ -4,7 +4,7 @@ from typing import Any
 import httpx
 from pydantic import TypeAdapter
 
-from app.schemas import Article, DiaryContext, EmptyArguments, KnowledgeArguments, PlanMetadata, SleepStatistics, TaskContext
+from app.schemas import Article, CombinedStatistics, DiaryContext, EmptyArguments, KnowledgeArguments, PlanMetadata, SleepStatistics, TaskContext
 
 
 class AgentError(Exception):
@@ -70,6 +70,9 @@ class JavaGateway:
             )
             return [article.model_dump(mode="json") for article in articles], f"检索到{len(articles)}条资料"
         EmptyArguments.model_validate(arguments)
+        if name == "get_combined_statistics":
+            statistics = CombinedStatistics.model_validate(await self.request("GET", "tools/combined-statistics"))
+            return statistics.model_dump(mode="json"), f"查询{len(statistics.metrics)}项指标的同期记录和覆盖"
         if name == "get_sleep_statistics":
             statistics = SleepStatistics.model_validate(await self.request("GET", "tools/sleep-statistics"))
             return statistics.model_dump(mode="json"), f"有效{statistics.validDays}/{statistics.periodDays}天，共{statistics.recordCount}条记录"
@@ -103,5 +106,11 @@ TOOLS = [
 DIARY_TOOL = tool_schema(
     "get_authorized_diary",
     "读取任务日期范围内用户逐条授权的自述日记，与睡眠来源筛选独立；最多最近20条，计数与截断仅针对授权记录。日记只作背景，不是诊断或因果证据。",
+    EmptyArguments,
+)
+
+COMBINED_TOOL = tool_schema(
+    "get_combined_statistics",
+    "读取任务同期的睡眠、步数、运动、体重与心率逐日统计、单位和覆盖。issue表示来源冲突，该项不参与比较。",
     EmptyArguments,
 )

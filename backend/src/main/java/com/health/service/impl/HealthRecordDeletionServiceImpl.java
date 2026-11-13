@@ -74,8 +74,8 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
     String impact = switch (query.getType()) {
       case SLEEP -> "匹配的睡眠分析、报告及相关任务会话和检查点将被清理，覆盖记录日期的本地健康报告将失效。";
       case DIARY -> "已授权日记涉及的任务会话、检查点及报告内容将被清理。";
-      case HEART_RATE -> "心率采样将从看板和时间线移除，覆盖相关日期的心率报告将失效。";
-      case STEPS, WORKOUT, MEAL, WATER, WEIGHT -> "覆盖相关日期的综合报告、专项报告和阶段对比将失效并清除内容。";
+      case HEART_RATE, STEPS, WORKOUT, WEIGHT -> "覆盖相关日期的报告及综合分析将失效，相关任务内容和检查点将清除。";
+      case MEAL, WATER -> "覆盖相关日期的综合报告、专项报告和阶段对比将失效并清除内容。";
       default -> throw new ApiException(400, "INVALID_RECORD_TYPE", "只能按范围删除健康记录和日记");
     };
     MessageDigest digest;

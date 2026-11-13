@@ -2,6 +2,7 @@ package com.health.api;
 
 import com.health.model.Models.*;
 import com.health.model.DiaryModels.DiaryContext;
+import com.health.model.CombinedAnalysis;
 import com.health.security.Identity;
 import com.health.service.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,14 +22,17 @@ public class InternalController {
   private final KnowledgeService knowledge;
   private final PlanService plans;
   private final DiaryService diary;
+  private final CombinedAnalysisService combined;
 
   public InternalController(
-      TaskService tasks, SleepService sleep, KnowledgeService knowledge, PlanService plans, DiaryService diary) {
+      TaskService tasks, SleepService sleep, KnowledgeService knowledge, PlanService plans, DiaryService diary,
+      CombinedAnalysisService combined) {
     this.tasks = tasks;
     this.sleep = sleep;
     this.knowledge = knowledge;
     this.plans = plans;
     this.diary = diary;
+    this.combined = combined;
   }
 
   @GetMapping("/context")
@@ -50,6 +54,13 @@ public class InternalController {
   @GetMapping("/tools/knowledge")
   public List<Article> knowledge(@RequestParam(required = false) @Size(max = 200) String query) {
     return knowledge.list(query, false);
+  }
+
+  @GetMapping("/tools/combined-statistics")
+  public CombinedAnalysis combined(HttpServletRequest r) {
+    Task task = (Task) r.getAttribute(TASK);
+    if (!"COMBINED".equals(task.kind)) throw new ApiException(403, "TOOL_NOT_ENABLED", "本任务未启用综合分析");
+    return combined.statistics(task);
   }
 
   @GetMapping("/tools/diary")

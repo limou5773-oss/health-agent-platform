@@ -58,7 +58,7 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 “运动管理”提供每日步数、运动记录、步数目标、通用步数CSV预览确认和计划任务关联。累计步数取当天同来源最新快照，增量步数只累计不重叠区间；同日多来源不直接相加，由用户选择。真实零步与缺失日期分别展示，未设置目标时不生成默认目标。
 
-运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。运动与睡眠分别统计，当前Agent以睡眠统计为主并可选授权日记背景，活动等指标的综合分析按后续阶段实施。接口与CSV表头见[运动管理说明](docs/activity-management.md)。Mi Fitness专用原始文件仍需脱敏样本适配，通用CSV不代表已接入其私有格式。
+运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。接口与CSV表头见[运动管理说明](docs/activity-management.md)。Mi Fitness专用原始文件仍需脱敏样本适配。
 
 已有库在适用的前序迁移后执行 `database/migrations/004_activity_management.sql`，新库只使用最新schema.sql。脚本由用户自行执行，应用不会自动修改数据库。
 
@@ -147,6 +147,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 在「心率采样」录入测量值。综合看板按实际采样显示均值、采样数与覆盖天数，时间线支持查看和导出。已有库执行 `database/migrations/022_heart_rate_samples.sql`。详见[心率采样](docs/heart-rate.md)。
 
 体重和心率均支持通用 CSV 模板、批次预览、确认及历史。已有库执行 `database/migrations/023_measurement_imports.sql`。详见[体重与心率导入](docs/measurement-imports.md)。
+
+## Agent 综合分析
+
+在「健康助手」选择「综合分析」，使用同一日期范围的睡眠、步数、运动、体重与心率统计，并可选已授权日记。已有库执行 `database/migrations/024_combined_agent_analysis.sql`。详见[Agent 综合分析](docs/combined-agent-analysis.md)。
 
 ## 开发约定
 

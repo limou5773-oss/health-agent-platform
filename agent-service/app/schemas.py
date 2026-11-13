@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 TaskId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")]
-TaskKind = Literal["ANALYZE", "PLAN", "REPORT"]
+TaskKind = Literal["ANALYZE", "PLAN", "REPORT", "COMBINED"]
 ResultStatus = Literal["COMPLETED", "WAITING_INPUT", "WAITING_CONFIRMATION"]
 
 
@@ -89,6 +89,30 @@ class SleepStatistics(BaseModel):
     recordCount: int
     dataCutoff: str | None
     daily: list[DailySleep]
+
+
+class CombinedDay(BaseModel):
+    date: date
+    value: int | float | None
+
+
+class CombinedMetric(BaseModel):
+    key: Literal["SLEEP", "STEPS", "WORKOUT", "WEIGHT", "HEART_RATE"]
+    unit: str
+    basis: str
+    validDays: int | None
+    recordCount: int | None
+    sources: list[str]
+    daily: list[CombinedDay]
+    issue: str | None
+
+
+class CombinedStatistics(BaseModel):
+    startDate: date
+    endDate: date
+    periodDays: int
+    metrics: list[CombinedMetric]
+    diaryIds: list[int] = Field(default_factory=list)
 
 
 class DiaryEntry(RequestModel):
@@ -194,7 +218,7 @@ class AgentResult(BaseModel):
     status: ResultStatus
     answer: str | None = None
     question: str | None = None
-    statistics: SleepStatistics | None = None
+    statistics: SleepStatistics | CombinedStatistics | None = None
     draft: PlanDraft | None = None
     report: AgentReport | None = None
 

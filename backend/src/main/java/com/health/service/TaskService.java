@@ -40,6 +40,7 @@ public interface TaskService {
   void invalidate(Long uid, LocalDate date, String source);
 
   void invalidateDiary(Long uid, Set<LocalDate> dates);
+  void invalidateCombined(Long uid, LocalDate start, LocalDate end);
 
   void recoverInterrupted();
 }

@@ -8,6 +8,7 @@ import com.health.mapper.PlanMapper;
 import com.health.model.Models.Page;
 import com.health.model.WeightModels.*;
 import com.health.service.WeightService;
+import com.health.service.TaskService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -24,10 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class WeightServiceImpl implements WeightService {
   private final WeightMapper mapper;
   private final PlanMapper plans;
+  private final TaskService tasks;
 
-  public WeightServiceImpl(WeightMapper mapper, PlanMapper plans) {
+  public WeightServiceImpl(WeightMapper mapper, PlanMapper plans, TaskService tasks) {
     this.mapper = mapper;
     this.plans = plans;
+    this.tasks = tasks;
   }
 
   public Page<WeightRecord> records(Long uid, Requests.SleepQuery q) {
@@ -56,6 +59,7 @@ public class WeightServiceImpl implements WeightService {
     record.id = id;
     mapper.updateRecord(record);
     LocalDate date = existing.measuredAt.toLocalDate();
+    tasks.invalidateCombined(uid, date, date);
     plans.invalidateHealthReports(uid, date, date);
     return mapper.record(uid, id);
   }
@@ -66,6 +70,7 @@ public class WeightServiceImpl implements WeightService {
     WeightRecord existing = record(uid, id);
     mapper.deleteRecord(uid, id);
     LocalDate date = existing.measuredAt.toLocalDate();
+    tasks.invalidateCombined(uid, date, date);
     plans.invalidateHealthReports(uid, date, date);
   }
 

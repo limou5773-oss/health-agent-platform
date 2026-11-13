@@ -32,6 +32,7 @@ public class TaskServiceImpl implements TaskService {
   private static final String CLEARED_GOAL = "源记录变更，原任务内容已清除";
   private static final String SLEEP_INVALIDATED = "源睡眠记录已变更，相关分析已失效";
   private static final String DIARY_INVALIDATED = "源日记已变更或授权已撤销，相关分析已失效";
+  private static final String COMBINED_INVALIDATED = "源健康记录已变更，综合分析已失效";
   private final TaskMapper mapper;
   private final PlanMapper plans;
   private final AccountService accounts;
@@ -315,10 +316,14 @@ public class TaskServiceImpl implements TaskService {
     mapper.invalidateDiaryReports(uid, dates);
   }
 
+  @Transactional
+  public void invalidateCombined(Long uid, LocalDate start, LocalDate end) {
+    invalidateTasks(mapper.affectedCombined(uid, start, end), COMBINED_INVALIDATED);
+  }
+
   private void invalidateTasks(List<Task> tasks, String reason) {
     for (Task t : tasks) {
-      if ("CANCELLED".equals(t.status) && CLEARED_GOAL.equals(t.goal)
-          && (SLEEP_INVALIDATED.equals(t.error) || DIARY_INVALIDATED.equals(t.error))) continue;
+      if ("CANCELLED".equals(t.status) && CLEARED_GOAL.equals(t.goal)) continue;
       deleteCheckpoint(t.id);
       t.goal = CLEARED_GOAL;
       t.answer = null;

@@ -59,6 +59,11 @@
  <select id="affectedDiary" resultType="com.health.model.Models$Task">
   SELECT * FROM agent_tasks WHERE <include refid="diaryDateFilter"/> ORDER BY id FOR UPDATE
  </select>
+ <select id="affectedCombined" resultType="com.health.model.Models$Task">
+  SELECT * FROM agent_tasks WHERE user_id=#{userId} AND kind='COMBINED'
+    AND start_date &lt;= #{end} AND end_date &gt;= #{start}
+  ORDER BY id FOR UPDATE
+ </select>
  <update id="invalidateDiaryReports">
   UPDATE reports SET source_deleted=TRUE,title='源日记已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
   WHERE <include refid="diaryDateFilter"/>

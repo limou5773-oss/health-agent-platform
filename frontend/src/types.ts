@@ -124,12 +124,29 @@ export type TaskStatus =
   | "COMPLETED"
   | "FAILED"
   | "CANCELLED";
+export interface CombinedStatistics {
+  startDate: string;
+  endDate: string;
+  periodDays: number;
+  metrics: {
+    key: "SLEEP" | "STEPS" | "WORKOUT" | "WEIGHT" | "HEART_RATE";
+    unit: string;
+    basis: string;
+    validDays: number | null;
+    recordCount: number | null;
+    sources: string[];
+    daily: { date: string; value: number | null }[];
+    issue: string | null;
+  }[];
+  diaryIds: number[];
+}
+
 export interface TaskDetail {
   id: string;
   feedback: "HELPFUL" | "NOT_HELPFUL" | null;
   templateId: number | null;
   templateVersion: number | null;
-  kind: "ANALYZE" | "PLAN" | "REPORT";
+  kind: "ANALYZE" | "PLAN" | "REPORT" | "COMBINED";
   goal: string;
   status: TaskStatus;
   startDate: string;
@@ -142,7 +159,7 @@ export interface TaskDetail {
   question: string | null;
   error: string | null;
   retryable: boolean;
-  statistics: SleepStatistics | null;
+  statistics: SleepStatistics | CombinedStatistics | null;
   draft: PlanDraft | null;
   planId: number | null;
   reportId: number | null;

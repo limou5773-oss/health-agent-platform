@@ -109,7 +109,7 @@ onMounted(load);
       <div>
         <strong>先决定是否授权 AI 分析</strong>
         <p>
-          外部模型将按你的任务读取所选日期的睡眠统计与档案信息。你可以随时在档案中关闭授权。
+          外部模型可按任务读取所选日期的统计与档案信息。你可以随时在档案中关闭授权。
           如果主动启用日记，还可读取相同日期内逐条授权的日记。
         </p>
       </div>
@@ -138,6 +138,7 @@ onMounted(load);
           <label
             >任务类型<select v-model="form.kind">
               <option value="ANALYZE">睡眠分析</option>
+              <option value="COMBINED">综合分析</option>
               <option value="PLAN">制定计划</option>
               <option value="REPORT">生成睡眠周报</option>
             </select></label
@@ -177,6 +178,9 @@ onMounted(load);
                 :max="dateAfter(form.planStartDate, 30)" /></label
           ></template>
         </div>
+        <p v-if="form.kind === 'COMBINED'" class="footnote">
+          外部模型可使用所选日期内的睡眠、步数、运动、体重和心率汇总。睡眠来源只筛选睡眠，其他指标发生来源冲突时单独标记。
+        </p>
         <label class="checkbox-label">
           <input
             v-model="form.includeDiary"

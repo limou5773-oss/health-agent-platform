@@ -196,7 +196,7 @@ public final class Requests {
 
   public record TaskCreate(
       @NotBlank @Size(max = 2000) String goal,
-      @NotNull @Pattern(regexp = "ANALYZE|PLAN|REPORT") String kind,
+      @NotNull @Pattern(regexp = "ANALYZE|PLAN|REPORT|COMBINED") String kind,
       @NotNull LocalDate startDate,
       @NotNull LocalDate endDate,
       @Size(max = 100) String sourceName,
