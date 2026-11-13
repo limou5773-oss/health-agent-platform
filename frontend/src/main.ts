@@ -49,6 +49,14 @@ const router = createRouter({
       },
     },
     {
+      path: "/timeline",
+      component: () => import("./pages/TimelinePage.vue"),
+      meta: {
+        title: "健康时间线",
+        caption: "按日期回顾健康记录、日记与计划动态。",
+      },
+    },
+    {
       path: "/agent",
       component: () => import("./pages/AgentPage.vue"),
       meta: {
