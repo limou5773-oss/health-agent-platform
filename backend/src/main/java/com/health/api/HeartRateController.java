@@ -28,7 +28,7 @@ public class HeartRateController {
 
   @GetMapping("/statistics")
   public Statistics statistics(HttpServletRequest r, @Valid @ModelAttribute Requests.StatisticsQuery q) {
-    return service.statistics(Identity.user(r).id, q);
+    return service.statistics(Identity.user(r).id, q.startDate, q.endDate, q.sourceName);
   }
 
   @GetMapping("/sources")

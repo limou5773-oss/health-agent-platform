@@ -12,7 +12,7 @@ public final class HealthReportModels {
   public record Metric(
       String key, String basis, long validDays, Number value,
       int manualCaloriesCount, int estimatedCaloriesCount, int unknownCaloriesCount,
-      List<String> sources) {}
+      List<String> sources, Long recordCount) {}
   public record Completion(long scheduled, long completed) {}
   public record Snapshot(long periodDays, List<Metric> metrics, Completion completion,
                          BigDecimal completionRate) {}

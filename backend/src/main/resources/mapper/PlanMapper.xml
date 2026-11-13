@@ -108,6 +108,10 @@
   SELECT DISTINCT 'WEIGHT' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
   FROM weight_records WHERE user_id=#{userId} AND measured_at &gt;= #{start} AND measured_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
   <if test="request.weightSource != null and request.weightSource != ''">AND source_name=#{request.weightSource}</if>
+  UNION ALL
+  SELECT DISTINCT 'HEART_RATE' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM heart_rate_samples WHERE user_id=#{userId} AND measured_at &gt;= #{start} AND measured_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+  <if test="request.heartRateSource != null and request.heartRateSource != ''">AND source_name=#{request.heartRateSource}</if>
   ORDER BY metric,source_name
  </select>
  <update id="invalidateHealthReports">
@@ -116,5 +120,14 @@
   WHERE user_id=#{userId} AND report_type &lt;> 'SLEEP' AND source_deleted=FALSE
     AND ((start_date &lt;= #{end} AND end_date &gt;= #{start})
       OR (comparison_start_date &lt;= #{end} AND comparison_end_date &gt;= #{start}))
+ </update>
+ <update id="invalidateHeartRateReports">
+  UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',
+    content=NULL,statistics_json=NULL,references_json=NULL
+  WHERE user_id=#{userId} AND source_deleted=FALSE
+    AND (metric='HEART_RATE'
+      OR JSON_CONTAINS(statistics_json, JSON_OBJECT('key', 'HEART_RATE'), '$.metrics'))
+    AND (#{date} BETWEEN start_date AND end_date
+      OR #{date} BETWEEN comparison_start_date AND comparison_end_date)
  </update>
 </mapper>

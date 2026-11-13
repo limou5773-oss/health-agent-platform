@@ -4,6 +4,7 @@ import com.health.api.ApiException;
 import com.health.api.HeartRateController.Measurement;
 import com.health.api.Requests.StatisticsQuery;
 import com.health.mapper.HeartRateMapper;
+import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.HeartRateModels.*;
 import com.health.model.Models.Page;
@@ -20,10 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class HeartRateServiceImpl implements HeartRateService {
   private final HeartRateMapper mapper;
   private final TaskMapper tasks;
+  private final PlanMapper reports;
 
-  public HeartRateServiceImpl(HeartRateMapper mapper, TaskMapper tasks) {
+  public HeartRateServiceImpl(HeartRateMapper mapper, TaskMapper tasks, PlanMapper reports) {
     this.mapper = mapper;
     this.tasks = tasks;
+    this.reports = reports;
   }
 
   @Transactional(readOnly = true)
@@ -33,7 +36,11 @@ public class HeartRateServiceImpl implements HeartRateService {
   }
 
   @Transactional(readOnly = true)
-  public Statistics statistics(Long userId, StatisticsQuery q) {
+  public Statistics statistics(Long userId, LocalDate start, LocalDate end, String source) {
+    var q = new StatisticsQuery();
+    q.startDate = start;
+    q.endDate = end;
+    q.sourceName = source;
     if ((q.sourceName == null || q.sourceName.isEmpty()) && mapper.hasOverlappingSources(userId, q))
       throw new ApiException(409, "SOURCE_CONFLICT", "同一测量时刻有多个来源，请选择来源后查看心率统计");
     var totals = mapper.totals(userId, q);
@@ -60,6 +67,10 @@ public class HeartRateServiceImpl implements HeartRateService {
       sample.id = id;
       sample.sourceName = previous.sourceName;
       mapper.update(sample);
+      LocalDate previousDate = previous.measuredAt.toLocalDate();
+      LocalDate newDate = sample.measuredAt.toLocalDate();
+      reports.invalidateHeartRateReports(userId, previousDate);
+      if (!newDate.equals(previousDate)) reports.invalidateHeartRateReports(userId, newDate);
     }
     return mapper.record(userId, sample.id);
   }
@@ -67,7 +78,10 @@ public class HeartRateServiceImpl implements HeartRateService {
   @Transactional
   public void delete(Long userId, Long id) {
     tasks.lockUser(userId);
-    if (mapper.delete(userId, id) == 0) throw ApiException.missing();
+    Sample sample = mapper.record(userId, id);
+    if (sample == null) throw ApiException.missing();
+    mapper.delete(userId, id);
+    reports.invalidateHeartRateReports(userId, sample.measuredAt.toLocalDate());
   }
 
   private static Sample sample(Long userId, Measurement input) {

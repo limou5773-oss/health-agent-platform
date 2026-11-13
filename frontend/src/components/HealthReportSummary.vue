@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HealthSnapshot } from "../types";
-defineProps<{ snapshot: HealthSnapshot }>();
+defineProps<{ snapshot: HealthSnapshot; startDate: string; endDate: string }>();
 
 const metrics = {
   SLEEP: ["日均睡眠时长", "小时"],
@@ -9,6 +9,7 @@ const metrics = {
   MEAL: ["已知饮食热量", "千卡"],
   WATER: ["日均饮水量", "毫升"],
   WEIGHT: ["日均体重", "千克"],
+  HEART_RATE: ["心率采样均值", "次/分"],
 } as const;
 const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
 </script>
@@ -25,6 +26,11 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
         <span v-else>无可统计数值</span>
         <span class="small muted">有记录 {{ metric.validDays }} / {{ snapshot.periodDays }} 天</span>
         <span v-if="metric.sources.length" class="small">来源 {{ metric.sources.join("、") }}</span>
+        <span v-if="metric.key === 'HEART_RATE'" class="small">采样 {{ metric.recordCount }} 条</span>
+        <RouterLink v-for="source in metric.sources" :key="source" class="text-link small"
+          :to="{ path: '/timeline', query: { startDate, endDate, type: metric.key, sourceName: source } }">
+          {{ metric.key === "WORKOUT" ? "查看周期内开始的运动" : "查看原始记录" }} · {{ source }}
+        </RouterLink>
         <span v-if="metric.key === 'MEAL'" class="small">
           手动 {{ metric.manualCaloriesCount }} 条 · 估算 {{ metric.estimatedCaloriesCount }} 条 · 未知 {{ metric.unknownCaloriesCount }} 条
         </span>

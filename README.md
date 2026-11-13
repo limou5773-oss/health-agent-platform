@@ -94,13 +94,13 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 ## 个人基线
 
-「个人基线」比较近期与本人历史的日均值，支持六项指标、自选周期和来源筛选。页面显示两期覆盖、所需有效天数和缺失日期。使用现有记录，无需数据库迁移。详见[个人基线说明](docs/baseline-analysis.md)。
+「个人基线」比较近期与本人历史的指标均值，支持七项指标、自选周期和来源筛选。页面显示两期覆盖、所需有效天数和缺失日期。使用现有记录，无需数据库迁移。详见[个人基线说明](docs/baseline-analysis.md)。
 
 ## 综合健康报告
 
-在「健康报告」生成已结束周期的综合周报或月报，查看六项指标、数据来源、覆盖和计划完成情况。同周期重生成保留版本。已有库执行 `database/migrations/009_comprehensive_health_reports.sql`。详见[综合健康报告说明](docs/comprehensive-health-reports.md)。
+在「健康报告」生成已结束周期的综合周报或月报，查看七项指标、数据来源、覆盖和计划完成情况。同周期重生成保留版本。已有库执行 `database/migrations/009_comprehensive_health_reports.sql`。详见[综合健康报告说明](docs/comprehensive-health-reports.md)。
 
-报告中心也支持六项指标的专项报告和双周期对比。已有库执行 `database/migrations/021_focused_health_reports.sql`。详见[专项报告与阶段对比](docs/focused-health-reports.md)。
+报告中心也支持七项指标的专项报告和双周期对比。已有库执行 `database/migrations/021_focused_health_reports.sql`。详见[专项报告与阶段对比](docs/focused-health-reports.md)。
 
 ## 用户偏好记忆
 

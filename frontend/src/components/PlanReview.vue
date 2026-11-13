@@ -2,21 +2,15 @@
 import { computed, reactive, ref, watch } from "vue";
 import { api, dateAfter, dateString, errorMessage, json } from "../api";
 import type { Plan } from "../types";
+import { reportMetrics as metrics } from "../report-metrics";
 import StateNotice from "./StateNotice.vue";
 
 const props = defineProps<{ plan: Plan }>();
 const emit = defineEmits<{ propose: [itemId: number, date: string, reason: string, version: number] }>();
-const metrics = {
-  SLEEP: ["睡眠时长", "小时"],
-  STEPS: ["步数", "步"],
-  WORKOUT: ["运动时长", "分钟"],
-  MEAL: ["饮食热量", "千卡"],
-  WATER: ["饮水量", "毫升"],
-  WEIGHT: ["体重", "千克"],
-} as const;
 type Metric = keyof typeof metrics;
 type Period = {
   startDate: string; endDate: string; periodDays: number; validDays: number; average: number | null;
+  recordCount: number | null;
 };
 type Missed = { id: number; date: string; time: string; title: string; missedReason: string };
 type Review = {
@@ -114,11 +108,13 @@ watch(() => props.plan, () => { if (review.value) void load(); });
       <ul>
         <li v-for="period in periods" :key="period.label">
           {{ period.label }} {{ period.startDate }} 至 {{ period.endDate }} · 覆盖 {{ period.validDays }} / {{ period.periodDays }} 天 ·
-          {{ period.average === null ? "无有效均值" : `日均 ${number.format(period.average)} ${metrics[review.comparison.metric][1]}` }}
+          {{ period.average === null ? "无有效均值" : `${review.comparison.metric === "HEART_RATE" ? "采样均值" : "日均"} ${number.format(period.average)} ${metrics[review.comparison.metric][1]}` }}
+          <span v-if="review.comparison.metric === 'HEART_RATE'"> · {{ period.recordCount }} 条采样</span>
         </li>
       </ul>
       <p v-if="review.comparison.difference !== null">
-        日均差值（复盘减对照） {{ number.format(review.comparison.difference) }} {{ metrics[review.comparison.metric][1] }}
+        {{ review.comparison.metric === "HEART_RATE" ? "采样均值差" : "日均差值" }}（复盘减对照）
+        {{ number.format(review.comparison.difference) }} {{ metrics[review.comparison.metric][1] }}
       </p>
       <p v-else>至少一期覆盖未达到 70%，仅显示已有记录的统计。</p>
 

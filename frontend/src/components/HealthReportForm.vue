@@ -16,11 +16,12 @@ const sourceFields = {
   mealSource: "饮食",
   waterSource: "饮水",
   weightSource: "体重",
+  heartRateSource: "心率",
 };
 const form = reactive({ period: "WEEK", date: yesterday });
 const sources = reactive({
   sleepSource: "", stepSource: "", workoutSource: "",
-  mealSource: "", waterSource: "", weightSource: "",
+  mealSource: "", waterSource: "", weightSource: "", heartRateSource: "",
 });
 const lastMonth = dateAfter(`${today.slice(0, 7)}-01`, -1).slice(0, 7);
 const month = ref(lastMonth);

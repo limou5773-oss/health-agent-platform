@@ -12,6 +12,7 @@ import com.health.model.Models.Report;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
 import com.health.service.BaselineService;
+import com.health.service.HeartRateService;
 import com.health.service.HealthReportService;
 import com.health.service.NutritionService;
 import com.health.service.NotificationService;
@@ -37,6 +38,7 @@ public class HealthReportServiceImpl implements HealthReportService {
   private final ActivityService activity;
   private final NutritionService nutrition;
   private final WeightService weight;
+  private final HeartRateService heartRate;
   private final PlanService plans;
   private final PlanMapper mapper;
   private final TaskMapper tasks;
@@ -45,13 +47,14 @@ public class HealthReportServiceImpl implements HealthReportService {
   private final BaselineService baseline;
 
   public HealthReportServiceImpl(AccountService accounts, SleepService sleep, ActivityService activity,
-      NutritionService nutrition, WeightService weight, PlanService plans, PlanMapper mapper,
+      NutritionService nutrition, WeightService weight, HeartRateService heartRate, PlanService plans, PlanMapper mapper,
       TaskMapper tasks, ObjectMapper json, NotificationService notifications, BaselineService baseline) {
     this.accounts = accounts;
     this.sleep = sleep;
     this.activity = activity;
     this.nutrition = nutrition;
     this.weight = weight;
+    this.heartRate = heartRate;
     this.plans = plans;
     this.mapper = mapper;
     this.tasks = tasks;
@@ -78,6 +81,7 @@ public class HealthReportServiceImpl implements HealthReportService {
     var meals = nutrition.mealStatistics(userId, start, end, request.mealSource());
     var water = nutrition.waterStatistics(userId, start, end, request.waterSource());
     var weights = weight.statistics(userId, start, end, request.weightSource());
+    var heartRates = heartRate.statistics(userId, start, end, request.heartRateSource());
     Completion completion = mapper.reportCompletion(userId, start, end);
     Map<String, List<String>> sources = mapper.reportSources(userId, start, end, request).stream()
         .collect(Collectors.groupingBy(Source::metric, Collectors.mapping(Source::sourceName, Collectors.toList())));
@@ -91,9 +95,12 @@ public class HealthReportServiceImpl implements HealthReportService {
         new Metric("MEAL", "合计已知的手动和估算热量，覆盖按有饮食记录的天数计算",
             meals.validDays(), meals.knownCaloriesKcal(),
             meals.manualCaloriesCount(), meals.estimatedCaloriesCount(), meals.unknownCaloriesCount(),
-            sources.getOrDefault("MEAL", List.of())),
+            sources.getOrDefault("MEAL", List.of()), null),
         metric("WATER", "汇总每日饮水量，再计算有效日均值", water.validDays(), water.averageMl(), sources),
-        metric("WEIGHT", "取每日最后一次测量，再计算有效日均值", weights.validDays(), weights.averageKg(), sources));
+        metric("WEIGHT", "取每日最后一次测量，再计算有效日均值", weights.validDays(), weights.averageKg(), sources),
+        new Metric("HEART_RATE", "按实际采样计算均值，覆盖按有采样的天数计算",
+            heartRates.validDays(), heartRates.averageBpm(), 0, 0, 0,
+            sources.getOrDefault("HEART_RATE", List.of()), heartRates.recordCount()));
     if (completion.scheduled() == 0 && metrics.stream().noneMatch(m -> m.validDays() > 0))
       throw new ApiException(422, "REPORT_NO_DATA", "所选周期没有健康记录或应完成的计划任务");
     Snapshot snapshot = new Snapshot(ChronoUnit.DAYS.between(start, end) + 1, metrics, completion, rate(completion));
@@ -125,7 +132,8 @@ public class HealthReportServiceImpl implements HealthReportService {
         metric == BaselineModels.Metric.WORKOUT ? source : null,
         metric == BaselineModels.Metric.MEAL ? source : null,
         metric == BaselineModels.Metric.WATER ? source : null,
-        metric == BaselineModels.Metric.WEIGHT ? source : null);
+        metric == BaselineModels.Metric.WEIGHT ? source : null,
+        metric == BaselineModels.Metric.HEART_RATE ? source : null);
     var current = focusedPeriod(userId, metric, source, request.startDate(), request.endDate(), filter);
     var comparison = request.comparisonStartDate() == null ? null
         : focusedPeriod(userId, metric, source, request.comparisonStartDate(), request.comparisonEndDate(), filter);
@@ -140,6 +148,7 @@ public class HealthReportServiceImpl implements HealthReportService {
       case MEAL -> "饮食热量";
       case WATER -> "饮水量";
       case WEIGHT -> "体重";
+      case HEART_RATE -> "心率";
     };
     Report report = new Report();
     report.userId = userId;
@@ -178,6 +187,6 @@ public class HealthReportServiceImpl implements HealthReportService {
 
   private static Metric metric(
       String key, String basis, long days, Number value, Map<String, List<String>> sources) {
-    return new Metric(key, basis, days, value, 0, 0, 0, sources.getOrDefault(key, List.of()));
+    return new Metric(key, basis, days, value, 0, 0, 0, sources.getOrDefault(key, List.of()), null);
   }
 }

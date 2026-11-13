@@ -7,6 +7,7 @@ import com.health.model.BaselineModels.Period;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
 import com.health.service.BaselineService;
+import com.health.service.HeartRateService;
 import com.health.service.NutritionService;
 import com.health.service.SleepService;
 import com.health.service.WeightService;
@@ -26,15 +27,17 @@ public class BaselineServiceImpl implements BaselineService {
   private final ActivityService activity;
   private final NutritionService nutrition;
   private final WeightService weight;
+  private final HeartRateService heartRate;
 
   public BaselineServiceImpl(
       AccountService accounts, SleepService sleep, ActivityService activity,
-      NutritionService nutrition, WeightService weight) {
+      NutritionService nutrition, WeightService weight, HeartRateService heartRate) {
     this.accounts = accounts;
     this.sleep = sleep;
     this.activity = activity;
     this.nutrition = nutrition;
     this.weight = weight;
+    this.heartRate = heartRate;
   }
 
   @Override
@@ -60,6 +63,7 @@ public class BaselineServiceImpl implements BaselineService {
 
   private Period period(
       Long userId, Metric metric, String source, LocalDate start, LocalDate end, int presetRequiredDays) {
+    var heartRateStats = metric == Metric.HEART_RATE ? heartRate.statistics(userId, start, end, source) : null;
     // Each statistics service returns one ordered entry per calendar date, with null for missing values.
     List<? extends Number> values = switch (metric) {
       case SLEEP -> sleep.statistics(userId, start, end, source).daily().stream()
@@ -74,6 +78,7 @@ public class BaselineServiceImpl implements BaselineService {
           .map(day -> day.amountMl()).toList();
       case WEIGHT -> weight.statistics(userId, start, end, source).daily().stream()
           .map(day -> day.representative() == null ? null : day.representative().weightKg).toList();
+      case HEART_RATE -> heartRateStats.daily().stream().map(day -> day.averageBpm()).toList();
     };
     List<LocalDate> missing = new ArrayList<>();
     BigDecimal total = BigDecimal.ZERO;
@@ -88,9 +93,11 @@ public class BaselineServiceImpl implements BaselineService {
     int days = values.size();
     int valid = days - missing.size();
     int required = presetRequiredDays > 0 ? presetRequiredDays : (days * 7 + 9) / 10;
-    BigDecimal average = valid == 0 ? null : total.divide(BigDecimal.valueOf(valid), 3, RoundingMode.HALF_UP);
+    BigDecimal average = heartRateStats != null ? heartRateStats.averageBpm()
+        : valid == 0 ? null : total.divide(BigDecimal.valueOf(valid), 3, RoundingMode.HALF_UP);
     BigDecimal coverage = BigDecimal.valueOf(valid * 100L)
         .divide(BigDecimal.valueOf(days), 2, RoundingMode.HALF_UP);
-    return new Period(start, end, days, valid, required, coverage, valid >= required, average, missing);
+    return new Period(start, end, days, valid, required, coverage, valid >= required, average, missing,
+        heartRateStats == null ? null : heartRateStats.recordCount());
   }
 }

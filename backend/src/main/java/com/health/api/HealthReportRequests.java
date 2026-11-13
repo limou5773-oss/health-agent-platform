@@ -33,7 +33,8 @@ public final class HealthReportRequests {
       @NotNull Period period, @NotNull LocalDate date,
       @Size(max = 100) String sleepSource, @Size(max = 100) String stepSource,
       @Size(max = 100) String workoutSource, @Size(max = 100) String mealSource,
-      @Size(max = 100) String waterSource, @Size(max = 100) String weightSource) {
+      @Size(max = 100) String waterSource, @Size(max = 100) String weightSource,
+      @Size(max = 100) String heartRateSource) {
     public Generate {
       sleepSource = selected(sleepSource);
       stepSource = selected(stepSource);
@@ -41,6 +42,7 @@ public final class HealthReportRequests {
       mealSource = selected(mealSource);
       waterSource = selected(waterSource);
       weightSource = selected(weightSource);
+      heartRateSource = selected(heartRateSource);
     }
 
     private static String selected(String source) {

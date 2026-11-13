@@ -10,6 +10,7 @@ const metrics = {
   MEAL: { label: "饮食热量", unit: "千卡", sources: "/nutrition/meals/sources" },
   WATER: { label: "饮水量", unit: "毫升", sources: "/nutrition/water/sources" },
   WEIGHT: { label: "体重", unit: "千克", sources: "/weight/sources" },
+  HEART_RATE: { label: "心率", unit: "次/分", sources: "/heart-rate/sources" },
 } as const;
 
 type Metric = keyof typeof metrics;
@@ -23,6 +24,7 @@ type Period = {
   sufficient: boolean;
   average: number | null;
   missingDates: string[];
+  recordCount: number | null;
 };
 type Comparison = {
   metric: Metric;
@@ -178,7 +180,8 @@ apply();
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th scope="col">周期</th><th scope="col">日期范围</th><th scope="col">日均值</th><th scope="col">有效覆盖</th></tr>
+          <tr><th scope="col">周期</th><th scope="col">日期范围</th>
+            <th scope="col">{{ result.metric === "HEART_RATE" ? "采样均值" : "日均值" }}</th><th scope="col">有效覆盖</th></tr>
         </thead>
         <tbody>
           <tr v-for="period in periods" :key="period.name">
@@ -187,6 +190,7 @@ apply();
             <td>{{ period.average === null ? "无有效记录" : `${number.format(period.average)} ${metrics[result.metric].unit}` }}</td>
             <td>
               {{ period.validDays }} / {{ period.periodDays }} 天（{{ period.coverageRate }}%）
+              <span v-if="result.metric === 'HEART_RATE'"> · {{ period.recordCount }} 条采样</span>
               <br />{{ period.sufficient ? "达标" : "覆盖不足" }}，至少需 {{ period.requiredDays }} 天
             </td>
           </tr>
@@ -194,10 +198,10 @@ apply();
       </table>
     </div>
     <p v-if="result.difference !== null">
-      日均差值（近期减历史）
+      {{ result.metric === "HEART_RATE" ? "采样均值差" : "日均差值" }}（近期减历史）
       <strong>{{ result.difference > 0 ? "+" : "" }}{{ number.format(result.difference) }} {{ metrics[result.metric].unit }}</strong>
     </p>
-    <p v-else>覆盖不足，仅展示各期已有记录的日均值。</p>
+    <p v-else>覆盖不足，仅展示各期已有记录的均值。</p>
     <details v-for="period in periods" :key="period.name" class="baseline-missing">
       <summary>{{ period.name }}缺失日期（{{ period.missingDates.length }} 天）</summary>
       <p>{{ period.missingDates.length ? period.missingDates.join("、") : "日期记录齐全" }}</p>

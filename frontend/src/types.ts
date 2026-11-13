@@ -184,11 +184,12 @@ export interface Plan {
 export interface HealthSnapshot {
   periodDays: number;
   metrics: {
-    key: "SLEEP" | "STEPS" | "WORKOUT" | "MEAL" | "WATER" | "WEIGHT";
+    key: import("./report-metrics").ReportMetric;
     basis: string;
     validDays: number;
     value: number | null;
     sources: string[];
+    recordCount?: number | null;
     manualCaloriesCount: number;
     estimatedCaloriesCount: number;
     unknownCaloriesCount: number;
@@ -226,7 +227,7 @@ export interface FocusedSnapshot {
 interface FocusedPeriod {
   statistics: {
     startDate: string; endDate: string; validDays: number; periodDays: number;
-    average: number | null; missingDates: string[];
+    average: number | null; missingDates: string[]; recordCount?: number | null;
   };
   sources: string[];
   completion: { scheduled: number; completed: number };

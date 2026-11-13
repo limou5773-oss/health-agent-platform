@@ -138,6 +138,7 @@ onMounted(load);
           <HealthReportSummary
             v-if="(report.reportType === 'HEALTH_WEEK' || report.reportType === 'HEALTH_MONTH') && report.statistics"
             :snapshot="report.statistics"
+            :start-date="report.startDate" :end-date="report.endDate"
           />
           <FocusedReportSummary
             v-if="(report.reportType === 'HEALTH_FOCUSED' || report.reportType === 'HEALTH_COMPARISON') && report.statistics"
