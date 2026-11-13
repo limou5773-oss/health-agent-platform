@@ -1,5 +1,7 @@
 package com.health.api;
 
+import com.health.model.ImportAdminModels.Kind;
+import com.health.service.ImportAdminService;
 import com.health.model.Models.*;
 import com.health.security.Identity;
 import com.health.service.SleepService;
@@ -16,10 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class SleepController {
   private final SleepService service;
   private final NotificationService notifications;
+  private final ImportAdminService importAdmin;
 
-  public SleepController(SleepService service, NotificationService notifications) {
+  public SleepController(SleepService service, NotificationService notifications, ImportAdminService importAdmin) {
     this.service = service;
     this.notifications = notifications;
+    this.importAdmin = importAdmin;
   }
 
   @GetMapping("/sleep")
@@ -74,7 +78,10 @@ public class SleepController {
     try {
       return service.preview(userId, file, options);
     } catch (ApiException e) {
-      if (e.status == 400) notifications.importRejected(userId, false);
+      if (e.status == 400) {
+        importAdmin.rejected(Kind.SLEEP, userId, e.code);
+        notifications.importRejected(userId, false);
+      }
       throw e;
     }
   }

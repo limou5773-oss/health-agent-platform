@@ -1,5 +1,7 @@
 package com.health.api;
 
+import com.health.model.ImportAdminModels.Kind;
+import com.health.service.ImportAdminService;
 import com.health.model.ActivityModels.*;
 import com.health.model.Models.Page;
 import com.health.security.Identity;
@@ -19,10 +21,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class ActivityController {
   private final ActivityService service;
   private final NotificationService notifications;
+  private final ImportAdminService importAdmin;
 
-  public ActivityController(ActivityService service, NotificationService notifications) {
+  public ActivityController(ActivityService service, NotificationService notifications, ImportAdminService importAdmin) {
     this.service = service;
     this.notifications = notifications;
+    this.importAdmin = importAdmin;
   }
 
   @GetMapping("/steps")
@@ -67,7 +71,10 @@ public class ActivityController {
     try {
       return service.preview(userId, file, timezone);
     } catch (ApiException e) {
-      if (e.status == 400) notifications.importRejected(userId, true);
+      if (e.status == 400) {
+        importAdmin.rejected(Kind.STEPS, userId, e.code);
+        notifications.importRejected(userId, true);
+      }
       throw e;
     }
   }

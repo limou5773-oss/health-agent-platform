@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { Download, Upload } from "@lucide/vue";
-import { api, errorMessage, json, saveBlob } from "../api";
+import { api, errorMessage, json } from "../api";
+import { downloadImportTemplate, getImportTemplate } from "../import-template";
 import type { StepImportBatch, StepImportPreview } from "../types";
 import StateNotice from "./StateNotice.vue";
 const emit = defineEmits<{ imported: [] }>();
@@ -40,13 +41,17 @@ function selectFile(event: Event) {
   resetPreview();
 }
 watch(timezone, resetPreview);
-function template() {
-  saveBlob(
-    new Blob(["\uFEFFstartTime,endTime,steps,mode,sourceName,note\r\n"], {
-      type: "text/csv;charset=utf-8",
-    }),
-    "步数记录空白模板.csv",
-  );
+const templateNote = ref("");
+const templateError = ref("");
+async function template() {
+  templateError.value = "";
+  try {
+    const data = await getImportTemplate("STEPS");
+    templateNote.value = data.instructions;
+    downloadImportTemplate(data);
+  } catch (cause) {
+    templateError.value = errorMessage(cause);
+  }
 }
 async function loadHistory() {
   historyLoading.value = true;
@@ -101,6 +106,8 @@ onMounted(loadHistory);
 </script>
 <template>
   <section id="step-import" class="panel">
+    <p v-if="templateError" class="feedback error" role="alert">{{ templateError }}</p>
+    <p v-if="templateNote" class="prose muted">{{ templateNote }}</p>
     <div class="section-heading">
       <div>
         <h2>导入步数 CSV</h2>

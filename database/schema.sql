@@ -82,6 +82,20 @@ CREATE TABLE import_rows (
  source_name MEDIUMTEXT, note MEDIUMTEXT, valid BOOLEAN NOT NULL, error VARCHAR(500), dedup_key CHAR(64),
  PRIMARY KEY(batch_id,row_number)
 );
+CREATE TABLE import_template_notes (
+ kind ENUM('SLEEP','STEPS') PRIMARY KEY, instructions VARCHAR(1000) NOT NULL
+);
+CREATE TABLE import_issue_counts (
+ kind ENUM('SLEEP','STEPS') NOT NULL, batch_id BIGINT NOT NULL,
+ reason VARCHAR(40) NOT NULL, row_count INT NOT NULL,
+ PRIMARY KEY(kind,batch_id,reason)
+);
+CREATE TABLE rejected_imports (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, kind ENUM('SLEEP','STEPS') NOT NULL,
+ user_id BIGINT NOT NULL, error_code VARCHAR(64) NOT NULL,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ KEY ix_rejected_import_kind(kind,id)
+);
 CREATE TABLE agent_tasks (
  id CHAR(36) PRIMARY KEY, user_id BIGINT NOT NULL,
  kind ENUM('ANALYZE','PLAN','REPORT') NOT NULL, goal VARCHAR(2000) NOT NULL,

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { Download, Upload } from "@lucide/vue";
-import { api, errorMessage, json, saveBlob } from "../api";
+import { api, errorMessage, json } from "../api";
+import { downloadImportTemplate, getImportTemplate } from "../import-template";
 import type {
   ImportBatch,
   ImportPreview,
@@ -69,13 +70,17 @@ function selectFile(event: Event) {
   preview.value = null;
   result.value = null;
 }
-function template() {
-  saveBlob(
-    new Blob(["\uFEFFstartTime,endTime,sourceName,note\r\n"], {
-      type: "text/csv;charset=utf-8",
-    }),
-    "睡眠记录模板.csv",
-  );
+const templateNote = ref("");
+const templateError = ref("");
+async function template() {
+  templateError.value = "";
+  try {
+    const data = await getImportTemplate("SLEEP");
+    templateNote.value = data.instructions;
+    downloadImportTemplate(data);
+  } catch (cause) {
+    templateError.value = errorMessage(cause);
+  }
 }
 async function upload() {
   if (!file.value) return;
@@ -122,6 +127,8 @@ onMounted(load);
 </script>
 <template>
   <section id="sleep-import" class="panel">
+    <p v-if="templateError" class="feedback error" role="alert">{{ templateError }}</p>
+    <p v-if="templateNote" class="prose muted">{{ templateNote }}</p>
     <div class="section-heading">
       <div>
         <h2>可穿戴设备数据导入</h2>

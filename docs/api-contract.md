@@ -134,6 +134,7 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 ## 后台
 
 全部 /admin 校验ADMIN角色。
+- GET /admin/imports、GET /admin/imports/{kind}/{id}/issues、PUT /admin/import-templates/{kind} 提供批次查询、问题分类和模板说明维护。详见[后台导入管理](import-admin.md)。
 - GET /admin/users → [{id,username,nickname,role,enabled,createdAt}]。
 - PATCH /admin/users/{id}/status {enabled} → 204，不允许停用自己。
 - GET /admin/tasks → 任务编号、状态、类型、日期、耗时/失败摘要；默认不返回健康明细。

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.ImportAdminMapper">
+  <sql id="batchTable"><choose><when test="kind.name() == 'SLEEP'">import_batches</when><otherwise>step_import_batches</otherwise></choose></sql>
+  <sql id="rowTable"><choose><when test="kind.name() == 'SLEEP'">import_rows</when><otherwise>step_import_rows</otherwise></choose></sql>
+  <sql id="columns">
+    #{kind} AS kind,id,user_id,
+    <choose><when test="kind.name() == 'SLEEP'">import_format</when><otherwise>'CSV'</otherwise></choose> AS format,
+    status,total_rows,valid_rows,invalid_rows,duplicate_rows,
+    <choose><when test="kind.name() == 'SLEEP'">unsupported_rows</when><otherwise>0</otherwise></choose> AS unsupported_rows,
+    inserted_rows,created_at
+  </sql>
+  <sql id="issuesFilter">
+    <if test="issuesOnly">
+      WHERE (invalid_rows &gt; 0 <if test="kind.name() == 'SLEEP'">OR unsupported_rows &gt; 0</if>)
+    </if>
+  </sql>
+  <select id="batches" resultType="com.health.model.ImportAdminModels$Batch">
+    SELECT * FROM (
+      SELECT <include refid="columns"/> FROM <include refid="batchTable"/> <include refid="issuesFilter"/>
+      UNION ALL
+      SELECT kind,-id,user_id,'—','REJECTED',0,0,0,0,0,0,created_at
+      FROM rejected_imports WHERE kind=#{kind}
+    ) b ORDER BY created_at DESC,id DESC LIMIT #{size} OFFSET #{offset}
+  </select>
+  <select id="count" resultType="long">
+    SELECT (SELECT COUNT(*) FROM <include refid="batchTable"/> <include refid="issuesFilter"/>)
+      + (SELECT COUNT(*) FROM rejected_imports WHERE kind=#{kind})
+  </select>
+  <select id="batch" resultType="com.health.model.ImportAdminModels$Batch">
+    <choose>
+      <when test="id &lt; 0">
+        SELECT kind,-id AS id,user_id,'—' AS format,'REJECTED' AS status,0 AS total_rows,0 AS valid_rows,
+          0 AS invalid_rows,0 AS duplicate_rows,0 AS unsupported_rows,0 AS inserted_rows,created_at
+        FROM rejected_imports WHERE kind=#{kind} AND id=-#{id}
+      </when>
+      <otherwise>SELECT <include refid="columns"/> FROM <include refid="batchTable"/> WHERE id=#{id}</otherwise>
+    </choose>
+  </select>
+  <sql id="classifyIssues">
+    SELECT CASE
+      WHEN error LIKE '%UTC偏移切换%' THEN 'UNSUPPORTED_TIME_OFFSET'
+      WHEN error LIKE '%未支持的苹果睡眠阶段%' THEN 'UNSUPPORTED_STAGE'
+      WHEN error LIKE '%列数%' THEN 'INVALID_FIELDS'
+      WHEN error LIKE '%重叠%' THEN 'OVERLAPPING_INTERVAL'
+      ELSE 'INVALID_ROW'
+    END AS reason, COUNT(*) AS row_count
+    FROM <include refid="rowTable"/>
+    WHERE batch_id=#{id} AND valid=FALSE AND error IS NOT NULL
+    GROUP BY reason
+  </sql>
+  <select id="issues" resultType="com.health.model.ImportAdminModels$Issue">
+    <choose>
+      <when test="id &lt; 0">SELECT error_code AS reason,1 AS issue_rows FROM rejected_imports WHERE kind=#{kind} AND id=-#{id}</when>
+      <when test="confirmed">SELECT reason,row_count AS issue_rows FROM import_issue_counts WHERE kind=#{kind} AND batch_id=#{id} ORDER BY reason</when>
+      <otherwise>SELECT reason,row_count AS issue_rows FROM (<include refid="classifyIssues"/>) issues ORDER BY reason</otherwise>
+    </choose>
+  </select>
+  <insert id="snapshotIssues">
+    INSERT INTO import_issue_counts(kind,batch_id,reason,row_count)
+    SELECT #{kind},#{id},reason,row_count FROM (<include refid="classifyIssues"/>) issues
+  </insert>
+  <select id="instructions" resultType="string">SELECT instructions FROM import_template_notes WHERE kind=#{kind}</select>
+  <insert id="saveInstructions">
+    INSERT INTO import_template_notes(kind,instructions) VALUES(#{kind},#{instructions})
+    ON DUPLICATE KEY UPDATE instructions=#{instructions}
+  </insert>
+  <insert id="rejected">
+    INSERT INTO rejected_imports(kind,user_id,error_code) VALUES(#{kind},#{userId},#{code})
+  </insert>
+</mapper>

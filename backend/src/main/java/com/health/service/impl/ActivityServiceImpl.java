@@ -1,5 +1,7 @@
 package com.health.service.impl;
 
+import com.health.model.ImportAdminModels.Kind;
+import com.health.service.ImportAdminService;
 import com.health.api.*;
 import com.health.mapper.ActivityMapper;
 import com.health.mapper.PlanMapper;
@@ -29,14 +31,17 @@ public class ActivityServiceImpl implements ActivityService {
   private final AccountService accounts;
   private final Validator validator;
   private final NotificationService notifications;
+  private final ImportAdminService importAdmin;
 
   public ActivityServiceImpl(ActivityMapper mapper, PlanMapper plans, AccountService accounts,
-      Validator validator, NotificationService notifications) {
+      Validator validator, NotificationService notifications,
+      ImportAdminService importAdmin) {
     this.mapper = mapper;
     this.plans = plans;
     this.accounts = accounts;
     this.validator = validator;
     this.notifications = notifications;
+    this.importAdmin = importAdmin;
   }
 
   public Page<StepRecord> steps(Long uid, Requests.SleepQuery q) {
@@ -162,9 +167,7 @@ public class ActivityServiceImpl implements ActivityService {
             StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT));
         CSVParser parser = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true)
             .setIgnoreEmptyLines(false).get().parse(reader)) {
-      List<String> headers = parser.getHeaderNames();
-      if (headers.size() != 6 || !headers.getFirst().replace("\uFEFF", "").equals("startTime")
-          || !headers.subList(1, 6).equals(List.of("endTime", "steps", "mode", "sourceName", "note")))
+      if (!Kind.STEPS.matches(parser.getHeaderNames()))
         throw new ApiException(400, "INVALID_CSV_HEADER", "CSV表头须为startTime,endTime,steps,mode,sourceName,note");
       for (CSVRecord csv : parser) {
         if (batch.rows.size() >= 10000) throw new ApiException(400, "TOO_MANY_ROWS", "CSV最多10000行");
@@ -256,6 +259,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
     batch.status = "CONFIRMED";
     mapper.confirmBatch(batch);
+    importAdmin.snapshotIssues(Kind.STEPS, id);
     mapper.deleteRows(id);
     return batch;
   }

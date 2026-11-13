@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.model.ImportAdminModels.Kind;
 import com.health.api.*;
 import com.health.mapper.SleepMapper;
 import com.health.model.Models.*;
@@ -24,18 +25,21 @@ public class SleepServiceImpl implements SleepService {
   private final TaskService tasks;
   private final AppleHealthImporter appleImporter;
   private final NotificationService notifications;
+  private final ImportAdminService importAdmin;
   private final TriggerService triggers;
 
   public SleepServiceImpl(
       SleepMapper mapper,
       AccountService accounts,
       TaskService tasks,
-      AppleHealthImporter appleImporter, NotificationService notifications, TriggerService triggers) {
+      AppleHealthImporter appleImporter, NotificationService notifications, TriggerService triggers,
+      ImportAdminService importAdmin) {
     this.mapper = mapper;
     this.accounts = accounts;
     this.tasks = tasks;
     this.appleImporter = appleImporter;
     this.notifications = notifications;
+    this.importAdmin = importAdmin;
     this.triggers = triggers;
   }
 
@@ -201,10 +205,7 @@ public class SleepServiceImpl implements SleepService {
                 .setIgnoreEmptyLines(false)
                 .get()
                 .parse(reader)) {
-      List<String> headers = parser.getHeaderNames();
-      if (headers.size() != 4
-          || !headers.getFirst().replace("\uFEFF", "").equals("startTime")
-          || !headers.subList(1, 4).equals(List.of("endTime", "sourceName", "note")))
+      if (!Kind.SLEEP.matches(parser.getHeaderNames()))
         throw new ApiException(
             400, "INVALID_CSV_HEADER", "CSV表头须为startTime,endTime,sourceName,note");
       for (CSVRecord csv : parser) {
@@ -314,6 +315,7 @@ public class SleepServiceImpl implements SleepService {
       }
     b.status = "CONFIRMED";
     mapper.confirmBatch(b);
+    importAdmin.snapshotIssues(Kind.SLEEP, id);
     mapper.deleteRows(id);
     triggers.sleepImported(uid, id, latestBySource);
     return b;
