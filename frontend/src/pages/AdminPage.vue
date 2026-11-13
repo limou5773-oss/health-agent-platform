@@ -5,6 +5,7 @@ import { api, errorMessage, json, kindText, session, statusText } from "../api";
 import type { AdminTask, AdminUser, Article } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import AdminImports from "../components/AdminImports.vue";
+import AdminPlanTemplates from "../components/AdminPlanTemplates.vue";
 const tab = ref("users"),
   users = ref<AdminUser[]>([]),
   tasks = ref<AdminTask[]>([]),
@@ -128,8 +129,12 @@ onMounted(load);
     <button :class="{ active: tab === 'imports' }" :aria-pressed="tab === 'imports'" @click="tab = 'imports'">
       导入管理
     </button>
+    <button :class="{ active: tab === 'templates' }" :aria-pressed="tab === 'templates'" @click="tab = 'templates'">
+      计划模板
+    </button>
   </div>
   <AdminImports v-if="tab === 'imports'" />
+  <AdminPlanTemplates v-if="tab === 'templates'" />
   <p v-if="actionError" class="feedback error" role="alert">
     {{ actionError }}
   </p>

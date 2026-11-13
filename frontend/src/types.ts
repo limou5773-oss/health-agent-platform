@@ -108,6 +108,8 @@ export type TaskStatus =
   | "CANCELLED";
 export interface TaskDetail {
   id: string;
+  templateId: number | null;
+  templateVersion: number | null;
   kind: "ANALYZE" | "PLAN" | "REPORT";
   goal: string;
   status: TaskStatus;

@@ -137,7 +137,11 @@ onUnmounted(() => {
       </div>
       <h3 class="task-goal">{{ task.goal }}</h3>
       <dl class="meta-list">
-        <div>
+        <div v-if="task.templateId">
+          <dt>草稿来源</dt>
+          <dd>计划模板 #{{ task.templateId }} · 第 {{ task.templateVersion }} 版</dd>
+        </div>
+        <div v-else>
           <dt>分析数据</dt>
           <dd>{{ task.startDate }} 至 {{ task.endDate }}</dd>
         </div>
@@ -145,11 +149,11 @@ onUnmounted(() => {
           <dt>计划周期</dt>
           <dd>{{ task.planStartDate }} 至 {{ task.planEndDate }}</dd>
         </div>
-        <div>
+        <div v-if="!task.templateId">
           <dt>睡眠来源</dt>
           <dd>{{ task.sourceName || "未指定；多来源冲突时需要补充" }}</dd>
         </div>
-        <div>
+        <div v-if="!task.templateId">
           <dt>日记背景</dt>
           <dd>
             <span class="tag" :class="{ warm: !task.includeDiary }">{{

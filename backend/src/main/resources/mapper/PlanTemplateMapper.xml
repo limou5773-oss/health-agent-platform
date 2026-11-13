@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.PlanTemplateMapper">
+  <select id="list" resultType="com.health.model.PlanTemplateModels$Template">
+    SELECT * FROM plan_templates <if test="!admin">WHERE enabled=TRUE</if> ORDER BY category,id
+  </select>
+  <select id="lock" resultType="com.health.model.PlanTemplateModels$Template">
+    SELECT * FROM plan_templates WHERE id=#{id} FOR UPDATE
+  </select>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO plan_templates(version,category,title,instructions,days,enabled,items_json)
+    VALUES(#{version},#{category},#{title},#{instructions},#{days},#{enabled},#{itemsJson})
+  </insert>
+  <update id="update">
+    UPDATE plan_templates SET version=#{template.version},category=#{template.category},title=#{template.title},
+      instructions=#{template.instructions},days=#{template.days},enabled=#{template.enabled},items_json=#{template.itemsJson}
+    WHERE id=#{template.id}
+  </update>
+</mapper>

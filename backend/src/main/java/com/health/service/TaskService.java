@@ -2,11 +2,13 @@ package com.health.service;
 
 import com.health.api.Requests;
 import com.health.model.Models.*;
+import com.health.model.PlanTemplateModels.Template;
 import java.time.LocalDate;
 import java.util.*;
 
 public interface TaskService {
   Task create(Long uid, Requests.TaskCreate r);
+  Task createTemplateDraft(Long uid, Template template, Requests.Draft draft);
 
   List<Task> list(Long uid);
 

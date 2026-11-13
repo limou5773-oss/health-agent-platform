@@ -96,6 +96,12 @@ CREATE TABLE rejected_imports (
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_rejected_import_kind(kind,id)
 );
+CREATE TABLE plan_templates (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, version INT NOT NULL,
+ category ENUM('SLEEP','EXERCISE','WATER') NOT NULL, title VARCHAR(200) NOT NULL,
+ instructions VARCHAR(4000) NOT NULL, days INT NOT NULL, enabled BOOLEAN NOT NULL,
+ items_json JSON NOT NULL, CHECK(days BETWEEN 1 AND 31)
+);
 CREATE TABLE agent_tasks (
  id CHAR(36) PRIMARY KEY, user_id BIGINT NOT NULL,
  kind ENUM('ANALYZE','PLAN','REPORT') NOT NULL, goal VARCHAR(2000) NOT NULL,
@@ -105,6 +111,7 @@ CREATE TABLE agent_tasks (
  answer MEDIUMTEXT, question TEXT, error VARCHAR(1000), retryable BOOLEAN NOT NULL DEFAULT FALSE,
  statistics_json JSON, draft_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),
  plan_id BIGINT, report_id BIGINT, confirmed_version INT, operation_id VARCHAR(100),
+ template_id BIGINT, template_version INT,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_task_user(user_id,created_at), CHECK(end_date >= start_date)

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.health.api.*;
 import com.health.mapper.*;
 import com.health.model.Models.*;
+import com.health.model.PlanTemplateModels.Template;
 import com.health.service.*;
 import jakarta.validation.Validator;
 import java.nio.charset.StandardCharsets;
@@ -98,6 +99,24 @@ public class TaskServiceImpl implements TaskService {
     return result;
   }
 
+  @Transactional
+  public Task createTemplateDraft(Long uid, Template template, Requests.Draft draft) {
+    Task task = new Task();
+    task.id = UUID.randomUUID().toString();
+    task.userId = uid;
+    task.kind = "PLAN";
+    task.goal = template.title;
+    task.status = "WAITING_CONFIRMATION";
+    task.startDate = task.planStartDate = draft.startDate();
+    task.endDate = task.planEndDate = draft.endDate();
+    task.templateId = template.id;
+    task.templateVersion = template.version;
+    task.draftJson = json.valueToTree(draft).toString();
+    task.taskToken = newToken();
+    mapper.insert(task);
+    return hydrate(mapper.get(task.id));
+  }
+
   public Task get(Long uid, String id) {
     return hydrate(owned(mapper.get(id), uid));
   }
@@ -163,7 +182,7 @@ public class TaskServiceImpl implements TaskService {
     t.status = "COMPLETED";
     t.question = null;
     mapper.update(t);
-    afterCommit(() -> closeConfirmation(id));
+    if (t.templateId == null) afterCommit(() -> closeConfirmation(id));
     return Map.of("planId", p.id, "taskId", id, "status", "COMPLETED");
   }
 
@@ -195,8 +214,8 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public void delete(Long uid, String id) {
-    owned(mapper.lock(id), uid);
-    deleteCheckpoint(id);
+    Task task = owned(mapper.lock(id), uid);
+    if (task.templateId == null) deleteCheckpoint(id);
     mapper.deleteSteps(id);
     mapper.detachPlans(id);
     mapper.detachReports(id);

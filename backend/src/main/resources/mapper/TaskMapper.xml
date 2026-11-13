@@ -5,7 +5,12 @@
  <select id="enabled" resultType="boolean">SELECT enabled FROM users WHERE id=#{userId}</select>
  <select id="get" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id}</select>
  <select id="lock" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id} FOR UPDATE</select>
- <insert id="insert">INSERT INTO agent_tasks(id,user_id,kind,goal,status,start_date,end_date,plan_start_date,plan_end_date,source_name,include_diary,task_token) VALUES(#{id},#{userId},#{kind},#{goal},#{status},#{startDate},#{endDate},#{planStartDate},#{planEndDate},#{sourceName},#{includeDiary},#{taskToken})</insert>
+ <insert id="insert">
+  INSERT INTO agent_tasks(id,user_id,kind,goal,status,start_date,end_date,plan_start_date,plan_end_date,source_name,
+    include_diary,task_token,draft_json,template_id,template_version)
+  VALUES(#{id},#{userId},#{kind},#{goal},#{status},#{startDate},#{endDate},#{planStartDate},#{planEndDate},#{sourceName},
+    #{includeDiary},#{taskToken},#{draftJson},#{templateId},#{templateVersion})
+ </insert>
  <update id="update">UPDATE agent_tasks SET status=#{status},source_name=#{sourceName},answer=#{answer},question=#{question},error=#{error},retryable=#{retryable},statistics_json=#{statisticsJson},draft_json=#{draftJson},task_token=#{taskToken},pending_input=#{pendingInput},plan_id=#{planId},report_id=#{reportId},confirmed_version=#{confirmedVersion},operation_id=#{operationId},updated_at=CURRENT_TIMESTAMP(6) WHERE id=#{id}</update>
  <delete id="delete">DELETE FROM agent_tasks WHERE id=#{id}</delete>
  <select id="list" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT 50</select>
@@ -15,7 +20,7 @@
  <delete id="deleteSteps">DELETE FROM agent_steps WHERE task_id=#{id}</delete>
  <update id="detachPlans">UPDATE plans SET task_id=NULL WHERE task_id=#{id}</update>
  <update id="detachReports">UPDATE reports SET task_id=NULL WHERE task_id=#{id}</update>
- <select id="affected" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE</select>
+ <select id="affected" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} AND template_id IS NULL AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE</select>
  <update id="invalidateReports">UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (report_type IN ('HEALTH_WEEK','HEALTH_MONTH') OR source_name IS NULL OR source_name='' OR source_name=#{source})</update>
  <sql id="diaryDateFilter">
   user_id=#{userId} AND include_diary=TRUE AND

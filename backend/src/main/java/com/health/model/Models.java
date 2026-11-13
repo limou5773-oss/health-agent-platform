@@ -105,6 +105,8 @@ public final class Models {
     @JsonIgnore public String operationId;
     public Long planId;
     public Long reportId;
+    public Long templateId;
+    public Integer templateVersion;
     public LocalDateTime createdAt;
     @JsonIgnore public LocalDateTime updatedAt;
     public JsonNode statistics;

@@ -15,6 +15,7 @@ import {
 import type { Profile, TaskDetail as Task } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import TaskDetail from "../components/TaskDetail.vue";
+import UsePlanTemplate from "../components/UsePlanTemplate.vue";
 const route = useRoute(),
   router = useRouter();
 const planStart = new Date();
@@ -80,8 +81,7 @@ async function create() {
       }),
     );
     form.includeDiary = false;
-    await router.replace({ query: { task: task.id } });
-    await refreshList();
+    await openTask(task.id);
   } catch (cause) {
     actionError.value = errorMessage(cause);
   } finally {
@@ -92,12 +92,17 @@ async function deleted() {
   await router.replace({ query: {} });
   await refreshList();
 }
+async function openTask(id: string) {
+  await router.replace({ query: { task: id } });
+  await refreshList();
+}
 onMounted(load);
 </script>
 <template>
   <div class="page-actions">
     <RouterLink class="button secondary" to="/agent/triggers">主动任务设置与记录</RouterLink>
   </div>
+  <UsePlanTemplate @created="openTask" />
   <StateNotice :loading="loading" :error="error" @retry="load" /><template
     v-if="!loading && !error"
     ><div v-if="!profile?.aiConsent" class="consent-banner">

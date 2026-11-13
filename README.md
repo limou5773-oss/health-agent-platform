@@ -124,6 +124,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 管理员可查看睡眠和步数导入批次、失败分类，并维护 CSV 模板填写说明。已有库执行 `database/migrations/015_import_admin.sql`。详见[后台导入管理说明](docs/import-admin.md)。
 
+## 计划模板
+
+管理员维护睡眠、运动和饮水模板。用户可在健康助手选择启用模板并生成待确认草稿。已有库执行 `database/migrations/016_plan_templates.sql`。详见[计划模板说明](docs/plan-templates.md)。
+
 ## 开发约定
 
 同一输入在入口校验一次；内部不重复判空或滥用 `try/catch`。归属、权限、状态、版本、事务与数据库唯一约束保留。功能测试与验收由用户负责，不附带自动化回归框架；开发侧只执行必要的构建检查。
