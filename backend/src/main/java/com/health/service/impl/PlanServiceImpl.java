@@ -6,8 +6,12 @@ import com.health.api.*;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.Models.*;
+import com.health.service.AccountService;
 import com.health.service.PlanService;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +21,13 @@ public class PlanServiceImpl implements PlanService {
   private final PlanMapper mapper;
   private final TaskMapper tasks;
   private final ObjectMapper json;
+  private final AccountService accounts;
 
-  public PlanServiceImpl(PlanMapper mapper, TaskMapper tasks, ObjectMapper json) {
+  public PlanServiceImpl(PlanMapper mapper, TaskMapper tasks, ObjectMapper json, AccountService accounts) {
     this.mapper = mapper;
     this.tasks = tasks;
     this.json = json;
+    this.accounts = accounts;
   }
 
   public List<Plan> list(Long uid) {
@@ -32,10 +38,12 @@ public class PlanServiceImpl implements PlanService {
     return mapper.agentPlans(uid);
   }
 
+  @Transactional(readOnly = true)
   public Plan get(Long uid, Long id) {
     Plan p = mapper.get(uid, id);
     if (p == null) throw ApiException.missing();
     p.items = mapper.items(id);
+    p.progress = progress(p, today(uid));
     return p;
   }
 
@@ -60,6 +68,8 @@ public class PlanServiceImpl implements PlanService {
     if (!"ACTIVE".equals(p.status)) throw ApiException.conflict("仅进行中的计划可打卡");
     Map<String, Object> existing = mapper.checkin(id);
     if (existing != null) return existing;
+    if (date.isAfter(today(uid)))
+      throw new ApiException(400, "CHECKIN_FUTURE_DATE", "尚未到该任务的打卡日期");
     mapper.insertCheckin(id, date);
     mapper.saveMissedReason(id, "");
     return mapper.checkin(id);
@@ -76,6 +86,43 @@ public class PlanServiceImpl implements PlanService {
 
   public List<Report> reports(Long uid) {
     return mapper.reports(uid);
+  }
+
+  private LocalDate today(Long uid) {
+    return LocalDate.now(ZoneId.of(accounts.profile(uid).timezone));
+  }
+
+  private static PlanProgress progress(Plan plan, LocalDate today) {
+    Map<LocalDate, Boolean> days = new TreeMap<>();
+    int due = 0;
+    int completed = 0;
+    for (PlanItem item : plan.items) {
+      if (item.date.isAfter(today)) continue;
+      due++;
+      if (item.completed) completed++;
+      days.merge(item.date, item.completed, (all, next) -> all && next);
+    }
+    int streak = 0;
+    int longest = 0;
+    LocalDate previous = null;
+    for (var day : days.entrySet()) {
+      LocalDate date = day.getKey();
+      if (day.getValue()) {
+        streak = previous != null && previous.plusDays(1).equals(date) ? streak + 1 : 1;
+        longest = Math.max(longest, streak);
+      } else if (!date.equals(today)) {
+        streak = 0;
+      } else {
+        break;
+      }
+      previous = date;
+    }
+    LocalDate cutoff = Boolean.TRUE.equals(days.get(today)) ? today : today.minusDays(1);
+    if (plan.endDate.isBefore(cutoff)) cutoff = plan.endDate;
+    int current = cutoff.equals(previous) ? streak : 0;
+    BigDecimal rate = due == 0 ? null : BigDecimal.valueOf(completed * 100L)
+        .divide(BigDecimal.valueOf(due), 2, RoundingMode.HALF_UP);
+    return new PlanProgress(today, due, completed, rate, current, longest);
   }
 
   public Report report(Long uid, Long id) {

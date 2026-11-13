@@ -7,7 +7,9 @@ import type { Plan } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import PlanRevisions from "../components/PlanRevisions.vue";
 import PlanReview from "../components/PlanReview.vue";
+import PlanCheckinCalendar from "../components/PlanCheckinCalendar.vue";
 const route = useRoute();
+const selectedDate = ref<string | null>(null);
 const revisionEditor = ref<InstanceType<typeof PlanRevisions> | null>(null);
 const plans = ref<Plan[]>([]),
   plan = ref<Plan | null>(null),
@@ -21,9 +23,7 @@ const selected = computed(() => {
   const id = Number(route.query.id);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 });
-const completed = computed(
-  () => plan.value?.items?.filter((item) => item.completed).length || 0,
-);
+const visibleItems = computed(() => (plan.value?.items ?? []).filter(item => !selectedDate.value || item.date === selectedDate.value));
 async function load() {
   loading.value = true;
   error.value = "";
@@ -35,13 +35,13 @@ async function load() {
     loading.value = false;
   }
 }
-async function loadDetail() {
-  plan.value = null;
+async function loadDetail(keepVisible = false) {
+  if (!keepVisible) plan.value = null;
   detailError.value = "";
   actionError.value = "";
   detailLoading.value = false;
   if (!selected.value) return;
-  detailLoading.value = true;
+  detailLoading.value = !keepVisible;
   const id = selected.value;
   try {
     const result = await api<Plan>(`/plans/${id}`);
@@ -72,6 +72,7 @@ async function refreshPlan() {
   await Promise.all([load(), loadDetail()]);
 }
 async function checkin(item: NonNullable<Plan["items"]>[number]) {
+  const planId = selected.value;
   busy.value = true;
   actionError.value = "";
   try {
@@ -82,14 +83,17 @@ async function checkin(item: NonNullable<Plan["items"]>[number]) {
         item.completed ? undefined : { date: item.date },
       ),
     );
-    await loadDetail();
+    if (selected.value === planId) await loadDetail(true);
   } catch (cause) {
-    actionError.value = errorMessage(cause);
+    if (selected.value === planId) actionError.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
 }
-watch(selected, loadDetail, { immediate: true });
+watch(selected, () => {
+  selectedDate.value = null;
+  void loadDetail();
+}, { immediate: true });
 onMounted(load);
 </script>
 <template>
@@ -128,7 +132,7 @@ onMounted(load);
       <StateNotice
         :loading="detailLoading"
         :error="detailError"
-        @retry="loadDetail"
+        @retry="loadDetail()"
       /><template v-if="plan && !detailLoading && !detailError"
         ><div class="section-heading">
           <div>
@@ -141,10 +145,14 @@ onMounted(load);
         <div class="plan-progress">
           <CalendarCheck :size="20" /><span
             >{{ plan.startDate }} 至 {{ plan.endDate }}</span
-          ><strong
-            >已完成 {{ completed }} / {{ plan.items?.length || 0 }}</strong
           >
+          <strong v-if="plan.progress">
+            {{ plan.progress.dueItems ? `已完成 ${plan.progress.completedItems} / ${plan.progress.dueItems} 项（${plan.progress.completionRate}%）` : "暂无到期任务" }}
+          </strong>
         </div>
+        <p v-if="plan.progress" class="small muted">
+          当前连续 {{ plan.progress.currentStreak }} 天 · 最长连续 {{ plan.progress.longestStreak }} 天
+        </p>
         <div class="actions plan-status">
           <button
             v-if="plan.status !== 'ACTIVE'"
@@ -178,9 +186,13 @@ onMounted(load);
         <PlanReview :key="plan.id" :plan="plan"
           @propose="(id, date, reason, version) => revisionEditor?.proposeMove(id, date, reason, version)" />
         <PlanRevisions ref="revisionEditor" :key="plan.id" :plan="plan" @refresh="refreshPlan" />
+        <PlanCheckinCalendar v-if="plan.progress" :key="plan.id" :plan="plan" :today="plan.progress.today"
+          :selected="selectedDate" @select="selectedDate = $event" />
+        <h3>{{ selectedDate ? `${selectedDate} 的任务` : "每日任务" }}</h3>
+        <p v-if="!visibleItems.length" class="muted">没有安排任务。</p>
         <ul class="checkin-list">
           <li
-            v-for="item in plan.items"
+            v-for="item in visibleItems"
             :key="item.id"
             :class="{ completed: item.completed }"
           >
@@ -195,16 +207,18 @@ onMounted(load);
               <p v-if="item.completed && item.checkedAt" class="small muted">
                 打卡时间 {{ item.checkedAt.replace("T", " ") }}
               </p>
+              <p v-if="!item.completed && item.missedReason" class="small muted">未完成原因 {{ item.missedReason }}</p>
             </div>
             <button
               :class="item.completed ? 'secondary' : ''"
-              :disabled="busy || (!item.completed && plan.status !== 'ACTIVE')"
+              :disabled="busy || (!item.completed && (plan.status !== 'ACTIVE' || item.date > (plan.progress?.today ?? item.date)))"
               @click="checkin(item)"
             >
               <RotateCcw v-if="item.completed" :size="15" /><Check
                 v-else
                 :size="15"
-              />{{ item.completed ? "撤销打卡" : "完成打卡" }}
+              />{{ item.completed ? "撤销打卡" : item.date > (plan.progress?.today ?? item.date) ? "未到打卡日期"
+                : item.date < (plan.progress?.today ?? item.date) ? "补打卡" : "完成打卡" }}
             </button>
           </li>
         </ul></template

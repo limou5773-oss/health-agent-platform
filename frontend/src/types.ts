@@ -149,11 +149,20 @@ export interface Plan {
   endDate: string;
   status: "ACTIVE" | "PAUSED" | "ENDED";
   createdAt: string;
+  progress?: {
+    today: string;
+    dueItems: number;
+    completedItems: number;
+    completionRate: number | null;
+    currentStreak: number;
+    longestStreak: number;
+  };
   items?: (DraftItem & {
     id: number;
     reminderTime: string | null;
     completed: boolean;
     checkedAt: string | null;
+    missedReason: string;
   })[];
 }
 export interface HealthSnapshot {

@@ -138,6 +138,7 @@ public final class Models {
     public int version;
     public LocalDateTime createdAt;
     public List<PlanItem> items;
+    public PlanProgress progress;
   }
 
   public static class PlanItem {
@@ -150,7 +151,11 @@ public final class Models {
     public String description;
     public boolean completed;
     public LocalDateTime checkedAt;
+    public String missedReason;
   }
+
+  public record PlanProgress(LocalDate today, int dueItems, int completedItems, BigDecimal completionRate,
+      int currentStreak, int longestStreak) {}
 
   public record AgentPlan(Long id, LocalDate startDate, LocalDate endDate, String status) {}
 

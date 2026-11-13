@@ -125,6 +125,8 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 - POST /plan-items/{id}/checkins {date} → {id,completed:true,checkedAt}。任务date必须匹配，所属计划ACTIVE，同任务日期唯一，重复返回已有打卡。
 - DELETE /plan-items/{id}/checkins → 204，当前用户撤销该项打卡。
 
+计划详情包含打卡日历使用的任务数据、到期完成率和连续完成天数。详见[打卡日历口径](plan-checkins.md)。
+
 计划详情提供独立的版本草稿、比较、确认和放弃接口。请求、版本并发及打卡保留规则见[计划修订接口](plan-revisions.md)。
 
 周期复盘通过 `GET /api/plans/{id}/review` 读取完成情况及相邻阶段比较，通过 `PUT /api/plan-items/{id}/missed-reason` 保存未完成原因。详见[周期复盘接口](plan-review.md)。
