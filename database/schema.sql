@@ -185,10 +185,16 @@ CREATE TABLE reports (
 CREATE TABLE knowledge_articles (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, title VARCHAR(200) NOT NULL, content MEDIUMTEXT NOT NULL,
  source_name VARCHAR(200) NOT NULL, source_url VARCHAR(1000), published BOOLEAN NOT NULL DEFAULT FALSE,
+ category ENUM('SLEEP','EXERCISE','NUTRITION','WELLBEING','GENERAL') NOT NULL DEFAULT 'GENERAL',
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
 );
-INSERT INTO knowledge_articles(title,content,source_name,source_url,published) VALUES
-('平台睡眠统计口径','睡眠日期按醒来日期归属。同一来源同日的重叠时段按区间并集计算；多来源冲突须先选择来源。缺失日期不按零小时处理，覆盖率为有效日期占查询日期的比例。本条为平台计算规则，不是医学诊断或医学建议。','平台规则',NULL,TRUE);
+INSERT INTO knowledge_articles(title,content,source_name,source_url,published,category) VALUES
+('平台睡眠统计口径','睡眠日期按醒来日期归属。同一来源同日的重叠时段按区间并集计算；多来源冲突须先选择来源。缺失日期不按零小时处理，覆盖率为有效日期占查询日期的比例。本条为平台计算规则，不是医学诊断或医学建议。','平台规则',NULL,TRUE,'SLEEP');
+
+CREATE TABLE knowledge_favorites (
+ user_id BIGINT NOT NULL, article_id BIGINT NOT NULL,
+ PRIMARY KEY(user_id,article_id)
+);
 
 -- Case/accent-sensitive identities keep SQL uniqueness consistent with Java source/type comparisons.
 CREATE TABLE step_records (

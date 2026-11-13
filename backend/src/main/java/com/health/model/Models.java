@@ -182,6 +182,8 @@ public final class Models {
     public String sourceUrl;
     public LocalDateTime updatedAt;
     public boolean published;
+    public KnowledgeOptions.Category category;
+    public boolean favorite;
   }
 
   public record Daily(LocalDate date, Double hours, int recordCount) {}

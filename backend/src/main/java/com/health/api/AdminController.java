@@ -2,6 +2,7 @@ package com.health.api;
 
 import com.health.model.Models.*;
 import com.health.model.TaskAudit;
+import com.health.model.KnowledgeOptions.*;
 import com.health.security.Identity;
 import com.health.service.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,8 +26,29 @@ public class AdminController {
   }
 
   @GetMapping("/knowledge")
-  public List<Article> knowledge(@RequestParam(required = false) @Size(max = 200) String query) {
-    return knowledge.list(query, false);
+  public List<Article> knowledge(HttpServletRequest r,
+      @RequestParam(required = false) @Size(max = 200) String query,
+      @RequestParam(required = false) Category category,
+      @RequestParam(defaultValue = "RELEVANCE") Sort sort,
+      @RequestParam(defaultValue = "false") boolean favoritesOnly) {
+    return knowledge.browse(Identity.user(r).id, query, category, sort, favoritesOnly);
+  }
+
+  @GetMapping("/knowledge/{id}")
+  public Article article(HttpServletRequest r, @PathVariable Long id) {
+    return knowledge.published(Identity.user(r).id, id);
+  }
+
+  @PutMapping("/knowledge/{id}/favorite")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void favorite(HttpServletRequest r, @PathVariable Long id) {
+    knowledge.favorite(Identity.user(r).id, id);
+  }
+
+  @DeleteMapping("/knowledge/{id}/favorite")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void unfavorite(HttpServletRequest r, @PathVariable Long id) {
+    knowledge.unfavorite(Identity.user(r).id, id);
   }
 
   @GetMapping("/admin/users")

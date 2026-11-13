@@ -77,6 +77,8 @@ export interface ImportPreview extends ImportBatch {
 }
 export interface Article {
   id: number;
+  category: keyof typeof import("./knowledge").knowledgeCategories;
+  favorite: boolean;
   title: string;
   content: string;
   sourceName: string;

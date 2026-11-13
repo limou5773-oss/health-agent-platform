@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { Search, ArrowUpRight } from "@lucide/vue";
-import { api, errorMessage, safeLink } from "../api";
+import { api, errorMessage, json, safeLink } from "../api";
+import { knowledgeCategories } from "../knowledge";
 import type { Article } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 const query = ref(""),
@@ -9,32 +11,73 @@ const query = ref(""),
   loading = ref(true),
   error = ref(""),
   selected = ref<number | null>(null);
+const route = useRoute();
+const category = ref("");
+const sort = ref("RELEVANCE");
+const favoritesOnly = ref(false);
+const changing = ref<number | null>(null);
+const actionError = ref("");
+let revision = 0;
 async function load() {
+  const request = ++revision;
+  const id = typeof route.query.id === "string" && /^\d+$/.test(route.query.id) ? route.query.id : null;
   loading.value = true;
   error.value = "";
+  actionError.value = "";
   selected.value = null;
   try {
-    articles.value = await api<Article[]>(
-      `/knowledge?${new URLSearchParams({ query: query.value })}`,
-    );
+    const params = new URLSearchParams({ query: query.value, sort: sort.value, favoritesOnly: String(favoritesOnly.value) });
+    if (category.value) params.set("category", category.value);
+    const result = id ? [await api<Article>(`/knowledge/${id}`)] : await api<Article[]>(`/knowledge?${params}`);
+    if (request !== revision) return;
+    articles.value = result;
+    if (id) selected.value = result[0].id;
   } catch (cause) {
-    error.value = errorMessage(cause);
+    if (request === revision) error.value = errorMessage(cause);
   } finally {
-    loading.value = false;
+    if (request === revision) loading.value = false;
   }
 }
-onMounted(load);
+async function toggleFavorite(article: Article) {
+  changing.value = article.id;
+  actionError.value = "";
+  const favorite = !article.favorite;
+  try {
+    await api(`/knowledge/${article.id}/favorite`, json(favorite ? "PUT" : "DELETE"));
+    article.favorite = favorite;
+    if (!favorite && favoritesOnly.value && !route.query.id) await load();
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  } finally {
+    changing.value = null;
+  }
+}
+watch(() => route.query.id, load, { immediate: true });
 </script>
 <template>
-  <form class="search-bar" @submit.prevent="load">
+  <div v-if="route.query.id" class="actions">
+    <RouterLink class="button secondary" to="/knowledge">返回知识库</RouterLink>
+  </div>
+  <form v-else class="filter-bar" @submit.prevent="load">
     <label class="search-input"
       ><Search :size="18" /><span class="sr-only">检索知识资料</span
       ><input
         v-model="query"
+        maxlength="200"
         type="search"
         placeholder="搜索标题、内容或关键词" /></label
-    ><button :disabled="loading">搜索资料</button>
+    >
+    <label>分类<select v-model="category">
+      <option value="">全部分类</option>
+      <option v-for="(label, key) in knowledgeCategories" :key="key" :value="key">{{ label }}</option>
+    </select></label>
+    <label>排序<select v-model="sort">
+      <option value="RELEVANCE">相关度</option><option value="RECENT">更新时间</option>
+    </select></label>
+    <label class="checkbox-label"><input v-model="favoritesOnly" type="checkbox" />只看收藏</label>
+    <button :disabled="loading || changing !== null">搜索资料</button>
   </form>
+  <p v-if="actionError" class="feedback error" role="alert">{{ actionError }}</p>
   <StateNotice
     :loading="loading"
     :error="error"
@@ -50,7 +93,7 @@ onMounted(load);
       class="knowledge-article"
     >
       <div class="article-meta">
-        <span class="eyebrow">{{ article.sourceName }}</span
+        <span class="eyebrow">{{ knowledgeCategories[article.category] }} · {{ article.sourceName }}</span
         ><span class="small muted"
           >更新于 {{ article.updatedAt.slice(0, 10) }}</span
         >
@@ -72,6 +115,8 @@ onMounted(load);
         }}{{ article.content.length > 140 ? "…" : "" }}
       </p>
       <div v-else class="prose">{{ article.content }}</div>
+      <button class="secondary" :disabled="changing !== null" :aria-pressed="article.favorite"
+        @click="toggleFavorite(article)">{{ article.favorite ? "取消收藏" : "收藏资料" }}</button>
       <a
         v-if="safeLink(article.sourceUrl)"
         :href="safeLink(article.sourceUrl)"

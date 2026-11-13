@@ -1,8 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.health.mapper.KnowledgeMapper">
- <select id="list" resultType="com.health.model.Models$Article">SELECT * FROM knowledge_articles WHERE 1=1<if test="!all"> AND published=TRUE</if><if test="query != null and query != ''"> AND (LOCATE(#{query},title)&gt;0 OR LOCATE(#{query},content)&gt;0)</if> ORDER BY updated_at DESC LIMIT 100</select>
+ <sql id="favoriteJoin">
+  LEFT JOIN knowledge_favorites f ON f.article_id=a.id AND f.user_id=#{userId}
+ </sql>
+ <select id="list" resultType="com.health.model.Models$Article">
+  SELECT a.*, <choose><when test="userId != null">f.article_id IS NOT NULL</when><otherwise>FALSE</otherwise></choose> AS favorite
+  FROM knowledge_articles a
+  <if test="userId != null"><include refid="favoriteJoin"/></if>
+  <where>
+   <if test="!all">a.published=TRUE</if>
+   <if test="category != null">AND a.category=#{category}</if>
+   <if test="favoritesOnly">AND f.article_id IS NOT NULL</if>
+   <if test="query != null and query != ''">
+    AND (LOCATE(#{query},a.title)&gt;0 OR LOCATE(#{query},a.content)&gt;0)
+   </if>
+  </where>
+  ORDER BY
+  <if test="query != null and query != '' and sort.name() == 'RELEVANCE'">
+   CASE WHEN a.title=#{query} THEN 0 WHEN LOCATE(#{query},a.title)&gt;0 THEN 1 ELSE 2 END,
+  </if>
+  a.updated_at DESC,a.id DESC LIMIT 100
+ </select>
+ <select id="published" resultType="com.health.model.Models$Article">
+  SELECT a.*, f.article_id IS NOT NULL AS favorite FROM knowledge_articles a
+  <include refid="favoriteJoin"/> WHERE a.id=#{id} AND a.published=TRUE
+ </select>
+ <insert id="favorite">
+  INSERT INTO knowledge_favorites(user_id,article_id) VALUES(#{userId},#{id})
+  ON DUPLICATE KEY UPDATE article_id=#{id}
+ </insert>
+ <delete id="unfavorite">DELETE FROM knowledge_favorites WHERE user_id=#{userId} AND article_id=#{id}</delete>
  <select id="get" resultType="com.health.model.Models$Article">SELECT * FROM knowledge_articles WHERE id=#{id}</select>
- <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO knowledge_articles(title,content,source_name,source_url,published) VALUES(#{title},#{content},#{sourceName},#{sourceUrl},#{published})</insert>
- <update id="update">UPDATE knowledge_articles SET title=#{title},content=#{content},source_name=#{sourceName},source_url=#{sourceUrl},published=#{published} WHERE id=#{id}</update>
+ <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO knowledge_articles(title,content,source_name,source_url,published,category) VALUES(#{title},#{content},#{sourceName},#{sourceUrl},#{published},COALESCE(#{category},'GENERAL'))</insert>
+ <update id="update">UPDATE knowledge_articles SET title=#{title},content=#{content},source_name=#{sourceName},source_url=#{sourceUrl},published=#{published},category=COALESCE(#{category},category) WHERE id=#{id}</update>
 </mapper>

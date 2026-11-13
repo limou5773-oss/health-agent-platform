@@ -262,7 +262,8 @@ public final class Requests {
       @NotBlank @Size(max = 100000) String content,
       @NotBlank @Size(max = 200) String sourceName,
       @Size(max = 1000) String sourceUrl,
-      @NotNull Boolean published) {
+      @NotNull Boolean published,
+      com.health.model.KnowledgeOptions.Category category) {
     @AssertTrue(message = "来源链接须为http或https")
     @JsonIgnore
     public boolean isUrlValid() {

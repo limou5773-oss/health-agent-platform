@@ -9,6 +9,7 @@ import AdminPlanTemplates from "../components/AdminPlanTemplates.vue";
 import AdminSystemSettings from "../components/AdminSystemSettings.vue";
 import AdminRuntimeStats from "../components/AdminRuntimeStats.vue";
 import AdminTaskAudit from "../components/AdminTaskAudit.vue";
+import { knowledgeCategories } from "../knowledge";
 const tab = ref("users"),
   users = ref<AdminUser[]>([]),
   tasks = ref<AdminTask[]>([]),
@@ -26,6 +27,7 @@ const form = reactive({
   content: "",
   sourceName: "",
   sourceUrl: "",
+  category: "GENERAL" as Article["category"],
   published: false,
 });
 async function load() {
@@ -73,6 +75,7 @@ function edit(article?: Article) {
           content: article.content,
           sourceName: article.sourceName,
           sourceUrl: article.sourceUrl,
+          category: article.category,
           published: article.published,
         }
       : {
@@ -80,6 +83,7 @@ function edit(article?: Article) {
           content: "",
           sourceName: "",
           sourceUrl: "",
+          category: "GENERAL",
           published: false,
         },
   );
@@ -243,6 +247,11 @@ onMounted(load);
                 maxlength="50000"
               />
             </label>
+            <label>分类
+              <select v-model="form.category">
+                <option v-for="(label, key) in knowledgeCategories" :key="key" :value="key">{{ label }}</option>
+              </select>
+            </label>
           </div>
           <label class="checkbox-label"
             ><input v-model="form.published" type="checkbox" />发布此资料</label
@@ -267,7 +276,7 @@ onMounted(load);
           </thead>
           <tbody>
             <tr v-for="article in articles" :key="article.id">
-              <td>{{ article.title }}</td>
+              <td>{{ article.title }} <span class="small muted">{{ knowledgeCategories[article.category] }}</span></td>
               <td>{{ article.sourceName }}</td>
               <td>
                 <span class="tag">{{

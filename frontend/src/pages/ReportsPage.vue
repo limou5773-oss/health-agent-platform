@@ -148,6 +148,7 @@ onMounted(load);
                   >{{ reference.title }}</a
                 ><strong v-else>{{ reference.title }}</strong
                 ><span class="muted small"> · {{ reference.sourceName }}</span>
+                <RouterLink class="small" :to="{ path: '/knowledge', query: { id: reference.id } }">查看库内资料</RouterLink>
               </li>
             </ul>
           </section>

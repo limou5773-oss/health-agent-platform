@@ -133,6 +133,8 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 
 ## 后台
 
+知识资料支持分类、排序、收藏筛选和按编号查看。详见[健康知识库接口](knowledge-library.md)。
+
 全部 /admin 校验ADMIN角色。
 - `GET /admin/runtime-stats` 按日期范围查询任务、工具、导入及计划汇总。详见[系统运行统计](runtime-stats.md)。
 - `/admin/system-settings` 管理平台规则、模型名称和超时，并提供模型连接检查。详见[系统配置接口](system-settings.md)。
