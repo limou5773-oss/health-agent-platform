@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.TimelineMapper">
+  <sql id="recordSourceFilter">
+    <if test="q.sourceName != null and q.sourceName != ''">
+      AND e.source_name = CONVERT(#{q.sourceName} USING utf8mb4) COLLATE utf8mb4_0900_bin
+    </if>
+  </sql>
+
+  <!-- Each branch scopes its original table before pagination. Detail JSON is selected only by ID. -->
+  <sql id="eventRows">
+    <trim suffixOverrides="UNION ALL">
+      <if test="eventType == null or eventType.name() == 'SLEEP'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'SLEEP' COLLATE utf8mb4_0900_bin AS type
+          , e.sleep_date AS event_date, e.end_time AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT('睡眠 ', e.duration_minutes, ' 分钟') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('startTime', REPLACE(CAST(e.start_time AS CHAR), ' ', 'T'),
+                  'endTime', REPLACE(CAST(e.end_time AS CHAR), ' ', 'T'),
+                  'sleepDate', CAST(e.sleep_date AS CHAR),
+                  'durationMinutes', e.duration_minutes,
+                  'sourceApp', e.source_app,
+                  'deviceBrand', e.device_brand,
+                  'deviceType', e.device_type,
+                  'deviceModel', e.device_model,
+                  'note', e.note) AS details_json
+          </if>
+        </if>
+        FROM sleep_records e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.sleep_date BETWEEN #{q.startDate} AND #{q.endDate}
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'STEPS'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'STEPS' COLLATE utf8mb4_0900_bin AS type
+          , e.activity_date AS event_date, e.end_time AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT('步数 ', e.steps, ' 步') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('startTime', REPLACE(CAST(e.start_time AS CHAR), ' ', 'T'),
+                  'endTime', REPLACE(CAST(e.end_time AS CHAR), ' ', 'T'),
+                  'steps', e.steps,
+                  'mode', e.mode,
+                  'note', e.note) AS details_json
+          </if>
+        </if>
+        FROM step_records e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.activity_date BETWEEN #{q.startDate} AND #{q.endDate}
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'WORKOUT'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'WORKOUT' COLLATE utf8mb4_0900_bin AS type
+          , e.activity_date AS event_date, e.start_time AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT(e.exercise_type, ' · ', e.duration_minutes, ' 分钟') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('exerciseType', e.exercise_type,
+                  'startTime', REPLACE(CAST(e.start_time AS CHAR), ' ', 'T'),
+                  'endTime', REPLACE(CAST(e.end_time AS CHAR), ' ', 'T'),
+                  'durationMinutes', e.duration_minutes,
+                  'planItemId', e.plan_item_id,
+                  'note', e.note) AS details_json
+          </if>
+        </if>
+        FROM workout_records e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.activity_date BETWEEN #{q.startDate} AND #{q.endDate}
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'MEAL'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'MEAL' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.consumed_at) AS event_date, e.consumed_at AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(e.food_name USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('mealType', e.meal_type,
+                  'foodName', e.food_name,
+                  'portionAmount', e.portion_amount,
+                  'portionUnit', e.portion_unit,
+                  'calorieMode', e.calorie_mode,
+                  'caloriesKcal', e.calories_kcal,
+                  'referenceAmount', e.reference_amount,
+                  'referenceCaloriesKcal', e.reference_calories_kcal,
+                  'nutritionSource', e.nutrition_source,
+                  'note', e.note) AS details_json
+          </if>
+        </if>
+        FROM meal_records e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.consumed_at &gt;= #{q.startDate}
+            AND e.consumed_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'WATER'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'WATER' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.consumed_at) AS event_date, e.consumed_at AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT('饮水 ', e.amount_ml, ' 毫升') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('amountMl', e.amount_ml,
+                  'note', e.note) AS details_json
+          </if>
+        </if>
+        FROM water_records e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.consumed_at &gt;= #{q.startDate}
+            AND e.consumed_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'WEIGHT'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'WEIGHT' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.measured_at) AS event_date, e.measured_at AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT('体重 ', e.weight_kg, ' 千克') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('weightKg', e.weight_kg,
+                  'note', e.note) AS details_json
+          </if>
+        </if>
+        FROM weight_records e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.measured_at &gt;= #{q.startDate}
+            AND e.measured_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'DIARY'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'DIARY' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.recorded_at) AS event_date, e.recorded_at AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT('记录健康日记' USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('mood', e.mood,
+                  'stressLevel', e.stress_level,
+                  'bodyFeeling', e.body_feeling,
+                  'events', e.events,
+                  'tags', e.tags,
+                  'note', e.note,
+                  'agentAllowed', CAST(IF(e.agent_allowed, 'true', 'false') AS JSON)) AS details_json
+          </if>
+        </if>
+        FROM diary_entries e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.recorded_at &gt;= #{q.startDate}
+            AND e.recorded_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'CHECKIN'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'CHECKIN' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.checked_at) AS event_date, e.checked_at AS occurred_at
+          , _utf8mb4'计划打卡' COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(i.title USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('planId', p.id,
+                  'planTitle', p.title,
+                  'itemTitle', i.title,
+                  'scheduledDate', CAST(e.date AS CHAR),
+                  'checkedAt', REPLACE(CAST(e.checked_at AS CHAR), ' ', 'T')) AS details_json
+          </if>
+        </if>
+        FROM checkins e
+        JOIN plan_items i ON i.id = e.item_id
+        JOIN plans p ON p.id = i.plan_id
+        WHERE p.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.checked_at &gt;= #{q.startDate}
+            AND e.checked_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <if test="q.sourceName != null and q.sourceName != ''">
+              AND _utf8mb4'计划打卡' = CONVERT(#{q.sourceName} USING utf8mb4) COLLATE utf8mb4_0900_bin
+            </if>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'PLAN_CREATED'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'PLAN_CREATED' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.created_at) AS event_date, e.created_at AS occurred_at
+          , _utf8mb4'计划管理' COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(e.title USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('planId', e.id,
+                  'planTitle', e.title,
+                  'startDate', CAST(e.start_date AS CHAR),
+                  'endDate', CAST(e.end_date AS CHAR),
+                  'createdAt', REPLACE(CAST(e.created_at AS CHAR), ' ', 'T')) AS details_json
+          </if>
+        </if>
+        FROM plans e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.created_at &gt;= #{q.startDate}
+            AND e.created_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <if test="q.sourceName != null and q.sourceName != ''">
+              AND _utf8mb4'计划管理' = CONVERT(#{q.sourceName} USING utf8mb4) COLLATE utf8mb4_0900_bin
+            </if>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+      <if test="eventType == null or eventType.name() == 'PLAN_STATUS'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'PLAN_STATUS' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.changed_at) AS event_date, e.changed_at AS occurred_at
+          , _utf8mb4'计划管理' COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT(CASE e.status WHEN 'PAUSED' THEN '暂停' WHEN 'ENDED' THEN '结束' ELSE '恢复' END, ' · ', p.title) USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('planId', p.id,
+                  'planTitle', p.title,
+                  'previousStatus', e.previous_status,
+                  'status', e.status,
+                  'changedAt', REPLACE(CAST(e.changed_at AS CHAR), ' ', 'T')) AS details_json
+          </if>
+        </if>
+        FROM plan_status_changes e
+        JOIN plans p ON p.id = e.plan_id
+        WHERE p.user_id = #{userId}
+        <choose>
+          <when test="detail">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.changed_at &gt;= #{q.startDate}
+            AND e.changed_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <if test="q.sourceName != null and q.sourceName != ''">
+              AND _utf8mb4'计划管理' = CONVERT(#{q.sourceName} USING utf8mb4) COLLATE utf8mb4_0900_bin
+            </if>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
+    </trim>
+  </sql>
+
+  <select id="events" resultType="com.health.model.TimelineModels$Event">
+    <bind name="eventType" value="q.type"/>
+    <bind name="project" value="true"/>
+    <bind name="detail" value="false"/>
+    SELECT * FROM (<include refid="eventRows"/>) AS timeline
+    ORDER BY event_date DESC, occurred_at DESC, type ASC, id DESC
+    LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+
+  <select id="count" resultType="long">
+    <bind name="eventType" value="q.type"/>
+    <bind name="project" value="false"/>
+    <bind name="detail" value="false"/>
+    SELECT COUNT(*) FROM (<include refid="eventRows"/>) AS timeline
+  </select>
+
+  <select id="event" resultType="com.health.model.TimelineModels$Event">
+    <bind name="eventType" value="type"/>
+    <bind name="project" value="true"/>
+    <bind name="detail" value="true"/>
+    <include refid="eventRows"/>
+  </select>
+</mapper>

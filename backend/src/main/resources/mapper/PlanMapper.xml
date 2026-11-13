@@ -9,6 +9,7 @@
  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO plans(user_id,task_id,title,reason,start_date,end_date) VALUES(#{userId},#{taskId},#{title},#{reason},#{startDate},#{endDate})</insert>
  <insert id="insertItem" useGeneratedKeys="true" keyProperty="id">INSERT INTO plan_items(plan_id,date,time,title,description) VALUES(#{planId},#{date},#{time},#{title},#{description})</insert>
  <update id="status">UPDATE plans SET status=#{status} WHERE id=#{id}</update>
+ <insert id="insertStatusChange">INSERT INTO plan_status_changes(plan_id,previous_status,status) VALUES(#{planId},#{previousStatus},#{status})</insert>
  <select id="itemOwner" resultType="com.health.model.Models$PlanItem">SELECT i.plan_id,i.date FROM plan_items i JOIN plans p ON p.id=i.plan_id WHERE p.user_id=#{userId} AND i.id=#{id}</select>
  <select id="checkin" resultType="map">SELECT id,TRUE AS completed,checked_at AS checkedAt FROM checkins WHERE item_id=#{itemId} FOR UPDATE</select>
  <insert id="insertCheckin">INSERT INTO checkins(item_id,date) VALUES(#{id},#{date})</insert>

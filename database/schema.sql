@@ -70,6 +70,14 @@ CREATE TABLE plans (
  KEY ix_plan_user(user_id),
  CHECK(end_date >= start_date)
 );
+CREATE TABLE plan_status_changes (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id BIGINT NOT NULL,
+ previous_status ENUM('ACTIVE','PAUSED','ENDED') NOT NULL,
+ status ENUM('ACTIVE','PAUSED','ENDED') NOT NULL,
+ changed_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ KEY ix_plan_status_change_time(plan_id,changed_at),
+ CHECK(previous_status <> status)
+);
 CREATE TABLE plan_items (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id BIGINT NOT NULL, date DATE NOT NULL,
  time TIME NOT NULL, title VARCHAR(200) NOT NULL, description VARCHAR(2000) NOT NULL,

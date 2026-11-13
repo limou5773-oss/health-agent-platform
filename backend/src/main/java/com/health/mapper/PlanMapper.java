@@ -23,6 +23,11 @@ public interface PlanMapper {
 
   void status(@Param("id") Long id, @Param("status") String status);
 
+  void insertStatusChange(
+      @Param("planId") Long planId,
+      @Param("previousStatus") String previousStatus,
+      @Param("status") String status);
+
   PlanItem itemOwner(@Param("userId") Long userId, @Param("id") Long id);
 
   Map<String, Object> checkin(Long itemId);

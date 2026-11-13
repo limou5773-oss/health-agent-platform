@@ -38,8 +38,12 @@ public class PlanServiceImpl implements PlanService {
 
   @Transactional
   public Plan status(Long uid, Long id, String status) {
-    if (mapper.lock(uid, id) == null) throw ApiException.missing();
-    mapper.status(id, status);
+    Plan plan = mapper.lock(uid, id);
+    if (plan == null) throw ApiException.missing();
+    if (!status.equals(plan.status)) {
+      mapper.status(id, status);
+      mapper.insertStatusChange(id, plan.status, status);
+    }
     return get(uid, id);
   }
 
