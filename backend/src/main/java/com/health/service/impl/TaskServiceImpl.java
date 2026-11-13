@@ -30,6 +30,7 @@ public class TaskServiceImpl implements TaskService {
   private final PlanMapper plans;
   private final AccountService accounts;
   private final PreferenceService preferences;
+  private final NotificationService notifications;
   private final ObjectMapper json;
   private final Validator validator;
   private final Executor executor;
@@ -42,6 +43,7 @@ public class TaskServiceImpl implements TaskService {
       PlanMapper plans,
       AccountService accounts,
       PreferenceService preferences,
+      NotificationService notifications,
       ObjectMapper json,
       Validator validator,
       Executor taskExecutor,
@@ -52,6 +54,7 @@ public class TaskServiceImpl implements TaskService {
     this.plans = plans;
     this.accounts = accounts;
     this.preferences = preferences;
+    this.notifications = notifications;
     this.json = json;
     this.validator = validator;
     this.executor = taskExecutor;
@@ -394,6 +397,7 @@ public class TaskServiceImpl implements TaskService {
         report.statisticsJson = t.statisticsJson;
         report.referencesJson = node.get("references").toString();
         plans.insertReport(report);
+        notifications.reportReady(t.userId, report.id);
         t.reportId = report.id;
       } else if (t.answer == null || t.answer.isBlank()) throw invalidResult("分析结果为空");
     }

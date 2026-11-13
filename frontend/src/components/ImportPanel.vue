@@ -121,7 +121,7 @@ async function confirm() {
 onMounted(load);
 </script>
 <template>
-  <section class="panel">
+  <section id="sleep-import" class="panel">
     <div class="section-heading">
       <div>
         <h2>可穿戴设备数据导入</h2>

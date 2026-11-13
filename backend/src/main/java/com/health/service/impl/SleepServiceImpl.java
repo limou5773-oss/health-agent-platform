@@ -23,16 +23,18 @@ public class SleepServiceImpl implements SleepService {
   private final AccountService accounts;
   private final TaskService tasks;
   private final AppleHealthImporter appleImporter;
+  private final NotificationService notifications;
 
   public SleepServiceImpl(
       SleepMapper mapper,
       AccountService accounts,
       TaskService tasks,
-      AppleHealthImporter appleImporter) {
+      AppleHealthImporter appleImporter, NotificationService notifications) {
     this.mapper = mapper;
     this.accounts = accounts;
     this.tasks = tasks;
     this.appleImporter = appleImporter;
+    this.notifications = notifications;
   }
 
   public Page<SleepRecord> list(Long uid, Requests.SleepQuery q) {
@@ -265,6 +267,7 @@ public class SleepServiceImpl implements SleepService {
       row.batchId = batch.id;
       mapper.insertRow(row);
     }
+    notifications.importIssues(uid, batch.id, false, batch.validRows, batch.invalidRows + batch.unsupportedRows);
     return batch;
   }
 

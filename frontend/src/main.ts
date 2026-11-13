@@ -5,6 +5,9 @@ import "./style.css";
 
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior(to) {
+    if (to.hash) return { el: to.hash };
+  },
   routes: [
     {
       path: "/",
@@ -78,6 +81,11 @@ const router = createRouter({
       path: "/reports",
       component: () => import("./pages/ReportsPage.vue"),
       meta: { title: "健康报告", caption: "生成综合周报和月报，查看历史报告。" },
+    },
+    {
+      path: "/notifications",
+      component: () => import("./pages/NotificationsPage.vue"),
+      meta: { title: "消息中心", caption: "查看站内消息，设置提醒频率。" },
     },
     {
       path: "/knowledge",

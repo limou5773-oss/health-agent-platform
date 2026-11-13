@@ -7,6 +7,7 @@ import com.health.model.ActivityModels.*;
 import com.health.model.Models.Page;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
+import com.health.service.NotificationService;
 import jakarta.validation.Validator;
 import java.io.*;
 import java.math.BigDecimal;
@@ -27,12 +28,15 @@ public class ActivityServiceImpl implements ActivityService {
   private final PlanMapper plans;
   private final AccountService accounts;
   private final Validator validator;
+  private final NotificationService notifications;
 
-  public ActivityServiceImpl(ActivityMapper mapper, PlanMapper plans, AccountService accounts, Validator validator) {
+  public ActivityServiceImpl(ActivityMapper mapper, PlanMapper plans, AccountService accounts,
+      Validator validator, NotificationService notifications) {
     this.mapper = mapper;
     this.plans = plans;
     this.accounts = accounts;
     this.validator = validator;
+    this.notifications = notifications;
   }
 
   public Page<StepRecord> steps(Long uid, Requests.SleepQuery q) {
@@ -216,6 +220,7 @@ public class ActivityServiceImpl implements ActivityService {
       mapper.insertRow(row);
     }
     batch.createdAt = mapper.batch(uid, batch.id).createdAt;
+    notifications.importIssues(uid, batch.id, true, batch.validRows, batch.invalidRows);
     return batch;
   }
 

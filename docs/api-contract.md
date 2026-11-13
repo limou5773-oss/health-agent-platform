@@ -120,6 +120,10 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 - DELETE /plan-items/{id}/checkins → 204，当前用户撤销该项打卡。
 
 计划详情提供独立的版本草稿、比较、确认和放弃接口。请求、版本并发及打卡保留规则见[计划修订接口](plan-revisions.md)。
+
+## 站内提醒与消息中心
+
+`/api/notifications` 提供消息分页、未读计数、已读标记与提醒设置。各类别触发时机、去重和字段见[消息中心接口](notifications.md)。
 - GET /reports → [{id,title,startDate,endDate,createdAt,sourceDeleted,includeDiary}]。
 - GET /reports/{id} → 同上 + {content,statistics,references}，失效源不再返回旧健康明细。
 

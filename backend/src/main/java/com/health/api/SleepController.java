@@ -3,6 +3,7 @@ package com.health.api;
 import com.health.model.Models.*;
 import com.health.security.Identity;
 import com.health.service.SleepService;
+import com.health.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -14,9 +15,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api")
 public class SleepController {
   private final SleepService service;
+  private final NotificationService notifications;
 
-  public SleepController(SleepService service) {
+  public SleepController(SleepService service, NotificationService notifications) {
     this.service = service;
+    this.notifications = notifications;
   }
 
   @GetMapping("/sleep")
@@ -67,7 +70,13 @@ public class SleepController {
       HttpServletRequest r,
       @RequestPart MultipartFile file,
       @Valid @ModelAttribute Requests.ImportOptions options) {
-    return service.preview(Identity.user(r).id, file, options);
+    Long userId = Identity.user(r).id;
+    try {
+      return service.preview(userId, file, options);
+    } catch (ApiException e) {
+      if (e.status == 400) notifications.importRejected(userId, false);
+      throw e;
+    }
   }
 
   @PostMapping("/imports/{id}/confirm")
@@ -80,7 +89,7 @@ public class SleepController {
     Requests.ImportOptions options = new Requests.ImportOptions();
     options.format = "APPLE_HEALTH";
     options.sourceApp = "APPLE_HEALTH";
-    return service.preview(Identity.user(r).id, file, options);
+    return preview(r, file, options);
   }
 
   @GetMapping("/imports")

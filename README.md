@@ -108,6 +108,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「我的计划」编辑修订草稿，对照当前版本后单独确认。历史版本可查看，已打卡任务保留。已有库执行 `database/migrations/011_plan_revisions.sql`。详见[计划修订说明](docs/plan-revisions.md)。
 
+## 站内提醒与消息中心
+
+在「消息中心」开启所需类别，设置打卡提醒频率，查看、跳转和标记消息。已有库执行 `database/migrations/012_notifications.sql`。详见[站内提醒说明](docs/notifications.md)。
+
 ## 开发约定
 
 同一输入在入口校验一次；内部不重复判空或滥用 `try/catch`。归属、权限、状态、版本、事务与数据库唯一约束保留。功能测试与验收由用户负责，不附带自动化回归框架；开发侧只执行必要的构建检查。

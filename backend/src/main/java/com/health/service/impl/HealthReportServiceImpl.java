@@ -11,6 +11,7 @@ import com.health.service.AccountService;
 import com.health.service.ActivityService;
 import com.health.service.HealthReportService;
 import com.health.service.NutritionService;
+import com.health.service.NotificationService;
 import com.health.service.PlanService;
 import com.health.service.SleepService;
 import com.health.service.WeightService;
@@ -37,10 +38,11 @@ public class HealthReportServiceImpl implements HealthReportService {
   private final PlanMapper mapper;
   private final TaskMapper tasks;
   private final ObjectMapper json;
+  private final NotificationService notifications;
 
   public HealthReportServiceImpl(AccountService accounts, SleepService sleep, ActivityService activity,
       NutritionService nutrition, WeightService weight, PlanService plans, PlanMapper mapper,
-      TaskMapper tasks, ObjectMapper json) {
+      TaskMapper tasks, ObjectMapper json, NotificationService notifications) {
     this.accounts = accounts;
     this.sleep = sleep;
     this.activity = activity;
@@ -50,6 +52,7 @@ public class HealthReportServiceImpl implements HealthReportService {
     this.mapper = mapper;
     this.tasks = tasks;
     this.json = json;
+    this.notifications = notifications;
   }
 
   @Override
@@ -102,6 +105,7 @@ public class HealthReportServiceImpl implements HealthReportService {
     report.reportVersion = mapper.nextReportVersion(userId, report.reportType, start, end);
     report.statisticsJson = json.valueToTree(snapshot).toString();
     mapper.insertReport(report);
+    notifications.reportReady(userId, report.id);
     return plans.report(userId, report.id);
   }
 

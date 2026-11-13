@@ -4,6 +4,7 @@ import com.health.model.ActivityModels.*;
 import com.health.model.Models.Page;
 import com.health.security.Identity;
 import com.health.service.ActivityService;
+import com.health.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -17,8 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/activity")
 public class ActivityController {
   private final ActivityService service;
+  private final NotificationService notifications;
 
-  public ActivityController(ActivityService service) { this.service = service; }
+  public ActivityController(ActivityService service, NotificationService notifications) {
+    this.service = service;
+    this.notifications = notifications;
+  }
 
   @GetMapping("/steps")
   public Page<StepRecord> steps(HttpServletRequest r, @Valid @ModelAttribute Requests.SleepQuery q) {
@@ -58,7 +63,13 @@ public class ActivityController {
 
   @PostMapping(value = "/step-imports/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public StepImportBatch preview(HttpServletRequest r, @RequestPart MultipartFile file, @RequestParam(required = false) String timezone) {
-    return service.preview(Identity.user(r).id, file, timezone);
+    Long userId = Identity.user(r).id;
+    try {
+      return service.preview(userId, file, timezone);
+    } catch (ApiException e) {
+      if (e.status == 400) notifications.importRejected(userId, true);
+      throw e;
+    }
   }
 
   @PostMapping("/step-imports/{id}/confirm")

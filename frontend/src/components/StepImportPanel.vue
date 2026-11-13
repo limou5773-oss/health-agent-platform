@@ -100,7 +100,7 @@ async function confirm() {
 onMounted(loadHistory);
 </script>
 <template>
-  <section class="panel">
+  <section id="step-import" class="panel">
     <div class="section-heading">
       <div>
         <h2>导入步数 CSV</h2>
