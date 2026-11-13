@@ -78,6 +78,10 @@ GET /weight/goal和/weight/goal/progress未设置目标时返回204，存在目�
 
 Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowed=true才能读取任务周期内最近20条授权日记。内容变更或撤销使相关任务/草稿/检查点和标记包含日记的报告失效；正式计划保留，内部计划工具仅返回日期及状态等元数据，避免计划内衍生文字再次进入模型。
 
+## 健康事件时间线
+
+`GET /api/timeline/events` 按日期、类型及原始来源筛选本人事件，返回标准分页。单条详情通过 `GET /api/timeline/events/{type}/{id}` 读取。各类型的日期归属、原始详情和计划变更记录规则见[时间线接口](timeline.md)。
+
 ## Agent任务
 
 - POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。
