@@ -86,6 +86,10 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 `GET /api/baseline` 比较同一用户、同一指标的近期与历史日均值，并返回两期覆盖和缺失日期。日期参数、来源和最低覆盖规则见[个人基线接口](baseline-analysis.md)。
 
+## 综合健康报告
+
+`POST /api/reports/health` 保存周报或月报，通过原报告列表和详情接口查询。请求、快照、版本及失效规则见[综合健康报告接口](comprehensive-health-reports.md)。
+
 ## Agent任务
 
 - POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。

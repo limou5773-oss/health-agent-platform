@@ -2,6 +2,7 @@ package com.health.api;
 
 import com.health.model.Models.*;
 import com.health.security.Identity;
+import com.health.service.HealthReportService;
 import com.health.service.PlanService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class PlanController {
   private final PlanService service;
+  private final HealthReportService healthReports;
 
-  public PlanController(PlanService service) {
+  public PlanController(PlanService service, HealthReportService healthReports) {
     this.service = service;
+    this.healthReports = healthReports;
   }
 
   @GetMapping("/plans")
@@ -49,6 +52,12 @@ public class PlanController {
   @GetMapping("/reports")
   public List<Report> reports(HttpServletRequest r) {
     return service.reports(Identity.user(r).id);
+  }
+
+  @PostMapping("/reports/health")
+  @ResponseStatus(HttpStatus.CREATED)
+  public Report generateHealthReport(HttpServletRequest r, @Valid @RequestBody HealthReportRequests.Generate q) {
+    return healthReports.generate(Identity.user(r).id, q);
   }
 
   @GetMapping("/reports/{id}")

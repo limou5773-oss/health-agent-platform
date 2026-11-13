@@ -39,7 +39,7 @@ const links = [
   { to: "/baseline", label: "个人基线", icon: ChartNoAxesCombined },
   { to: "/agent", label: "健康助手", icon: Sparkles },
   { to: "/plans", label: "我的计划", icon: CalendarCheck },
-  { to: "/reports", label: "睡眠报告", icon: FileText },
+  { to: "/reports", label: "健康报告", icon: FileText },
   { to: "/knowledge", label: "知识资料", icon: BookOpen },
 ];
 async function bootstrap() {

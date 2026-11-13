@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.*;
 import com.health.mapper.PlanMapper;
+import com.health.mapper.TaskMapper;
 import com.health.model.Models.*;
 import com.health.service.PlanService;
 import java.time.LocalDate;
@@ -14,10 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PlanServiceImpl implements PlanService {
   private final PlanMapper mapper;
+  private final TaskMapper tasks;
   private final ObjectMapper json;
 
-  public PlanServiceImpl(PlanMapper mapper, ObjectMapper json) {
+  public PlanServiceImpl(PlanMapper mapper, TaskMapper tasks, ObjectMapper json) {
     this.mapper = mapper;
+    this.tasks = tasks;
     this.json = json;
   }
 
@@ -62,10 +65,11 @@ public class PlanServiceImpl implements PlanService {
 
   @Transactional
   public void uncheck(Long uid, Long id) {
+    tasks.lockUser(uid);
     PlanItem item = mapper.itemOwner(uid, id);
     if (item == null) throw ApiException.missing();
     mapper.lock(uid, item.planId);
-    mapper.deleteCheckin(id);
+    if (mapper.deleteCheckin(id) > 0) mapper.invalidateHealthReports(uid, item.date, item.date);
   }
 
   public List<Report> reports(Long uid) {

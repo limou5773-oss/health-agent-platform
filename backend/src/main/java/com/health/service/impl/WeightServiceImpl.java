@@ -4,6 +4,7 @@ import com.health.api.ApiException;
 import com.health.api.Requests;
 import com.health.api.WeightRequests;
 import com.health.mapper.WeightMapper;
+import com.health.mapper.PlanMapper;
 import com.health.model.Models.Page;
 import com.health.model.WeightModels.*;
 import com.health.service.WeightService;
@@ -22,8 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class WeightServiceImpl implements WeightService {
   private final WeightMapper mapper;
+  private final PlanMapper plans;
 
-  public WeightServiceImpl(WeightMapper mapper) { this.mapper = mapper; }
+  public WeightServiceImpl(WeightMapper mapper, PlanMapper plans) {
+    this.mapper = mapper;
+    this.plans = plans;
+  }
 
   public Page<WeightRecord> records(Long uid, Requests.SleepQuery q) {
     return new Page<>(mapper.records(uid, q, (q.page - 1L) * q.pageSize), mapper.recordCount(uid, q), q.page, q.pageSize);
@@ -46,18 +51,22 @@ public class WeightServiceImpl implements WeightService {
   @Transactional
   public WeightRecord updateRecord(Long uid, Long id, WeightRequests.Measurement request) {
     mapper.lockUser(uid);
-    record(uid, id);
+    WeightRecord existing = record(uid, id);
     WeightRecord record = measurement(uid, request);
     record.id = id;
     mapper.updateRecord(record);
+    LocalDate date = existing.measuredAt.toLocalDate();
+    plans.invalidateHealthReports(uid, date, date);
     return mapper.record(uid, id);
   }
 
   @Transactional
   public void deleteRecord(Long uid, Long id) {
     mapper.lockUser(uid);
-    record(uid, id);
+    WeightRecord existing = record(uid, id);
     mapper.deleteRecord(uid, id);
+    LocalDate date = existing.measuredAt.toLocalDate();
+    plans.invalidateHealthReports(uid, date, date);
   }
 
   public List<String> sources(Long uid) { return mapper.sources(uid); }

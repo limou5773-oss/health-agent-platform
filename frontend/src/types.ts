@@ -149,8 +149,25 @@ export interface Plan {
     checkedAt: string | null;
   })[];
 }
-export interface Report {
+export interface HealthSnapshot {
+  periodDays: number;
+  metrics: {
+    key: "SLEEP" | "STEPS" | "WORKOUT" | "MEAL" | "WATER" | "WEIGHT";
+    basis: string;
+    validDays: number;
+    value: number | null;
+    sources: string[];
+    manualCaloriesCount: number;
+    estimatedCaloriesCount: number;
+    unknownCaloriesCount: number;
+  }[];
+  completion: { scheduled: number; completed: number };
+  completionRate: number | null;
+}
+interface ReportMetadata {
   id: number;
+  taskId: string | null;
+  reportVersion: number;
   title: string;
   startDate: string;
   endDate: string;
@@ -158,7 +175,6 @@ export interface Report {
   sourceDeleted: boolean;
   includeDiary: boolean;
   content?: string;
-  statistics?: SleepStatistics | null;
   references?: {
     id: number;
     title: string;
@@ -166,6 +182,10 @@ export interface Report {
     sourceUrl: string;
   }[];
 }
+export type Report = ReportMetadata & (
+  | { reportType: "SLEEP"; statistics?: SleepStatistics | null }
+  | { reportType: "HEALTH_WEEK" | "HEALTH_MONTH"; statistics?: HealthSnapshot | null }
+);
 export interface AdminUser extends User {
   enabled: boolean;
   createdAt: string;

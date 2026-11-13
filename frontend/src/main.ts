@@ -77,7 +77,7 @@ const router = createRouter({
     {
       path: "/reports",
       component: () => import("./pages/ReportsPage.vue"),
-      meta: { title: "睡眠报告", caption: "回顾一段时间，看见习惯的变化。" },
+      meta: { title: "健康报告", caption: "生成综合周报和月报，查看历史报告。" },
     },
     {
       path: "/knowledge",

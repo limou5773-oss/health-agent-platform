@@ -1,6 +1,9 @@
 package com.health.mapper;
 
 import com.health.model.Models.*;
+import com.health.api.HealthReportRequests.Generate;
+import com.health.model.HealthReportModels.Completion;
+import com.health.model.HealthReportModels.Source;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +37,23 @@ public interface PlanMapper {
 
   void insertCheckin(@Param("id") Long id, @Param("date") LocalDate date);
 
-  void deleteCheckin(Long itemId);
+  int deleteCheckin(Long itemId);
 
   List<Report> reports(Long userId);
 
   Report report(@Param("userId") Long userId, @Param("id") Long id);
 
   void insertReport(Report report);
+
+  int nextReportVersion(@Param("userId") Long userId, @Param("type") String type,
+      @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+  Completion reportCompletion(@Param("userId") Long userId,
+      @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+  List<Source> reportSources(@Param("userId") Long userId, @Param("start") LocalDate start,
+      @Param("end") LocalDate end, @Param("request") Generate request);
+
+  void invalidateHealthReports(@Param("userId") Long userId,
+      @Param("start") LocalDate start, @Param("end") LocalDate end);
 }

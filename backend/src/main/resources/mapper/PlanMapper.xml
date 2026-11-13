@@ -14,7 +14,57 @@
  <select id="checkin" resultType="map">SELECT id,TRUE AS completed,checked_at AS checkedAt FROM checkins WHERE item_id=#{itemId} FOR UPDATE</select>
  <insert id="insertCheckin">INSERT INTO checkins(item_id,date) VALUES(#{id},#{date})</insert>
  <delete id="deleteCheckin">DELETE FROM checkins WHERE item_id=#{itemId}</delete>
- <select id="reports" resultType="com.health.model.Models$Report">SELECT id,title,start_date,end_date,created_at,source_deleted,include_diary FROM reports WHERE user_id=#{userId} ORDER BY created_at DESC</select>
+ <select id="reports" resultType="com.health.model.Models$Report">
+  SELECT id,task_id,title,start_date,end_date,created_at,source_deleted,include_diary,report_type,report_version
+  FROM reports WHERE user_id=#{userId} ORDER BY created_at DESC,id DESC
+ </select>
  <select id="report" resultType="com.health.model.Models$Report">SELECT * FROM reports WHERE user_id=#{userId} AND id=#{id}</select>
- <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">INSERT INTO reports(user_id,task_id,title,start_date,end_date,source_name,include_diary,content,statistics_json,references_json) VALUES(#{userId},#{taskId},#{title},#{startDate},#{endDate},#{sourceName},#{includeDiary},#{content},#{statisticsJson},#{referencesJson})</insert>
+ <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">
+  INSERT INTO reports(user_id,task_id,title,start_date,end_date,source_name,include_diary,content,statistics_json,
+    references_json,report_type,report_version)
+  VALUES(#{userId},#{taskId},#{title},#{startDate},#{endDate},#{sourceName},#{includeDiary},#{content},#{statisticsJson},
+    #{referencesJson},#{reportType},#{reportVersion})
+ </insert>
+ <select id="nextReportVersion" resultType="int">
+  SELECT COALESCE(MAX(report_version),0)+1 FROM reports
+  WHERE user_id=#{userId} AND report_type=#{type} AND start_date=#{start} AND end_date=#{end}
+ </select>
+ <select id="reportCompletion" resultType="com.health.model.HealthReportModels$Completion">
+  SELECT COUNT(*) AS scheduled,COUNT(c.id) AS completed
+  FROM plans p JOIN plan_items i ON i.plan_id=p.id
+  LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
+  WHERE p.user_id=#{userId} AND i.date BETWEEN #{start} AND #{end}
+ </select>
+ <select id="reportSources" resultType="com.health.model.HealthReportModels$Source">
+  SELECT DISTINCT 'SLEEP' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM sleep_records WHERE user_id=#{userId} AND sleep_date BETWEEN #{start} AND #{end}
+  <if test="request.sleepSource != null and request.sleepSource != ''">AND source_name=#{request.sleepSource}</if>
+  UNION ALL
+  SELECT DISTINCT 'STEPS' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM step_records WHERE user_id=#{userId} AND activity_date BETWEEN #{start} AND #{end}
+  <if test="request.stepSource != null and request.stepSource != ''">AND source_name=#{request.stepSource}</if>
+  UNION ALL
+  SELECT DISTINCT 'WORKOUT' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM workout_records WHERE user_id=#{userId} AND end_time &gt; #{start} AND start_time &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+  <if test="request.workoutSource != null and request.workoutSource != ''">AND source_name=#{request.workoutSource}</if>
+  UNION ALL
+  SELECT DISTINCT 'MEAL' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM meal_records WHERE user_id=#{userId} AND consumed_at &gt;= #{start} AND consumed_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+  <if test="request.mealSource != null and request.mealSource != ''">AND source_name=#{request.mealSource}</if>
+  UNION ALL
+  SELECT DISTINCT 'WATER' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM water_records WHERE user_id=#{userId} AND consumed_at &gt;= #{start} AND consumed_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+  <if test="request.waterSource != null and request.waterSource != ''">AND source_name=#{request.waterSource}</if>
+  UNION ALL
+  SELECT DISTINCT 'WEIGHT' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name
+  FROM weight_records WHERE user_id=#{userId} AND measured_at &gt;= #{start} AND measured_at &lt; DATE_ADD(#{end}, INTERVAL 1 DAY)
+  <if test="request.weightSource != null and request.weightSource != ''">AND source_name=#{request.weightSource}</if>
+  ORDER BY metric,source_name
+ </select>
+ <update id="invalidateHealthReports">
+  UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',
+    content=NULL,statistics_json=NULL,references_json=NULL
+  WHERE user_id=#{userId} AND report_type IN ('HEALTH_WEEK','HEALTH_MONTH')
+    AND source_deleted=FALSE AND start_date &lt;= #{end} AND end_date &gt;= #{start}
+ </update>
 </mapper>

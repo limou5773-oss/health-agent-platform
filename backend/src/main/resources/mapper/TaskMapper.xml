@@ -15,7 +15,7 @@
  <update id="detachPlans">UPDATE plans SET task_id=NULL WHERE task_id=#{id}</update>
  <update id="detachReports">UPDATE reports SET task_id=NULL WHERE task_id=#{id}</update>
  <select id="affected" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE</select>
- <update id="invalidateReports">UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source})</update>
+ <update id="invalidateReports">UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL WHERE user_id=#{userId} AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (report_type IN ('HEALTH_WEEK','HEALTH_MONTH') OR source_name IS NULL OR source_name='' OR source_name=#{source})</update>
  <sql id="diaryDateFilter">
   user_id=#{userId} AND include_diary=TRUE AND
   <foreach collection="dates" item="date" open="(" close=")" separator=" OR ">

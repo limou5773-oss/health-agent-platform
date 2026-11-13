@@ -51,19 +51,23 @@ public class ActivityServiceImpl implements ActivityService {
   @Transactional
   public StepRecord updateStep(Long uid, Long id, ActivityRequests.Step request) {
     mapper.lockUser(uid);
-    if (mapper.step(uid, id) == null) throw ApiException.missing();
+    StepRecord existing = mapper.step(uid, id);
+    if (existing == null) throw ApiException.missing();
     StepRecord record = stepRecord(uid, request);
     record.id = id;
     checkStep(record, mapper.stepDay(uid, record.activityDate, record.sourceName), false);
     mapper.updateStep(record);
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
     return mapper.step(uid, id);
   }
 
   @Transactional
   public void deleteStep(Long uid, Long id) {
     mapper.lockUser(uid);
-    if (mapper.step(uid, id) == null) throw ApiException.missing();
+    StepRecord existing = mapper.step(uid, id);
+    if (existing == null) throw ApiException.missing();
     mapper.deleteStep(uid, id);
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
   }
 
   public List<String> stepSources(Long uid) { return mapper.stepSources(uid); }
@@ -278,6 +282,7 @@ public class ActivityServiceImpl implements ActivityService {
         || !existing.activityDate.equals(record.activityDate)) validatePlan(uid, record);
     if (mapper.workoutDuplicate(record) != null) throw new ApiException(409, "DUPLICATE_RECORD", "相同起止时间、类型及来源的运动记录已存在");
     mapper.updateWorkout(record);
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
     return mapper.workout(uid, id);
   }
 
@@ -308,8 +313,10 @@ public class ActivityServiceImpl implements ActivityService {
   @Transactional
   public void deleteWorkout(Long uid, Long id) {
     mapper.lockUser(uid);
-    if (mapper.workout(uid, id) == null) throw ApiException.missing();
+    Workout existing = mapper.workout(uid, id);
+    if (existing == null) throw ApiException.missing();
     mapper.deleteWorkout(uid, id);
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
   }
 
   public List<String> workoutSources(Long uid) { return mapper.workoutSources(uid); }

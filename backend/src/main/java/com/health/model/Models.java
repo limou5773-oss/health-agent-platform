@@ -151,8 +151,10 @@ public final class Models {
   public static class Report {
     public Long id;
     @JsonIgnore public Long userId;
-    @JsonIgnore public String taskId;
+    public String taskId;
     @JsonIgnore public String sourceName;
+    public String reportType = "SLEEP";
+    public int reportVersion = 1;
     public String title;
     public LocalDate startDate;
     public LocalDate endDate;

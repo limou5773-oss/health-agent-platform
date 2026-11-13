@@ -2,6 +2,7 @@ package com.health.service.impl;
 
 import com.health.api.*;
 import com.health.mapper.NutritionMapper;
+import com.health.mapper.PlanMapper;
 import com.health.model.NutritionModels.*;
 import com.health.model.Models.Page;
 import com.health.service.NutritionService;
@@ -16,8 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class NutritionServiceImpl implements NutritionService {
   private final NutritionMapper mapper;
+  private final PlanMapper plans;
 
-  public NutritionServiceImpl(NutritionMapper mapper) { this.mapper = mapper; }
+  public NutritionServiceImpl(NutritionMapper mapper, PlanMapper plans) {
+    this.mapper = mapper;
+    this.plans = plans;
+  }
 
   public Page<MealRecord> meals(Long uid, Requests.SleepQuery q) {
     return new Page<>(mapper.meals(uid, q, (q.page - 1L) * q.pageSize), mapper.mealCount(uid, q), q.page, q.pageSize);
@@ -34,18 +39,24 @@ public class NutritionServiceImpl implements NutritionService {
   @Transactional
   public MealRecord updateMeal(Long uid, Long id, NutritionRequests.Meal request) {
     mapper.lockUser(uid);
-    if (mapper.meal(uid, id) == null) throw ApiException.missing();
+    MealRecord existing = mapper.meal(uid, id);
+    if (existing == null) throw ApiException.missing();
     MealRecord record = mealRecord(uid, request);
     record.id = id;
     mapper.updateMeal(record);
+    LocalDate date = existing.consumedAt.toLocalDate();
+    plans.invalidateHealthReports(uid, date, date);
     return mapper.meal(uid, id);
   }
 
   @Transactional
   public void deleteMeal(Long uid, Long id) {
     mapper.lockUser(uid);
-    if (mapper.meal(uid, id) == null) throw ApiException.missing();
+    MealRecord existing = mapper.meal(uid, id);
+    if (existing == null) throw ApiException.missing();
     mapper.deleteMeal(uid, id);
+    LocalDate date = existing.consumedAt.toLocalDate();
+    plans.invalidateHealthReports(uid, date, date);
   }
 
   public List<String> mealSources(Long uid) { return mapper.mealSources(uid); }
@@ -139,18 +150,24 @@ public class NutritionServiceImpl implements NutritionService {
   @Transactional
   public WaterRecord updateWater(Long uid, Long id, NutritionRequests.Water request) {
     mapper.lockUser(uid);
-    if (mapper.waterRecord(uid, id) == null) throw ApiException.missing();
+    WaterRecord existing = mapper.waterRecord(uid, id);
+    if (existing == null) throw ApiException.missing();
     WaterRecord record = waterRecord(uid, request);
     record.id = id;
     mapper.updateWater(record);
+    LocalDate date = existing.consumedAt.toLocalDate();
+    plans.invalidateHealthReports(uid, date, date);
     return mapper.waterRecord(uid, id);
   }
 
   @Transactional
   public void deleteWater(Long uid, Long id) {
     mapper.lockUser(uid);
-    if (mapper.waterRecord(uid, id) == null) throw ApiException.missing();
+    WaterRecord existing = mapper.waterRecord(uid, id);
+    if (existing == null) throw ApiException.missing();
     mapper.deleteWater(uid, id);
+    LocalDate date = existing.consumedAt.toLocalDate();
+    plans.invalidateHealthReports(uid, date, date);
   }
 
   public List<String> waterSources(Long uid) { return mapper.waterSources(uid); }
