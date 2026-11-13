@@ -84,6 +84,8 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 `GET /api/timeline/events/export` 按同一筛选范围导出本人记录及详情，格式为 JSON。
 
+`GET /api/timeline/events/deletion-preview` 预览按单个指标、日期和来源删除的范围及影响。`DELETE /api/timeline/events` 使用相同筛选和预览返回的 `fingerprint` 确认删除。详见[时间线删除接口](timeline.md)。
+
 ## 个人基线
 
 `GET /api/baseline` 比较同一用户、同一指标的近期与历史日均值，并返回两期覆盖和缺失日期。日期参数、来源和最低覆盖规则见[个人基线接口](baseline-analysis.md)。

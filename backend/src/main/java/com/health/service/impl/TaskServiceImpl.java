@@ -29,6 +29,9 @@ import org.springframework.web.client.*;
 @Service
 public class TaskServiceImpl implements TaskService {
   private static final Logger log = LoggerFactory.getLogger(TaskServiceImpl.class);
+  private static final String CLEARED_GOAL = "源记录变更，原任务内容已清除";
+  private static final String SLEEP_INVALIDATED = "源睡眠记录已变更，相关分析已失效";
+  private static final String DIARY_INVALIDATED = "源日记已变更或授权已撤销，相关分析已失效";
   private final TaskMapper mapper;
   private final PlanMapper plans;
   private final AccountService accounts;
@@ -302,19 +305,22 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public void invalidate(Long uid, LocalDate date, String source) {
-    invalidateTasks(mapper.affected(uid, date, source), "源睡眠记录已变更，相关分析已失效");
+    invalidateTasks(mapper.affected(uid, date, source), SLEEP_INVALIDATED);
     mapper.invalidateReports(uid, date, source);
   }
 
   @Transactional
   public void invalidateDiary(Long uid, Set<LocalDate> dates) {
-    invalidateTasks(mapper.affectedDiary(uid, dates), "源日记已变更或授权已撤销，相关分析已失效");
+    invalidateTasks(mapper.affectedDiary(uid, dates), DIARY_INVALIDATED);
     mapper.invalidateDiaryReports(uid, dates);
   }
 
   private void invalidateTasks(List<Task> tasks, String reason) {
     for (Task t : tasks) {
+      if ("CANCELLED".equals(t.status) && CLEARED_GOAL.equals(t.goal)
+          && (SLEEP_INVALIDATED.equals(t.error) || DIARY_INVALIDATED.equals(t.error))) continue;
       deleteCheckpoint(t.id);
+      t.goal = CLEARED_GOAL;
       t.answer = null;
       t.question = null;
       t.statisticsJson = null;

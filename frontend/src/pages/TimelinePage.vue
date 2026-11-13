@@ -2,7 +2,7 @@
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ChevronRight } from "@lucide/vue";
-import { api, dateAfter, download, errorMessage, recentRange } from "../api";
+import { api, dateAfter, download, errorMessage, json, recentRange } from "../api";
 import StateNotice from "../components/StateNotice.vue";
 import TimelineEventDetail from "../components/TimelineEventDetail.vue";
 import { recordTime } from "../nutrition";
@@ -10,6 +10,7 @@ import { isTimelineType, timelineTypeText } from "../timeline";
 import type {
   TimelineEvent,
   TimelineEventDetail as TimelineDetail,
+  TimelineType,
 } from "../timeline";
 import type { Page } from "../types";
 
@@ -49,6 +50,14 @@ const listLoading = ref(true);
 const listError = ref("");
 const exporting = ref(false);
 const exportError = ref("");
+type DeletionPreview = { count: number; fingerprint: string; impact: string };
+const deletion = ref<{ scope: string; preview: DeletionPreview } | null>(null);
+const deleting = ref(false);
+const deletionError = ref("");
+const deletedCount = ref<number | null>(null);
+const canDelete = computed(() =>
+  ["SLEEP", "STEPS", "WORKOUT", "MEAL", "WATER", "WEIGHT", "DIARY"].includes(appliedFilters.value.type),
+);
 const listRevision = ref(0);
 const groups = computed(() => {
   const byDate = new Map<string, TimelineEvent[]>();
@@ -61,6 +70,11 @@ const groups = computed(() => {
 });
 
 watch(listPath, () => Object.assign(filters, appliedFilters.value));
+watch(filterParams, () => {
+  deletion.value = null;
+  deletionError.value = "";
+  deletedCount.value = null;
+});
 watch(
   [listPath, listRevision],
   async ([path], _previous, onCleanup) => {
@@ -175,6 +189,45 @@ async function exportRecords() {
   }
 }
 
+async function previewDeletion() {
+  deleting.value = true;
+  deletion.value = null;
+  deletionError.value = "";
+  deletedCount.value = null;
+  const scope = filterParams.value.toString();
+  try {
+    const preview = await api<DeletionPreview>(`/timeline/events/deletion-preview?${scope}`);
+    if (scope === filterParams.value.toString()) deletion.value = { scope, preview };
+  } catch (cause) {
+    deletionError.value = errorMessage(cause);
+  } finally {
+    deleting.value = false;
+  }
+}
+
+async function confirmDeletion() {
+  const current = deletion.value;
+  if (!current || current.scope !== filterParams.value.toString()) return;
+  deleting.value = true;
+  deletionError.value = "";
+  const params = new URLSearchParams(current.scope);
+  params.set("fingerprint", current.preview.fingerprint);
+  try {
+    const result = await api<{ deleted: number }>(`/timeline/events?${params}`, json("DELETE"));
+    if (current.scope === filterParams.value.toString()) {
+      await router.replace({ query: { ...listQuery.value, page: undefined } });
+      deletedCount.value = result.deleted;
+    }
+    listRevision.value++;
+    detailRevision.value++;
+  } catch (cause) {
+    deletionError.value = errorMessage(cause);
+  } finally {
+    deletion.value = null;
+    deleting.value = false;
+  }
+}
+
 function changePage(page: number) {
   void router.push({
     query: { ...listQuery.value, page: page === 1 ? undefined : page },
@@ -238,8 +291,26 @@ function closeDetail() {
       <button type="button" class="secondary" :disabled="listLoading || !!listError || exporting" @click="exportRecords">
         {{ exporting ? "正在导出…" : "导出已筛选记录" }}
       </button>
+      <button v-if="canDelete" type="button" class="secondary"
+        :disabled="listLoading || !!listError || deleting" @click="previewDeletion">预览删除</button>
     </form>
     <p v-if="exportError" class="feedback error" role="alert">{{ exportError }}</p>
+    <p v-if="deletionError" class="feedback error" role="alert">{{ deletionError }}</p>
+    <p v-if="deletedCount !== null" class="feedback success" role="status">已删除 {{ deletedCount }} 条记录。</p>
+    <section v-if="deletion" class="notice" aria-labelledby="timeline-deletion-title">
+      <h2 id="timeline-deletion-title">确认删除 {{ deletion.preview.count }} 条记录</h2>
+      <p>{{ appliedFilters.startDate }} 至 {{ appliedFilters.endDate }} ·
+        {{ timelineTypeText[appliedFilters.type as TimelineType] }} · {{ appliedFilters.sourceName || "全部来源" }}</p>
+      <p v-if="deletion.preview.count">{{ deletion.preview.impact }}</p>
+      <p v-else>此范围没有匹配记录。</p>
+      <p v-if="deletion.preview.count" class="small muted">已确认的正式计划及打卡记录继续保留。</p>
+      <div class="actions">
+        <button v-if="deletion.preview.count" :disabled="deleting" @click="confirmDeletion">
+          {{ deleting ? "正在删除…" : "确认永久删除" }}
+        </button>
+        <button class="secondary" :disabled="deleting" @click="deletion = null">取消</button>
+      </div>
+    </section>
   </section>
 
   <section
