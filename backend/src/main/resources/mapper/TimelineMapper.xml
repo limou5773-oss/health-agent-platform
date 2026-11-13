@@ -32,7 +32,7 @@
         FROM sleep_records e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.sleep_date BETWEEN #{q.startDate} AND #{q.endDate}
             <include refid="recordSourceFilter"/>
@@ -58,7 +58,7 @@
         FROM step_records e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.activity_date BETWEEN #{q.startDate} AND #{q.endDate}
             <include refid="recordSourceFilter"/>
@@ -85,7 +85,7 @@
         FROM workout_records e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.activity_date BETWEEN #{q.startDate} AND #{q.endDate}
             <include refid="recordSourceFilter"/>
@@ -116,7 +116,7 @@
         FROM meal_records e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.consumed_at &gt;= #{q.startDate}
             AND e.consumed_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -140,7 +140,7 @@
         FROM water_records e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.consumed_at &gt;= #{q.startDate}
             AND e.consumed_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -164,7 +164,7 @@
         FROM weight_records e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.measured_at &gt;= #{q.startDate}
             AND e.measured_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -193,7 +193,7 @@
         FROM diary_entries e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.recorded_at &gt;= #{q.startDate}
             AND e.recorded_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -222,7 +222,7 @@
         JOIN plans p ON p.id = i.plan_id
         WHERE p.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.checked_at &gt;= #{q.startDate}
             AND e.checked_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -251,7 +251,7 @@
         FROM plans e
         WHERE e.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.created_at &gt;= #{q.startDate}
             AND e.created_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -281,7 +281,7 @@
         JOIN plans p ON p.id = e.plan_id
         WHERE p.user_id = #{userId}
         <choose>
-          <when test="detail">AND e.id = #{id}</when>
+          <when test="byId">AND e.id = #{id}</when>
           <otherwise>
             AND e.changed_at &gt;= #{q.startDate}
             AND e.changed_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
@@ -299,6 +299,7 @@
     <bind name="eventType" value="q.type"/>
     <bind name="project" value="true"/>
     <bind name="detail" value="false"/>
+    <bind name="byId" value="false"/>
     SELECT * FROM (<include refid="eventRows"/>) AS timeline
     ORDER BY event_date DESC, occurred_at DESC, type ASC, id DESC
     LIMIT #{q.pageSize} OFFSET #{offset}
@@ -308,6 +309,7 @@
     <bind name="eventType" value="q.type"/>
     <bind name="project" value="false"/>
     <bind name="detail" value="false"/>
+    <bind name="byId" value="false"/>
     SELECT COUNT(*) FROM (<include refid="eventRows"/>) AS timeline
   </select>
 
@@ -315,6 +317,17 @@
     <bind name="eventType" value="type"/>
     <bind name="project" value="true"/>
     <bind name="detail" value="true"/>
+    <bind name="byId" value="true"/>
     <include refid="eventRows"/>
+  </select>
+
+  <select id="exportEvents" resultType="com.health.model.TimelineModels$Event"
+          fetchSize="-2147483648" resultSetType="FORWARD_ONLY">
+    <bind name="eventType" value="q.type"/>
+    <bind name="project" value="true"/>
+    <bind name="detail" value="true"/>
+    <bind name="byId" value="false"/>
+    SELECT * FROM (<include refid="eventRows"/>) AS timeline
+    ORDER BY event_date DESC, occurred_at DESC, type ASC, id DESC
   </select>
 </mapper>

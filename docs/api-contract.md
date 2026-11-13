@@ -82,6 +82,8 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 `GET /api/timeline/events` 按日期、类型及原始来源筛选本人事件，返回标准分页。单条详情通过 `GET /api/timeline/events/{type}/{id}` 读取。各类型的日期归属、原始详情和计划变更记录规则见[时间线接口](timeline.md)。
 
+`GET /api/timeline/events/export` 按同一筛选范围导出本人记录及详情，格式为 JSON。
+
 ## 个人基线
 
 `GET /api/baseline` 比较同一用户、同一指标的近期与历史日均值，并返回两期覆盖和缺失日期。日期参数、来源和最低覆盖规则见[个人基线接口](baseline-analysis.md)。

@@ -2,7 +2,7 @@
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ChevronRight } from "@lucide/vue";
-import { api, dateAfter, errorMessage, recentRange } from "../api";
+import { api, dateAfter, download, errorMessage, recentRange } from "../api";
 import StateNotice from "../components/StateNotice.vue";
 import TimelineEventDetail from "../components/TimelineEventDetail.vue";
 import { recordTime } from "../nutrition";
@@ -30,20 +30,25 @@ const appliedFilters = computed(() => ({
     typeof route.query.sourceName === "string" ? route.query.sourceName : "",
 }));
 const filters = reactive({ ...appliedFilters.value });
-const listPath = computed(() => {
+const filterParams = computed(() => {
   const { type, sourceName, ...dates } = appliedFilters.value;
-  const page = typeof route.query.page === "string" ? route.query.page : "1";
-  return `/timeline/events?${new URLSearchParams({
+  return new URLSearchParams({
     ...dates,
     ...(type ? { type } : {}),
     ...(sourceName ? { sourceName } : {}),
-    page,
-    pageSize: "20",
-  })}`;
+  });
+});
+const listPath = computed(() => {
+  const params = new URLSearchParams(filterParams.value);
+  params.set("page", typeof route.query.page === "string" ? route.query.page : "1");
+  params.set("pageSize", "20");
+  return `/timeline/events?${params}`;
 });
 const data = ref<Page<TimelineEvent> | null>(null);
 const listLoading = ref(true);
 const listError = ref("");
+const exporting = ref(false);
+const exportError = ref("");
 const listRevision = ref(0);
 const groups = computed(() => {
   const byDate = new Map<string, TimelineEvent[]>();
@@ -157,6 +162,19 @@ async function applyFilters() {
   if (listPath.value === previousPath) listRevision.value++;
 }
 
+async function exportRecords() {
+  exporting.value = true;
+  exportError.value = "";
+  const { startDate, endDate } = appliedFilters.value;
+  try {
+    await download(`/timeline/events/export?${filterParams.value}`, `健康记录_${startDate}_${endDate}.json`);
+  } catch (cause) {
+    exportError.value = errorMessage(cause);
+  } finally {
+    exporting.value = false;
+  }
+}
+
 function changePage(page: number) {
   void router.push({
     query: { ...listQuery.value, page: page === 1 ? undefined : page },
@@ -217,7 +235,11 @@ function closeDetail() {
         />
       </label>
       <button class="secondary" :disabled="listLoading">筛选事件</button>
+      <button type="button" class="secondary" :disabled="listLoading || !!listError || exporting" @click="exportRecords">
+        {{ exporting ? "正在导出…" : "导出已筛选记录" }}
+      </button>
     </form>
+    <p v-if="exportError" class="feedback error" role="alert">{{ exportError }}</p>
   </section>
 
   <section
