@@ -19,6 +19,22 @@ export interface Page<T> {
   page: number;
   pageSize: number;
 }
+export interface HeartRateSample {
+  id: number;
+  measuredAt: string;
+  bpm: number;
+  sourceName: string;
+  note: string;
+  corrected: boolean;
+}
+export interface HeartRateStatistics {
+  periodDays: number;
+  validDays: number;
+  recordCount: number;
+  averageBpm: number | null;
+  dataCutoff: string | null;
+  daily: { date: string; recordCount: number; averageBpm: number | null }[];
+}
 export interface WearableSource {
   sourceApp: "MI_FITNESS" | "APPLE_HEALTH" | "OTHER";
   deviceBrand: "XIAOMI" | "REDMI" | "APPLE" | "OTHER";

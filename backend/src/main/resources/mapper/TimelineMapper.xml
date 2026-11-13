@@ -173,6 +173,30 @@
         </choose>
         UNION ALL
       </if>
+      <if test="eventType == null or eventType.name() == 'HEART_RATE'">
+        SELECT e.id
+        <if test="project">
+          , _utf8mb4'HEART_RATE' COLLATE utf8mb4_0900_bin AS type
+          , DATE(e.measured_at) AS event_date, e.measured_at AS occurred_at
+          , e.source_name COLLATE utf8mb4_0900_bin AS source_name
+          , CONVERT(CONCAT('心率 ', e.bpm, ' 次/分') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          <if test="detail">
+            , JSON_OBJECT('bpm', e.bpm, 'note', e.note,
+                'corrected', CAST(IF(e.corrected, 'true', 'false') AS JSON)) AS details_json
+          </if>
+        </if>
+        FROM heart_rate_samples e
+        WHERE e.user_id = #{userId}
+        <choose>
+          <when test="byId">AND e.id = #{id}</when>
+          <otherwise>
+            AND e.measured_at &gt;= #{q.startDate}
+            AND e.measured_at &lt;= TIMESTAMP(#{q.endDate}, '23:59:59.999999')
+            <include refid="recordSourceFilter"/>
+          </otherwise>
+        </choose>
+        UNION ALL
+      </if>
       <if test="eventType == null or eventType.name() == 'DIARY'">
         SELECT e.id
         <if test="project">

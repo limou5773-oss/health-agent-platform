@@ -86,6 +86,11 @@ const fields = computed<[string, string][]>(() => {
       return [["饮水量", `${nutritionNumber(details.amountMl)} 毫升`]];
     case "WEIGHT":
       return [["体重", weightText(details.weightKg)]];
+    case "HEART_RATE":
+      return [
+        ["心率", `${nutritionNumber(details.bpm, 3)} 次/分`],
+        ["更正状态", details.corrected ? "已更正" : "原始采样"],
+      ];
     case "DIARY":
       return [
         ["情绪自述", details.mood || "未填写"],

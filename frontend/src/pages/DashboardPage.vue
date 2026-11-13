@@ -5,7 +5,7 @@ import DashboardMetric from "../components/DashboardMetric.vue";
 
 const applied = ref(recentRange());
 const range = reactive({ ...applied.value });
-const metrics = ["sleep", "steps", "workouts", "meals", "water", "weight"] as const;
+const metrics = ["sleep", "steps", "workouts", "meals", "water", "weight", "heartRate"] as const;
 function apply() {
   applied.value = { ...range };
 }

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.HeartRateMapper">
+  <sql id="scope">
+    user_id=#{userId} AND measured_at &gt;= #{q.startDate} AND measured_at &lt; DATE_ADD(#{q.endDate}, INTERVAL 1 DAY)
+    <if test="q.sourceName != null and q.sourceName != ''">AND source_name=#{q.sourceName}</if>
+  </sql>
+  <select id="records" resultType="com.health.model.HeartRateModels$Sample">
+    SELECT * FROM heart_rate_samples WHERE <include refid="scope"/>
+    ORDER BY measured_at DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}
+  </select>
+  <select id="totals" resultType="com.health.model.HeartRateModels$Totals">
+    SELECT COUNT(*) AS record_count, ROUND(AVG(bpm),3) AS average_bpm, MAX(measured_at) AS data_cutoff
+    FROM heart_rate_samples WHERE <include refid="scope"/>
+  </select>
+  <select id="daily" resultType="com.health.model.HeartRateModels$Daily">
+    SELECT DATE(measured_at) AS date, COUNT(*) AS record_count, ROUND(AVG(bpm),3) AS average_bpm
+    FROM heart_rate_samples WHERE <include refid="scope"/> GROUP BY DATE(measured_at)
+  </select>
+  <select id="sources" resultType="string">
+    SELECT DISTINCT source_name FROM heart_rate_samples WHERE user_id=#{userId} ORDER BY source_name
+  </select>
+  <select id="hasOverlappingSources" resultType="boolean">
+    SELECT EXISTS(SELECT 1 FROM heart_rate_samples WHERE <include refid="scope"/>
+      GROUP BY measured_at HAVING COUNT(*) &gt; 1)
+  </select>
+  <select id="record" resultType="com.health.model.HeartRateModels$Sample">
+    SELECT * FROM heart_rate_samples WHERE user_id=#{userId} AND id=#{id}
+  </select>
+  <select id="sameMeasurement" resultType="com.health.model.HeartRateModels$Sample">
+    SELECT * FROM heart_rate_samples WHERE user_id=#{userId} AND measured_at=#{measuredAt} AND source_name=#{sourceName}
+  </select>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO heart_rate_samples(user_id,measured_at,bpm,source_name,note)
+    VALUES(#{userId},#{measuredAt},#{bpm},#{sourceName},#{note})
+  </insert>
+  <update id="update">
+    UPDATE heart_rate_samples SET measured_at=#{measuredAt},bpm=#{bpm},note=#{note},corrected=TRUE
+    WHERE user_id=#{userId} AND id=#{id}
+  </update>
+  <delete id="delete">
+    DELETE FROM heart_rate_samples WHERE user_id=#{userId} AND id=#{id}
+  </delete>
+</mapper>

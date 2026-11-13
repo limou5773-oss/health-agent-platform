@@ -38,6 +38,7 @@ interface TimelineDetails {
   >;
   WATER: Pick<WaterRecord, "amountMl" | "note">;
   WEIGHT: Pick<WeightRecord, "weightKg" | "note">;
+  HEART_RATE: { bpm: number; note: string; corrected: boolean };
   DIARY: Pick<
     DiaryRecord,
     | "mood"
@@ -96,6 +97,7 @@ export const timelineTypeText: Record<TimelineType, string> = {
   MEAL: "饮食",
   WATER: "饮水",
   WEIGHT: "体重",
+  HEART_RATE: "心率",
   DIARY: "日记",
   CHECKIN: "计划打卡",
   PLAN_CREATED: "计划创建",

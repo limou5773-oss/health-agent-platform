@@ -142,6 +142,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「知识资料」按分类浏览、检索和收藏。已有库执行 `database/migrations/020_knowledge_library.sql`。详见[知识库说明](docs/knowledge-library.md)。
 
+## 心率采样
+
+在「心率采样」录入测量值，或使用通用 CSV 预览并确认导入。综合看板按实际采样显示均值、采样数与覆盖天数，时间线支持查看和导出。已有库执行 `database/migrations/022_heart_rate_samples.sql`。详见[心率采样](docs/heart-rate.md)。
+
 ## 开发约定
 
 同一输入在入口校验一次；内部不重复判空或滥用 `try/catch`。归属、权限、状态、版本、事务与数据库唯一约束保留。功能测试与验收由用户负责，不附带自动化回归框架；开发侧只执行必要的构建检查。

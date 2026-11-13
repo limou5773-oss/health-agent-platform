@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { api, errorMessage } from "../api";
 import StateNotice from "./StateNotice.vue";
-import type { MealStatistics, SleepStatistics, StepStatistics, WaterStatistics, WeightStatistics, WorkoutStatistics } from "../types";
+import type { HeartRateStatistics, MealStatistics, SleepStatistics, StepStatistics, WaterStatistics, WeightStatistics, WorkoutStatistics } from "../types";
 
 type Point = { date: string; value: number | null };
 type Summary = {
@@ -39,6 +39,11 @@ const metrics = {
   weight: { label: "体重", unit: "千克", path: "/weight", to: "/weight", map: (data: WeightStatistics): Summary => ({
     points: data.daily.map(day => ({ date: day.date, value: day.representative?.weightKg ?? null })),
     value: data.last?.weightKg ?? null, label: "周期内最新体重", cutoff: data.dataCutoff,
+  }) },
+  heartRate: { label: "心率", unit: "次/分", path: "/heart-rate", to: "/heart-rate", map: (data: HeartRateStatistics): Summary => ({
+    points: data.daily.map(day => ({ date: day.date, value: day.averageBpm })),
+    value: data.averageBpm, label: "采样均值", cutoff: data.dataCutoff,
+    note: `共 ${data.recordCount} 条心率采样。`,
   }) },
 } as const;
 
@@ -79,6 +84,7 @@ const loaders = {
   meals: (path: string) => read(path, metrics.meals.map),
   water: (path: string) => read(path, metrics.water.map),
   weight: (path: string) => read(path, metrics.weight.map),
+  heartRate: (path: string) => read(path, metrics.heartRate.map),
 };
 
 watch([() => props.startDate, () => props.endDate, source, revision], async ([startDate, endDate, sourceName], _, onCleanup) => {

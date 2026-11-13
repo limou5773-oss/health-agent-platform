@@ -56,7 +56,7 @@ const deleting = ref(false);
 const deletionError = ref("");
 const deletedCount = ref<number | null>(null);
 const canDelete = computed(() =>
-  ["SLEEP", "STEPS", "WORKOUT", "MEAL", "WATER", "WEIGHT", "DIARY"].includes(appliedFilters.value.type),
+  ["SLEEP", "STEPS", "WORKOUT", "MEAL", "WATER", "WEIGHT", "HEART_RATE", "DIARY"].includes(appliedFilters.value.type),
 );
 const listRevision = ref(0);
 const groups = computed(() => {

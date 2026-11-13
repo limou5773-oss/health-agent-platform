@@ -26,9 +26,11 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
   private final NutritionService nutrition;
   private final WeightService weight;
   private final DiaryService diary;
+  private final HeartRateService heartRate;
 
   public HealthRecordDeletionServiceImpl(TimelineMapper timeline, TaskMapper tasks, SleepService sleep,
-      ActivityService activity, NutritionService nutrition, WeightService weight, DiaryService diary) {
+      ActivityService activity, NutritionService nutrition, WeightService weight, DiaryService diary,
+      HeartRateService heartRate) {
     this.timeline = timeline;
     this.tasks = tasks;
     this.sleep = sleep;
@@ -36,6 +38,7 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
     this.nutrition = nutrition;
     this.weight = weight;
     this.diary = diary;
+    this.heartRate = heartRate;
   }
 
   @Override
@@ -59,6 +62,7 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
         case MEAL -> nutrition.deleteMeal(userId, id);
         case WATER -> nutrition.deleteWater(userId, id);
         case WEIGHT -> weight.deleteRecord(userId, id);
+        case HEART_RATE -> heartRate.delete(userId, id);
         case DIARY -> diary.delete(userId, id);
         default -> throw new IllegalStateException("已校验的健康记录类型无效");
       }
@@ -70,6 +74,7 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
     String impact = switch (query.getType()) {
       case SLEEP -> "匹配的睡眠分析、报告及相关任务会话和检查点将被清理，覆盖记录日期的本地健康报告将失效。";
       case DIARY -> "已授权日记涉及的任务会话、检查点及报告内容将被清理。";
+      case HEART_RATE -> "删除的心率采样将从看板统计、时间线和导出中移除。";
       case STEPS, WORKOUT, MEAL, WATER, WEIGHT -> "覆盖相关日期的综合报告、专项报告和阶段对比将失效并清除内容。";
       default -> throw new ApiException(400, "INVALID_RECORD_TYPE", "只能按范围删除健康记录和日记");
     };

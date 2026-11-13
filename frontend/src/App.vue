@@ -35,6 +35,7 @@ const links = [
   { to: "/activity", label: "运动管理", icon: Footprints },
   { to: "/nutrition", label: "饮食与饮水", icon: Utensils },
   { to: "/weight", label: "体重管理", icon: Scale },
+  { to: "/heart-rate", label: "心率采样", icon: Activity },
   { to: "/diary", label: "情绪与日记", icon: NotebookPen },
   { to: "/timeline", label: "健康时间线", icon: CalendarRange },
   { to: "/baseline", label: "个人基线", icon: ChartNoAxesCombined },

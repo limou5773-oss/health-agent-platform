@@ -44,6 +44,11 @@ const router = createRouter({
       },
     },
     {
+      path: "/heart-rate",
+      component: () => import("./pages/HeartRatePage.vue"),
+      meta: { title: "心率采样", caption: "查看与管理实际测量记录。" },
+    },
+    {
       path: "/diary",
       component: () => import("./pages/DiaryPage.vue"),
       meta: {

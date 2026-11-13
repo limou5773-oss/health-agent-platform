@@ -10,7 +10,7 @@ public final class TimelineModels {
   private TimelineModels() {}
 
   public enum EventType {
-    SLEEP, STEPS, WORKOUT, MEAL, WATER, WEIGHT, DIARY, CHECKIN, PLAN_CREATED, PLAN_STATUS
+    SLEEP, STEPS, WORKOUT, MEAL, WATER, WEIGHT, HEART_RATE, DIARY, CHECKIN, PLAN_CREATED, PLAN_STATUS
   }
 
   public record DeletionPreview(int count, String fingerprint, String impact) {}
