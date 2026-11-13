@@ -57,6 +57,11 @@ const router = createRouter({
       },
     },
     {
+      path: "/baseline",
+      component: () => import("./pages/BaselinePage.vue"),
+      meta: { title: "个人基线", caption: "比较近期与自己的历史记录。" },
+    },
+    {
       path: "/agent",
       component: () => import("./pages/AgentPage.vue"),
       meta: {
