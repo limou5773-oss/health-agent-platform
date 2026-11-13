@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.MeasurementImportMapper">
+  <sql id="targetTable">
+    <choose><when test="metric.name() == 'WEIGHT'">weight_records</when><otherwise>heart_rate_samples</otherwise></choose>
+  </sql>
+  <sql id="targetValue">
+    <choose><when test="metric.name() == 'WEIGHT'">weight_kg</when><otherwise>bpm</otherwise></choose>
+  </sql>
+  <sql id="matchMeasurement">
+    FROM measurement_import_rows r
+    JOIN <include refid="targetTable"/> m
+      ON m.user_id=#{userId} AND m.measured_at=r.measured_at AND m.source_name=r.source_name
+    WHERE r.batch_id=#{id}
+  </sql>
+  <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO measurement_import_batches
+      (user_id,metric,status,total_rows,duplicate_rows,first_measurement,last_measurement)
+    VALUES (#{userId},#{metric},#{status},#{totalRows},#{duplicateRows},#{firstMeasurement},#{lastMeasurement})
+  </insert>
+  <insert id="insertRows">
+    INSERT INTO measurement_import_rows(batch_id,row_number,measured_at,measurement_value,source_name,note)
+    VALUES <foreach collection="rows" item="r" separator=",">
+      (#{batchId},#{r.rowNumber},#{r.measuredAt},#{r.value},#{r.sourceName},#{r.note})
+    </foreach>
+  </insert>
+  <select id="batch" resultType="com.health.model.MeasurementImportModels$Batch">
+    SELECT * FROM measurement_import_batches WHERE id=#{id} AND user_id=#{userId} AND metric=#{metric}
+  </select>
+  <select id="history" resultType="com.health.model.MeasurementImportModels$Batch">
+    SELECT * FROM measurement_import_batches WHERE user_id=#{userId} AND metric=#{metric} ORDER BY id DESC LIMIT 50
+  </select>
+  <select id="sources" resultType="string">
+    SELECT DISTINCT source_name FROM measurement_import_rows WHERE batch_id=#{batchId} ORDER BY source_name
+  </select>
+  <select id="conflictRow" resultType="long">
+    SELECT MIN(r.row_number) <include refid="matchMeasurement"/>
+    AND <include refid="targetValue"/> &lt;&gt; r.measurement_value
+  </select>
+  <select id="existingRows" resultType="int">
+    SELECT COUNT(*) <include refid="matchMeasurement"/>
+  </select>
+  <insert id="insertMeasurements">
+    INSERT INTO <include refid="targetTable"/> (user_id,measured_at,<include refid="targetValue"/>,source_name,note)
+    SELECT #{userId},r.measured_at,r.measurement_value,r.source_name,r.note
+    FROM measurement_import_rows r
+    LEFT JOIN <include refid="targetTable"/> m
+      ON m.user_id=#{userId} AND m.measured_at=r.measured_at AND m.source_name=r.source_name
+    WHERE r.batch_id=#{id} AND m.id IS NULL
+    ORDER BY r.row_number
+  </insert>
+  <update id="updateBatch">
+    UPDATE measurement_import_batches SET duplicate_rows=#{duplicateRows} WHERE id=#{id}
+  </update>
+  <update id="confirm">
+    UPDATE measurement_import_batches SET status='CONFIRMED',duplicate_rows=#{duplicateRows},
+      inserted_rows=#{insertedRows},confirmed_at=CURRENT_TIMESTAMP WHERE id=#{id}
+  </update>
+  <delete id="deleteRows">
+    DELETE FROM measurement_import_rows WHERE batch_id=#{batchId}
+  </delete>
+</mapper>

@@ -20,6 +20,10 @@
 - 非维持目标progressRate=(current-baseline)/(target-baseline)×100，四舍五入至2位小数，允许负数及超过100%，不将原始比例静默截断；LOSE在current<=target时goalReached=true，GAIN在current>=target时为true。MAINTAIN不计算百分比（progressRate=null），只显示差值，goalReached按current==target判断，不引入容差或医学判断。
 - 目标周期内的来源冲突同样返回409，由用户编辑目标来源后重算，不自动选来源或回退到其他时间范围。
 
+## CSV 导入
+
+「体重管理」提供千克模板、预览、批次确认和历史。入库后页面刷新测量记录、统计和目标进度。已有库需执行 `database/migrations/023_measurement_imports.sql`。详见[体重与心率 CSV 导入](measurement-imports.md)。
+
 ## API /api/weight
 
 列表查询沿用Requests.SleepQuery的page、pageSize、startDate、endDate、sourceName。统计沿用Requests.StatisticsQuery的必填日期及366天上限；JWT、分页{items,total,page,pageSize}和错误{code,message}沿用api-contract.md。

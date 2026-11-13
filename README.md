@@ -144,7 +144,9 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 ## 心率采样
 
-在「心率采样」录入测量值，或使用通用 CSV 预览并确认导入。综合看板按实际采样显示均值、采样数与覆盖天数，时间线支持查看和导出。已有库执行 `database/migrations/022_heart_rate_samples.sql`。详见[心率采样](docs/heart-rate.md)。
+在「心率采样」录入测量值。综合看板按实际采样显示均值、采样数与覆盖天数，时间线支持查看和导出。已有库执行 `database/migrations/022_heart_rate_samples.sql`。详见[心率采样](docs/heart-rate.md)。
+
+体重和心率均支持通用 CSV 模板、批次预览、确认及历史。已有库执行 `database/migrations/023_measurement_imports.sql`。详见[体重与心率导入](docs/measurement-imports.md)。
 
 ## 开发约定
 

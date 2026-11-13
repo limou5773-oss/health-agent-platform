@@ -7,6 +7,7 @@ import WeightRecordsPanel from "../components/WeightRecordsPanel.vue";
 import WeightStatisticsPanel from "../components/WeightStatisticsPanel.vue";
 import WeightGoalPanel from "../components/WeightGoalPanel.vue";
 import WeightRecordDetail from "../components/WeightRecordDetail.vue";
+import MeasurementImportPanel from "../components/MeasurementImportPanel.vue";
 
 const sources = ref<string[]>([]);
 const sourceLoading = ref(false),
@@ -67,6 +68,7 @@ onMounted(loadSources);
       @close="detailId = null"
     />
   </div>
+  <MeasurementImportPanel module="weight" @imported="changed" />
   <WeightRecordsPanel
     :sources="sources"
     :refresh-key="revision"

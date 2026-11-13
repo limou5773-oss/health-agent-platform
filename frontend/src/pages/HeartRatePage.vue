@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { api, dateAfter, errorMessage, json, recentRange, saveBlob } from "../api";
+import { api, dateAfter, errorMessage, json, recentRange } from "../api";
+import MeasurementImportPanel from "../components/MeasurementImportPanel.vue";
 import StateNotice from "../components/StateNotice.vue";
 import type { HeartRateSample, Page } from "../types";
-
-interface ImportResult {
-  newRecords: number;
-  duplicates: number;
-  firstMeasurement: string;
-  lastMeasurement: string;
-  sources: string[];
-}
 
 const filters = reactive({ ...recentRange(), sourceName: "" });
 let applied = { ...filters };
@@ -24,10 +17,6 @@ const message = ref("");
 const editingId = ref<number>();
 const form = reactive({ measuredAt: "", bpm: "", sourceName: "手动", note: "" });
 const editor = ref<HTMLElement>();
-const file = ref<File>();
-const preview = ref<ImportResult>();
-const fileInput = ref<HTMLInputElement>();
-
 async function load(page = 1) {
   loading.value = true;
   loadError.value = "";
@@ -93,42 +82,6 @@ async function remove(record: HeartRateSample) {
   }
 }
 
-function selectFile(event: Event) {
-  file.value = (event.target as HTMLInputElement).files?.[0];
-  preview.value = undefined;
-}
-
-async function upload(selected: File, confirm: boolean) {
-  busy.value = true;
-  actionError.value = "";
-  message.value = "";
-  try {
-    const body = new FormData();
-    body.append("file", selected);
-    const path = confirm ? "/heart-rate/imports" : "/heart-rate/imports/preview";
-    const result = await api<ImportResult>(path, { method: "POST", body });
-    if (confirm) {
-      message.value = `已导入 ${result.newRecords} 条采样，跳过 ${result.duplicates} 条重复记录。`;
-      preview.value = undefined;
-      file.value = undefined;
-      fileInput.value!.value = "";
-      await load();
-    } else {
-      preview.value = result;
-    }
-  } catch (cause) {
-    preview.value = undefined;
-    actionError.value = errorMessage(cause);
-  } finally {
-    busy.value = false;
-  }
-}
-
-function downloadTemplate() {
-  const csv = "\uFEFFmeasuredAt,bpm,sourceName,note\r\n2026-01-01T08:00:00,72,手环,示例请替换\r\n";
-  saveBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), "heart-rate-template.csv");
-}
-
 const displayTime = (value: string) => value.replace("T", " ");
 onMounted(() => load());
 </script>
@@ -157,24 +110,7 @@ onMounted(() => load());
       </div>
     </form>
   </section>
-  <section class="panel">
-    <div class="section-heading">
-      <h2>导入心率 CSV</h2>
-      <button type="button" class="secondary" @click="downloadTemplate">下载模板</button>
-    </div>
-    <p class="muted">使用 UTF-8，测量时间按档案时区填写，如 2026-01-01T08:00:00。心率单位为次/分。</p>
-    <form class="filter-bar" @submit.prevent="file && upload(file, false)">
-      <label>选择 CSV
-        <input ref="fileInput" type="file" accept=".csv,text/csv" :disabled="busy" required @change="selectFile" />
-      </label>
-      <button :disabled="busy || !file">预览</button>
-    </form>
-    <div v-if="preview">
-      <p>测量时间 {{ displayTime(preview.firstMeasurement) }} 至 {{ displayTime(preview.lastMeasurement) }}</p>
-      <p>来源 {{ preview.sources.join("、") }} · 可导入 {{ preview.newRecords }} 条 · 重复 {{ preview.duplicates }} 条</p>
-      <button type="button" :disabled="busy || !preview.newRecords" @click="file && upload(file, true)">确认导入</button>
-    </div>
-  </section>
+  <MeasurementImportPanel module="heart-rate" @imported="load()" />
   <section class="panel">
     <div class="section-heading">
       <h2>采样明细</h2>

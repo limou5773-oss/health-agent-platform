@@ -6,7 +6,7 @@
 
 页面提供 UTF-8 模板。列顺序为 `measuredAt,bpm,sourceName,note`，测量时间示例为 `2026-01-01T08:00:00`，备注可留空。小米、红米、苹果或其他设备的数据都可整理成同一模板。
 
-预览显示测量范围、来源、新增和重复条数。确认时再次检查文件和数据库，再在一个事务内写入。同一来源、时刻、数值相同的采样跳过。同一来源和时刻有不同数值时整批返回冲突行，可通过明细更正。单个文件最多 10 MB、10,000 条数据。设备原始心率文件解析和心率导入批次历史尚未接入。
+预览显示测量范围、来源、新增和重复条数。确认使用同一批已校验记录，事务内检查当前记录并写入。页面可查看最近 50 个批次和恢复未确认的预览。规则见[体重与心率 CSV 导入](measurement-imports.md)。设备原始心率文件解析尚未接入。
 
 ## 统计与时间线
 
@@ -14,7 +14,7 @@
 
 ## 接口与数据库
 
-接口位于 `/api/heart-rate`，沿用 JWT。已有库需执行 `database/migrations/022_heart_rate_samples.sql`，新库使用 `database/schema.sql`。表通过 `user_id` 逻辑关联。
+接口位于 `/api/heart-rate`，沿用 JWT。已有库需执行 `database/migrations/022_heart_rate_samples.sql` 和 `database/migrations/023_measurement_imports.sql`，新库使用 `database/schema.sql`。表通过 `user_id` 逻辑关联。
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -23,5 +23,6 @@
 | PUT / DELETE | `/records/{id}` | 更正或删除本人记录 |
 | GET | `/sources` | 当前用户的来源列表 |
 | GET | `/statistics` | 按开始日期、结束日期和可选来源统计 |
-| POST | `/imports/preview` | 预览 multipart `file` |
-| POST | `/imports` | 确认并导入 multipart `file` |
+| POST | `/imports/preview` | 上传 multipart `file` 并生成批次 |
+| GET | `/imports`、`/imports/{id}` | 批次历史、指定批次预览 |
+| POST | `/imports/{id}/confirm` | 按批次确认导入 |

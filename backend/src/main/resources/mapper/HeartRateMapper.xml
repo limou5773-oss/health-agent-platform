@@ -27,9 +27,6 @@
   <select id="record" resultType="com.health.model.HeartRateModels$Sample">
     SELECT * FROM heart_rate_samples WHERE user_id=#{userId} AND id=#{id}
   </select>
-  <select id="sameMeasurement" resultType="com.health.model.HeartRateModels$Sample">
-    SELECT * FROM heart_rate_samples WHERE user_id=#{userId} AND measured_at=#{measuredAt} AND source_name=#{sourceName}
-  </select>
   <insert id="insert" useGeneratedKeys="true" keyProperty="id">
     INSERT INTO heart_rate_samples(user_id,measured_at,bpm,source_name,note)
     VALUES(#{userId},#{measuredAt},#{bpm},#{sourceName},#{note})

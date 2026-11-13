@@ -13,7 +13,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/heart-rate")
@@ -52,16 +51,6 @@ public class HeartRateController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(HttpServletRequest r, @PathVariable Long id) {
     service.delete(Identity.user(r).id, id);
-  }
-
-  @PostMapping(value = "/imports/preview", consumes = "multipart/form-data")
-  public ImportResult preview(HttpServletRequest r, @RequestPart MultipartFile file) {
-    return service.upload(Identity.user(r).id, file, false);
-  }
-
-  @PostMapping(value = "/imports", consumes = "multipart/form-data")
-  public ImportResult upload(HttpServletRequest r, @RequestPart MultipartFile file) {
-    return service.upload(Identity.user(r).id, file, true);
   }
 
   public record Measurement(@NotNull LocalDateTime measuredAt,

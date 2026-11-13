@@ -297,6 +297,20 @@ CREATE TABLE weight_records (
  KEY ix_weight_user_source_time(user_id,source_name,measured_at),
  CHECK(weight_kg > 0)
 );
+CREATE TABLE measurement_import_batches (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
+ metric ENUM('WEIGHT','HEART_RATE') NOT NULL, status ENUM('PREVIEW','CONFIRMED') NOT NULL,
+ total_rows INT NOT NULL, duplicate_rows INT NOT NULL, inserted_rows INT NOT NULL DEFAULT 0,
+ first_measurement DATETIME NOT NULL, last_measurement DATETIME NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, confirmed_at DATETIME NULL,
+ KEY ix_measurement_import_history(user_id,metric,id)
+);
+CREATE TABLE measurement_import_rows (
+ batch_id BIGINT NOT NULL, row_number INT NOT NULL, measured_at DATETIME NOT NULL,
+ measurement_value DECIMAL(7,3) NOT NULL, source_name VARCHAR(100) COLLATE utf8mb4_0900_bin NOT NULL,
+ note VARCHAR(1000) NOT NULL,
+ PRIMARY KEY(batch_id,row_number)
+);
 CREATE TABLE weight_goals (
  user_id BIGINT PRIMARY KEY, start_date DATE NOT NULL, target_date DATE NOT NULL,
  target_weight_kg DECIMAL(7,3) NOT NULL, source_name VARCHAR(100) COLLATE utf8mb4_0900_bin,

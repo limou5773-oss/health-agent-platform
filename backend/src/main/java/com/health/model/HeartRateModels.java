@@ -23,6 +23,4 @@ public final class HeartRateModels {
   public record Statistics(long periodDays, long validDays, long recordCount,
       BigDecimal averageBpm, LocalDateTime dataCutoff, List<Daily> daily) {}
   public record Totals(long recordCount, BigDecimal averageBpm, LocalDateTime dataCutoff) {}
-  public record ImportResult(int newRecords, int duplicates, LocalDateTime firstMeasurement,
-      LocalDateTime lastMeasurement, List<String> sources) {}
 }
