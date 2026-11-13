@@ -30,7 +30,7 @@ const booting = ref(!!session.token);
 const bootstrapError = ref("");
 const menuOpen = ref(false);
 const links = [
-  { to: "/", label: "睡眠概览", icon: Moon },
+  { to: "/", label: "综合健康看板", icon: Moon },
   { to: "/records", label: "睡眠记录", icon: List },
   { to: "/activity", label: "运动管理", icon: Footprints },
   { to: "/nutrition", label: "饮食与饮水", icon: Utensils },

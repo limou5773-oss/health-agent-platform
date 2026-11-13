@@ -12,7 +12,7 @@ const router = createRouter({
     {
       path: "/",
       component: () => import("./pages/DashboardPage.vue"),
-      meta: { title: "睡眠概览", caption: "从每一晚的记录，了解自己的节律。" },
+      meta: { title: "综合健康看板", caption: "按同一日期范围查看各项健康记录。" },
     },
     {
       path: "/records",
