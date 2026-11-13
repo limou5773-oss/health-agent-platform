@@ -56,6 +56,7 @@ public class AccountServiceImpl implements AccountService {
 
   @Transactional
   public Profile profile(Long id, Requests.Profile r) {
+    mapper.lockUser(id);
     Profile p = new Profile();
     p.userId = id;
     p.heightCm = r.heightCm();

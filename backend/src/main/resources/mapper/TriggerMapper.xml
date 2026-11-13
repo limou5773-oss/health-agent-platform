@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.TriggerMapper">
+  <select id="settings" resultType="com.health.model.TriggerModels$Settings">
+    SELECT weekly_enabled,import_enabled,import_days,source_name,notify_in_app
+    FROM agent_trigger_settings WHERE user_id=#{userId}
+  </select>
+  <insert id="save">
+    INSERT INTO agent_trigger_settings(user_id,weekly_enabled,import_enabled,import_days,source_name,notify_in_app)
+    VALUES(#{userId},#{settings.weeklyEnabled},#{settings.importEnabled},#{settings.importDays},
+      #{settings.sourceName},#{settings.notifyInApp})
+    ON DUPLICATE KEY UPDATE weekly_enabled=#{settings.weeklyEnabled},import_enabled=#{settings.importEnabled},
+      import_days=#{settings.importDays},source_name=#{settings.sourceName},notify_in_app=#{settings.notifyInApp}
+  </insert>
+  <select id="weeklyUsers" resultType="long">
+    SELECT s.user_id FROM agent_trigger_settings s
+    JOIN profiles p ON p.user_id=s.user_id AND p.ai_consent=TRUE
+    JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
+    WHERE s.weekly_enabled=TRUE
+  </select>
+  <select id="runs" resultType="com.health.model.TriggerModels$Run">
+    SELECT r.kind,r.event_key,r.start_date,r.end_date,r.source_name,r.created_at,t.id AS task_id,t.status AS task_status
+    FROM agent_trigger_runs r LEFT JOIN agent_tasks t ON t.id=r.task_id AND t.user_id=r.user_id
+    WHERE r.user_id=#{userId} ORDER BY r.created_at DESC,r.task_id DESC LIMIT 50
+  </select>
+  <select id="exists" resultType="boolean">
+    SELECT EXISTS(SELECT 1 FROM agent_trigger_runs WHERE user_id=#{userId} AND kind=#{kind}
+      AND start_date=#{start} AND end_date=#{end})
+  </select>
+  <insert id="insert">
+    INSERT INTO agent_trigger_runs(user_id,kind,event_key,start_date,end_date,source_name,task_id)
+    VALUES(#{userId},#{kind},#{key},#{start},#{end},#{sourceName},#{taskId})
+  </insert>
+  <insert id="notifyRun">
+    INSERT INTO notifications(user_id,kind,event_key,title,body,target)
+    VALUES(#{userId},'AUTO_TASK',#{taskId},'主动任务已创建',
+      IF(#{kind}='WEEKLY_REVIEW','每周睡眠复盘任务已进入任务中心。','睡眠导入后的分析任务已进入任务中心。'),
+      CONCAT('/agent?task=',#{taskId}))
+  </insert>
+</mapper>

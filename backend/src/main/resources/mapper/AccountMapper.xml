@@ -3,6 +3,7 @@
 <mapper namespace="com.health.mapper.AccountMapper">
  <select id="byUsername" resultType="com.health.model.Models$User">SELECT * FROM users WHERE username=#{username}</select>
  <select id="byId" resultType="com.health.model.Models$User">SELECT * FROM users WHERE id=#{id}</select>
+ <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{id} FOR UPDATE</select>
  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO users(username,password_hash,nickname,role) VALUES(#{username},#{passwordHash},#{nickname},#{role})</insert>
  <insert id="insertProfile">INSERT INTO profiles(user_id) VALUES(#{id})</insert>
  <select id="profile" resultType="com.health.model.Models$Profile">SELECT p.*,u.nickname FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=#{id}</select>

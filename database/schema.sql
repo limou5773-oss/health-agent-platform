@@ -28,13 +28,27 @@ CREATE TABLE notification_settings (
 );
 CREATE TABLE notifications (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
- kind ENUM('CHECKIN','PLAN_DUE','REPORT','DATA_CHANGE','IMPORT_FAILED') NOT NULL,
+ kind ENUM('CHECKIN','PLAN_DUE','REPORT','DATA_CHANGE','IMPORT_FAILED','AUTO_TASK') NOT NULL,
  event_key VARCHAR(100) NOT NULL, title VARCHAR(100) NOT NULL, body VARCHAR(500) NOT NULL,
  target VARCHAR(200) NOT NULL, data_cutoff DATETIME(6),
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), read_at DATETIME(6),
  UNIQUE KEY uk_notification_event(user_id,kind,event_key),
  KEY ix_notification_user(user_id,id),
  KEY ix_notification_unread(user_id,read_at,id)
+);
+CREATE TABLE agent_trigger_settings (
+ user_id BIGINT PRIMARY KEY, weekly_enabled BOOLEAN NOT NULL, import_enabled BOOLEAN NOT NULL,
+ import_days INT NOT NULL, source_name VARCHAR(100), notify_in_app BOOLEAN NOT NULL,
+ CHECK(import_days BETWEEN 1 AND 31)
+);
+CREATE TABLE agent_trigger_runs (
+ user_id BIGINT NOT NULL, kind ENUM('WEEKLY_REVIEW','SLEEP_IMPORT') NOT NULL,
+ event_key VARCHAR(36) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
+ source_name VARCHAR(100),
+ task_id CHAR(36) NOT NULL, created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ PRIMARY KEY(user_id,kind,event_key),
+ UNIQUE KEY uk_agent_trigger_period(user_id,kind,start_date,end_date),
+ KEY ix_agent_trigger_runs_user(user_id,created_at)
 );
 CREATE TABLE user_preferences (
  user_id BIGINT NOT NULL,

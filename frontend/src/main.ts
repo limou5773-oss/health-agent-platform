@@ -73,6 +73,11 @@ const router = createRouter({
       },
     },
     {
+      path: "/agent/triggers",
+      component: () => import("./pages/AgentTriggersPage.vue"),
+      meta: { title: "主动任务", caption: "设置睡眠复盘和导入后分析，查看触发记录。" },
+    },
+    {
       path: "/plans",
       component: () => import("./pages/PlansPage.vue"),
       meta: { title: "我的计划", caption: "把建议落在每天的小行动里。" },

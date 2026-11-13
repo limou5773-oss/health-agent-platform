@@ -8,6 +8,7 @@ public interface AccountMapper {
   User byUsername(String username);
 
   User byId(Long id);
+  Long lockUser(Long id);
 
   void insert(User user);
 

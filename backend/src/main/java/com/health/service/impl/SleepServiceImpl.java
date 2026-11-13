@@ -24,17 +24,19 @@ public class SleepServiceImpl implements SleepService {
   private final TaskService tasks;
   private final AppleHealthImporter appleImporter;
   private final NotificationService notifications;
+  private final TriggerService triggers;
 
   public SleepServiceImpl(
       SleepMapper mapper,
       AccountService accounts,
       TaskService tasks,
-      AppleHealthImporter appleImporter, NotificationService notifications) {
+      AppleHealthImporter appleImporter, NotificationService notifications, TriggerService triggers) {
     this.mapper = mapper;
     this.accounts = accounts;
     this.tasks = tasks;
     this.appleImporter = appleImporter;
     this.notifications = notifications;
+    this.triggers = triggers;
   }
 
   public Page<SleepRecord> list(Long uid, Requests.SleepQuery q) {
@@ -286,6 +288,7 @@ public class SleepServiceImpl implements SleepService {
     if (b == null) throw ApiException.missing();
     if ("CONFIRMED".equals(b.status)) return b;
     b.duplicateRows = 0;
+    Map<String, LocalDate> latestBySource = new HashMap<>();
     for (ImportRow row : mapper.rows(id))
       if (row.valid) {
         if (mapper.duplicate(uid, row.dedupKey) != null) {
@@ -306,11 +309,13 @@ public class SleepServiceImpl implements SleepService {
         sleep.deviceType = b.deviceType;
         sleep.deviceModel = b.deviceModel;
         mapper.insert(sleep);
+        latestBySource.merge(sleep.sourceName, sleep.sleepDate, (a, bDate) -> a.isAfter(bDate) ? a : bDate);
         b.insertedRows++;
       }
     b.status = "CONFIRMED";
     mapper.confirmBatch(b);
     mapper.deleteRows(id);
+    triggers.sleepImported(uid, id, latestBySource);
     return b;
   }
 

@@ -6,7 +6,7 @@ import java.time.LocalTime;
 public final class NotificationModels {
   private NotificationModels() {}
 
-  public enum Kind { CHECKIN, PLAN_DUE, REPORT, DATA_CHANGE, IMPORT_FAILED }
+  public enum Kind { CHECKIN, PLAN_DUE, REPORT, DATA_CHANGE, IMPORT_FAILED, AUTO_TASK }
   public enum CheckinFrequency { PER_TASK, DAILY }
 
   public record Settings(boolean checkinEnabled, CheckinFrequency checkinFrequency,

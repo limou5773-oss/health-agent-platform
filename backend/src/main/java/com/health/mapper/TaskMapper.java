@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 
 public interface TaskMapper {
   Long lockUser(Long userId);
+  boolean enabled(Long userId);
 
   Task get(String id);
 

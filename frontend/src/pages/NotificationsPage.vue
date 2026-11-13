@@ -10,6 +10,7 @@ const labels = {
   REPORT: "报告生成",
   DATA_CHANGE: "数据变化",
   IMPORT_FAILED: "导入失败",
+  AUTO_TASK: "主动任务",
 } as const;
 type Message = {
   id: number;

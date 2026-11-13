@@ -95,6 +95,9 @@ async function deleted() {
 onMounted(load);
 </script>
 <template>
+  <div class="page-actions">
+    <RouterLink class="button secondary" to="/agent/triggers">主动任务设置与记录</RouterLink>
+  </div>
   <StateNotice :loading="loading" :error="error" @retry="load" /><template
     v-if="!loading && !error"
     ><div v-if="!profile?.aiConsent" class="consent-banner">

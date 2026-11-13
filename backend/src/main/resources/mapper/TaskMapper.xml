@@ -2,6 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.health.mapper.TaskMapper">
  <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{userId} FOR UPDATE</select>
+ <select id="enabled" resultType="boolean">SELECT enabled FROM users WHERE id=#{userId}</select>
  <select id="get" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id}</select>
  <select id="lock" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id} FOR UPDATE</select>
  <insert id="insert">INSERT INTO agent_tasks(id,user_id,kind,goal,status,start_date,end_date,plan_start_date,plan_end_date,source_name,include_diary,task_token) VALUES(#{id},#{userId},#{kind},#{goal},#{status},#{startDate},#{endDate},#{planStartDate},#{planEndDate},#{sourceName},#{includeDiary},#{taskToken})</insert>
