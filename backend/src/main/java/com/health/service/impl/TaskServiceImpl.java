@@ -29,6 +29,7 @@ public class TaskServiceImpl implements TaskService {
   private final TaskMapper mapper;
   private final PlanMapper plans;
   private final AccountService accounts;
+  private final PreferenceService preferences;
   private final ObjectMapper json;
   private final Validator validator;
   private final Executor executor;
@@ -40,6 +41,7 @@ public class TaskServiceImpl implements TaskService {
       TaskMapper mapper,
       PlanMapper plans,
       AccountService accounts,
+      PreferenceService preferences,
       ObjectMapper json,
       Validator validator,
       Executor taskExecutor,
@@ -49,6 +51,7 @@ public class TaskServiceImpl implements TaskService {
     this.mapper = mapper;
     this.plans = plans;
     this.accounts = accounts;
+    this.preferences = preferences;
     this.json = json;
     this.validator = validator;
     this.executor = taskExecutor;
@@ -228,6 +231,9 @@ public class TaskServiceImpl implements TaskService {
     result.put("aiConsent", p.aiConsent);
     result.put("timezone", p.timezone);
     result.put("planId", t.planId);
+    if ("PLAN".equals(t.kind) && "RUNNING".equals(t.status)) {
+      result.put("savedPreferences", preferences.list(t.userId));
+    }
     return result;
   }
 

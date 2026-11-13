@@ -90,6 +90,10 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 `POST /api/reports/health` 保存周报或月报，通过原报告列表和详情接口查询。请求、快照、版本及失效规则见[综合健康报告接口](comprehensive-health-reports.md)。
 
+## 用户偏好记忆
+
+`GET /api/profile/preferences` 查询当前用户的记忆，`PUT /api/profile/preferences/{kind}` 保存指定类别，`DELETE /api/profile/preferences/{kind}` 删除指定类别。Agent 通过已鉴权的运行上下文读取计划任务当前偏好。详见[偏好记忆接口](preference-memory.md)。
+
 ## Agent任务
 
 - POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。

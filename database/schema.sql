@@ -16,6 +16,12 @@ CREATE TABLE profiles (
  CHECK(height_cm IS NULL OR height_cm BETWEEN 30 AND 260),
  CHECK(weight_kg IS NULL OR weight_kg BETWEEN 1 AND 500)
 );
+CREATE TABLE user_preferences (
+ user_id BIGINT NOT NULL,
+ kind ENUM('GOAL','EXERCISE','ROUTINE','REMINDER') NOT NULL,
+ content VARCHAR(500) NOT NULL,
+ PRIMARY KEY(user_id,kind)
+);
 CREATE TABLE sleep_records (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
  start_time DATETIME NOT NULL, end_time DATETIME NOT NULL, sleep_date DATE NOT NULL,

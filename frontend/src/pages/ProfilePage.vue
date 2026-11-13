@@ -4,6 +4,7 @@ import { ShieldCheck, LockKeyhole } from "@lucide/vue";
 import { api, errorMessage, json, session } from "../api";
 import type { Profile } from "../types";
 import StateNotice from "../components/StateNotice.vue";
+import PreferenceMemory from "../components/PreferenceMemory.vue";
 const form = reactive<
   Omit<Profile, "heightCm" | "weightKg"> & {
     heightCm: number | "" | null;
@@ -140,7 +141,7 @@ onMounted(load);
           <div>
             <h3>AI 分析授权</h3>
             <p>
-              开启后，健康助手可将任务范围内的睡眠统计、档案偏好及必要上下文发送给配置的外部模型，用于分析、制定计划和生成报告。
+              开启后，健康助手可将任务范围内的睡眠统计、档案偏好及必要上下文发送给配置的外部模型。制定计划时也会发送你主动保存的长期偏好。
             </p>
             <label class="checkbox-label"
               ><input
@@ -195,5 +196,6 @@ onMounted(load);
         </button>
       </form>
     </section>
+    <PreferenceMemory />
   </div>
 </template>

@@ -55,12 +55,18 @@ class ResumeRequest(RequestModel):
         return self
 
 
+class SavedPreference(BaseModel):
+    kind: Literal["GOAL", "EXERCISE", "ROUTINE", "REMINDER"]
+    content: str = Field(min_length=1, max_length=500)
+
+
 class TaskContext(TaskSpec):
     id: str | int
     status: str
     aiConsent: bool
     timezone: str
     planId: int | None = None
+    savedPreferences: list[SavedPreference] = Field(default_factory=list)
 
 
 class DailySleep(BaseModel):

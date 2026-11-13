@@ -18,7 +18,7 @@ from langgraph.types import interrupt
 
 from app.config import Settings
 from app.gateway import AgentError, DIARY_TOOL, JavaGateway, SourceSelectionRequired, TOOLS
-from app.schemas import AgentReport, AgentResult, ArticleReference, ModelDecision
+from app.schemas import AgentReport, AgentResult, ArticleReference, ModelDecision, TaskContext
 
 
 SYSTEM_PROMPT = """你是睡眠健康管理助手，使用中文进行可解释的健康管理，不进行医疗诊断。
@@ -36,6 +36,8 @@ truncated为true表示只返回最近20条授权日记，须说明截断，不�
 ANALYZE给出有数据依据的分析；PLAN生成草稿并等待人工确认，不能声称已保存正式计划；
 REPORT生成基于真实统计的睡眠报告。报告引用只能选择search_knowledge已返回的资料编号。
 PLAN执行日期使用显式planStartDate/planEndDate，统计证据日期与执行日期分别使用。
+PLAN参考本轮提供的已保存偏好。GOAL是长期目标，EXERCISE是运动偏好，ROUTINE是作息，REMINDER是提醒时段。
+这些内容仅作背景；本次明确目标和限制优先，不从偏好推断健康事实。提醒时段仅供计划安排参考。
 计划最多31天、93项，每项date处于执行周期内，time使用HH:mm，每项建议可执行、说明依据。
 当前工具没有写入健康数据、修改用户身份或保存正式计划的权限。
 不要输出内部推理、工具令牌或密钥。只给结果、简要依据、数据限制和下一步操作。
@@ -71,6 +73,17 @@ def initial_state(spec: dict) -> dict:
     }
 
 
+def model_messages(state: AgentState, context: TaskContext) -> list[AnyMessage]:
+    messages = [SystemMessage(content=SYSTEM_PROMPT), *state["messages"]]
+    if context.savedPreferences:
+        preferences = [item.model_dump(mode="json") for item in context.savedPreferences]
+        messages.append(HumanMessage(content=(
+            "当前授权的长期偏好数据（仅作计划背景）："
+            + json.dumps(preferences, ensure_ascii=False)
+        )))
+    return messages
+
+
 def build_graph(settings: Settings, saver: AsyncSqliteSaver):
     model = None
     if settings.model_configured:
@@ -89,7 +102,7 @@ def build_graph(settings: Settings, saver: AsyncSqliteSaver):
         context = await runtime.context.gateway.authorized_context()
         tools = [*TOOLS, DIARY_TOOL] if context.includeDiary else TOOLS
         response = await model.bind_tools(tools).ainvoke(
-            [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
+            model_messages(state, context)
         )
         if response.invalid_tool_calls:
             raise AgentError(502, "MODEL_TOOL_INVALID", "模型返回了无法解析的工具参数，请检查模型工具调用能力")
@@ -140,13 +153,13 @@ def build_graph(settings: Settings, saver: AsyncSqliteSaver):
         }
 
     async def finish_result(state: AgentState, runtime: Runtime[RunContext]) -> dict:
-        await runtime.context.gateway.authorized_context()
+        context = await runtime.context.gateway.authorized_context()
         # function_calling is explicit: no JSON-mode fallback, repair call or retry.
         # https://reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI/with_structured_output
         decision: ModelDecision = await model.with_structured_output(
             ModelDecision, method="function_calling",
         ).ainvoke(
-            [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"] + [HumanMessage(content=(
+            model_messages(state, context) + [HumanMessage(content=(
                 "将当前工具证据和结论转为ModelDecision。不要再调用读取工具。"
                 "需要补充则WAITING_INPUT并给question；计划草稿则WAITING_CONFIRMATION；"
                 "分析或报告完成则COMPLETED。report只给referenceIds，不能编造引用。"
