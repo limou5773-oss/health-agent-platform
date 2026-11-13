@@ -102,6 +102,8 @@ public final class Models {
     @JsonIgnore public String taskToken;
     @JsonIgnore public String pendingInput;
     @JsonIgnore public Integer confirmedVersion;
+    @JsonIgnore public LocalDateTime confirmedAt;
+    public TaskAudit.Feedback feedback;
     @JsonIgnore public String operationId;
     public Long planId;
     public Long reportId;

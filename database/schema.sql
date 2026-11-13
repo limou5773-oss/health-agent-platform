@@ -123,6 +123,7 @@ CREATE TABLE agent_tasks (
  plan_id BIGINT, report_id BIGINT, confirmed_version INT, operation_id VARCHAR(100),
  template_id BIGINT, template_version INT,
  duration_ms BIGINT,
+ confirmed_at DATETIME(6), feedback ENUM('HELPFUL','NOT_HELPFUL'), feedback_at DATETIME(6),
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_task_user(user_id,created_at), CHECK(end_date >= start_date)

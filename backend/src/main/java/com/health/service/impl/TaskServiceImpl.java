@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.health.api.*;
 import com.health.mapper.*;
 import com.health.model.Models.*;
+import com.health.model.TaskAudit;
 import com.health.model.PlanTemplateModels.Template;
 import com.health.service.*;
 import jakarta.validation.Validator;
@@ -182,6 +183,7 @@ public class TaskServiceImpl implements TaskService {
     }
     t.planId = p.id;
     t.confirmedVersion = d.version();
+    t.confirmedAt = LocalDateTime.now();
     t.operationId = r.operationId();
     t.status = "COMPLETED";
     t.question = null;
@@ -228,6 +230,20 @@ public class TaskServiceImpl implements TaskService {
 
   public List<Map<String, Object>> admin() {
     return mapper.admin();
+  }
+
+  @Transactional(readOnly = true)
+  public TaskAudit audit(String id) {
+    var metadata = mapper.audit(id);
+    if (metadata == null) throw ApiException.missing();
+    return new TaskAudit(metadata, mapper.auditSteps(id));
+  }
+
+  @Transactional
+  public void feedback(Long uid, String id, TaskAudit.Feedback feedback) {
+    Task task = owned(mapper.lock(id), uid);
+    requireStatus(task, "COMPLETED");
+    mapper.saveFeedback(id, feedback);
   }
 
   public Task internalIdentity(String id, String token) {
@@ -304,6 +320,7 @@ public class TaskServiceImpl implements TaskService {
       t.statisticsJson = null;
       t.draftJson = null;
       t.pendingInput = null;
+      t.feedback = null;
       t.error = reason;
       t.retryable = false;
       t.status = "CANCELLED";

@@ -2,6 +2,7 @@ package com.health.service;
 
 import com.health.api.Requests;
 import com.health.model.Models.*;
+import com.health.model.TaskAudit;
 import com.health.model.PlanTemplateModels.Template;
 import java.time.LocalDate;
 import java.util.*;
@@ -27,6 +28,8 @@ public interface TaskService {
   void delete(Long uid, String id);
 
   List<Map<String, Object>> admin();
+  TaskAudit audit(String id);
+  void feedback(Long uid, String id, TaskAudit.Feedback feedback);
 
   Task internalIdentity(String id, String token);
 

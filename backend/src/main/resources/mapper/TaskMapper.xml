@@ -11,13 +11,32 @@
   VALUES(#{id},#{userId},#{kind},#{goal},#{status},#{startDate},#{endDate},#{planStartDate},#{planEndDate},#{sourceName},
     #{includeDiary},#{taskToken},#{draftJson},#{templateId},#{templateVersion})
  </insert>
- <update id="update">UPDATE agent_tasks SET status=#{status},source_name=#{sourceName},answer=#{answer},question=#{question},error=#{error},retryable=#{retryable},statistics_json=#{statisticsJson},draft_json=#{draftJson},task_token=#{taskToken},pending_input=#{pendingInput},plan_id=#{planId},report_id=#{reportId},confirmed_version=#{confirmedVersion},operation_id=#{operationId},updated_at=CURRENT_TIMESTAMP(6) WHERE id=#{id}</update>
+ <update id="update">UPDATE agent_tasks SET status=#{status},source_name=#{sourceName},answer=#{answer},question=#{question},error=#{error},retryable=#{retryable},statistics_json=#{statisticsJson},draft_json=#{draftJson},task_token=#{taskToken},pending_input=#{pendingInput},plan_id=#{planId},report_id=#{reportId},confirmed_version=#{confirmedVersion},operation_id=#{operationId},
+  confirmed_at=#{confirmedAt},feedback=#{feedback},feedback_at=IF(#{feedback} IS NULL,NULL,feedback_at),
+  updated_at=CURRENT_TIMESTAMP(6) WHERE id=#{id}</update>
  <delete id="delete">DELETE FROM agent_tasks WHERE id=#{id}</delete>
  <update id="addDuration">
   UPDATE agent_tasks SET duration_ms=COALESCE(duration_ms,0)+#{elapsedMs} WHERE id=#{id}
  </update>
  <select id="list" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT 50</select>
- <select id="admin" resultType="map">SELECT id,kind,status,start_date AS startDate,end_date AS endDate,duration_ms AS durationMs,error,created_at AS createdAt FROM agent_tasks ORDER BY created_at DESC LIMIT 200</select>
+ <select id="admin" resultType="map">
+  SELECT id,kind,status,start_date AS startDate,end_date AS endDate,duration_ms AS durationMs,
+    CASE WHEN status='FAILED' THEN '执行失败，可查看步骤定位' END AS error,
+    created_at AS createdAt FROM agent_tasks ORDER BY created_at DESC,id DESC LIMIT 200
+ </select>
+ <select id="audit" resultType="com.health.model.TaskAudit$Metadata">
+  SELECT id,status,plan_id,report_id,confirmed_version,confirmed_at,feedback,feedback_at
+  FROM agent_tasks WHERE id=#{id}
+ </select>
+ <select id="auditSteps" resultType="com.health.model.TaskAudit$Step">
+  SELECT id,CASE WHEN name IN ('模型任务决策','结构化任务结果','睡眠统计来源选择',
+    'get_sleep_statistics','get_profile','get_plans','search_knowledge','get_authorized_diary')
+    THEN name ELSE '其他执行步骤' END AS name,status,created_at
+  FROM agent_steps WHERE task_id=#{id} ORDER BY id
+ </select>
+ <update id="saveFeedback">
+  UPDATE agent_tasks SET feedback=#{feedback},feedback_at=CURRENT_TIMESTAMP(6) WHERE id=#{id}
+ </update>
  <select id="steps" resultType="com.health.model.Models$Step">SELECT * FROM agent_steps WHERE task_id=#{id} ORDER BY id</select>
  <insert id="insertStep" useGeneratedKeys="true" keyProperty="id">INSERT INTO agent_steps(task_id,name,status,input_summary,output_summary) VALUES(#{taskId},#{name},#{status},#{inputSummary},#{outputSummary})</insert>
  <delete id="deleteSteps">DELETE FROM agent_steps WHERE task_id=#{id}</delete>

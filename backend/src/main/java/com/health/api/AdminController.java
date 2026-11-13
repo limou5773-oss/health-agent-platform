@@ -1,6 +1,7 @@
 package com.health.api;
 
 import com.health.model.Models.*;
+import com.health.model.TaskAudit;
 import com.health.security.Identity;
 import com.health.service.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +44,11 @@ public class AdminController {
   @GetMapping("/admin/tasks")
   public List<Map<String, Object>> tasks() {
     return tasks.admin();
+  }
+
+  @GetMapping("/admin/tasks/{id}")
+  public TaskAudit task(@PathVariable String id) {
+    return tasks.audit(id);
   }
 
   @GetMapping("/admin/knowledge")

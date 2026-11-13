@@ -17,6 +17,20 @@ const task = ref<TaskDetail | null>(null),
   sourceName = ref("");
 let timer: number | undefined;
 let active = true;
+const feedbackBusy = ref(false);
+const feedbackError = ref("");
+async function saveFeedback(feedback: NonNullable<TaskDetail["feedback"]>) {
+  feedbackBusy.value = true;
+  feedbackError.value = "";
+  try {
+    await api(`/agent/tasks/${encodeURIComponent(props.id)}/feedback`, json("PUT", { feedback }));
+    if (task.value) task.value.feedback = feedback;
+  } catch (cause) {
+    feedbackError.value = errorMessage(cause);
+  } finally {
+    feedbackBusy.value = false;
+  }
+}
 async function load(initial = false) {
   window.clearTimeout(timer);
   error.value = "";
@@ -136,6 +150,17 @@ onUnmounted(() => {
         >
       </div>
       <h3 class="task-goal">{{ task.goal }}</h3>
+      <div v-if="task.status === 'COMPLETED'" class="actions">
+        <span>结果反馈</span>
+        <button class="secondary" :disabled="feedbackBusy" :aria-pressed="task.feedback === 'HELPFUL'"
+          @click="saveFeedback('HELPFUL')">有帮助</button>
+        <button class="secondary" :disabled="feedbackBusy" :aria-pressed="task.feedback === 'NOT_HELPFUL'"
+          @click="saveFeedback('NOT_HELPFUL')">没有帮助</button>
+        <span v-if="task.feedback" class="small muted" role="status">
+          已反馈{{ task.feedback === "HELPFUL" ? "有帮助" : "没有帮助" }}
+        </span>
+      </div>
+      <p v-if="feedbackError" class="feedback error" role="alert">{{ feedbackError }}</p>
       <dl class="meta-list">
         <div v-if="task.templateId">
           <dt>草稿来源</dt>

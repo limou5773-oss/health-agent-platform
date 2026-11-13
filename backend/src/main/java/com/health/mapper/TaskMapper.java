@@ -1,6 +1,7 @@
 package com.health.mapper;
 
 import com.health.model.Models.*;
+import com.health.model.TaskAudit;
 import java.time.LocalDate;
 import java.util.*;
 import org.apache.ibatis.annotations.Param;
@@ -16,6 +17,9 @@ public interface TaskMapper {
   void insert(Task task);
 
   void update(Task task);
+  TaskAudit.Metadata audit(String id);
+  List<TaskAudit.Step> auditSteps(String id);
+  void saveFeedback(@Param("id") String id, @Param("feedback") TaskAudit.Feedback feedback);
   void addDuration(@Param("id") String id, @Param("elapsedMs") long elapsedMs);
 
   void delete(String id);

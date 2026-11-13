@@ -8,10 +8,12 @@ import AdminImports from "../components/AdminImports.vue";
 import AdminPlanTemplates from "../components/AdminPlanTemplates.vue";
 import AdminSystemSettings from "../components/AdminSystemSettings.vue";
 import AdminRuntimeStats from "../components/AdminRuntimeStats.vue";
+import AdminTaskAudit from "../components/AdminTaskAudit.vue";
 const tab = ref("users"),
   users = ref<AdminUser[]>([]),
   tasks = ref<AdminTask[]>([]),
   articles = ref<Article[]>([]);
+const auditId = ref<string | null>(null);
 const loading = ref(true),
   error = ref(""),
   actionError = ref(""),
@@ -304,6 +306,7 @@ onMounted(load);
               <th>分析日期</th>
               <th>耗时</th>
               <th>失败摘要</th>
+              <th>详情</th>
             </tr>
           </thead>
           <tbody>
@@ -326,10 +329,13 @@ onMounted(load);
                 }}
               </td>
               <td class="note-cell">{{ task.error || "—" }}</td>
+              <td><button class="secondary" @click="auditId = task.id">查看</button></td>
             </tr>
           </tbody>
         </table>
       </div>
-    </section></template
+    </section>
+    <AdminTaskAudit v-if="tab === 'tasks' && auditId" :key="auditId" :id="auditId" @close="auditId = null" />
+    </template
   >
 </template>
