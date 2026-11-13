@@ -36,13 +36,23 @@ CREATE TABLE notifications (
  KEY ix_notification_user(user_id,id),
  KEY ix_notification_unread(user_id,read_at,id)
 );
+CREATE TABLE system_settings (
+ id INT PRIMARY KEY CHECK(id=1), checkin_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ plan_due_enabled BOOLEAN NOT NULL DEFAULT TRUE, report_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ data_change_enabled BOOLEAN NOT NULL DEFAULT TRUE, import_failed_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ weekly_enabled BOOLEAN NOT NULL DEFAULT TRUE, monthly_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ import_analysis_enabled BOOLEAN NOT NULL DEFAULT TRUE, model_name VARCHAR(200) NOT NULL DEFAULT '',
+ model_timeout_seconds INT NOT NULL DEFAULT 90 CHECK(model_timeout_seconds BETWEEN 5 AND 90)
+);
+INSERT INTO system_settings(id) VALUES(1);
 CREATE TABLE agent_trigger_settings (
  user_id BIGINT PRIMARY KEY, weekly_enabled BOOLEAN NOT NULL, import_enabled BOOLEAN NOT NULL,
+ monthly_enabled BOOLEAN NOT NULL DEFAULT FALSE,
  import_days INT NOT NULL, source_name VARCHAR(100), notify_in_app BOOLEAN NOT NULL,
  CHECK(import_days BETWEEN 1 AND 31)
 );
 CREATE TABLE agent_trigger_runs (
- user_id BIGINT NOT NULL, kind ENUM('WEEKLY_REVIEW','SLEEP_IMPORT') NOT NULL,
+ user_id BIGINT NOT NULL, kind ENUM('WEEKLY_REVIEW','SLEEP_IMPORT','MONTHLY_REVIEW') NOT NULL,
  event_key VARCHAR(36) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
  source_name VARCHAR(100),
  task_id CHAR(36) NOT NULL, created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

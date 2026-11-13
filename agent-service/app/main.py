@@ -14,17 +14,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 import httpx
 from langchain_core.exceptions import OutputParserException
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.errors import GraphRecursionError
 from langgraph.types import Command
 import openai
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from app.config import Settings
 from app.gateway import AgentError, JavaGateway
 from app.graph import RunContext, build_graph, initial_state
-from app.schemas import AgentResult, ResumeRequest, RunRequest, TaskContext, TaskId, TaskSpec
+from app.schemas import AgentResult, RequestModel, ResumeRequest, RunRequest, TaskContext, TaskId, TaskSpec
 
 
 logger = logging.getLogger("health_agent")
@@ -49,7 +50,7 @@ async def lifespan(app: FastAPI):
         ) as java_client:
             app.state.java_client = java_client
             app.state.saver = saver
-            app.state.graph = build_graph(settings, saver)
+            app.state.graph = build_graph(saver)
             app.state.locks = WeakValueDictionary()
             app.state.running = {}
             yield
@@ -81,9 +82,12 @@ async def require_service_key(x_service_key: Annotated[str | None, Header()] = N
         raise AgentError(403, "SERVICE_AUTH_FAILED", "内部服务认证失败")
 
 
-def require_model() -> None:
-    if not settings.model_configured:
+def model_for(name: str, timeout: int) -> ChatOpenAI:
+    model = name or settings.model
+    if not (settings.api_key and settings.base_url and model):
         raise AgentError(503, "MODEL_NOT_CONFIGURED", "请配置OPENAI_API_KEY、OPENAI_BASE_URL、OPENAI_MODEL后手动重试")
+    return ChatOpenAI(api_key=settings.api_key, base_url=settings.base_url, model=model,
+                      timeout=timeout, max_retries=0, max_completion_tokens=8192)
 
 
 def graph_config(task_id: str) -> dict:
@@ -110,12 +114,29 @@ async def health() -> dict:
     return {"status": "ok", "modelConfigured": settings.model_configured}
 
 
+class ModelCheck(RequestModel):
+    modelName: str = Field(max_length=200)
+    timeoutSeconds: int = Field(ge=5, le=90)
+
+
+@app.post("/internal/model/check", status_code=204, dependencies=[Depends(require_service_key)])
+async def check_model(payload: ModelCheck) -> Response:
+    model = model_for(payload.modelName, payload.timeoutSeconds)
+    try:
+        await model.ainvoke("Reply with OK.", max_completion_tokens=16)
+    except (openai.AuthenticationError, openai.PermissionDeniedError) as exc:
+        raise AgentError(502, "MODEL_AUTH_FAILED", "模型服务拒绝认证") from exc
+    except openai.NotFoundError as exc:
+        raise AgentError(502, "MODEL_NOT_FOUND", "模型服务未找到指定模型") from exc
+    return Response(status_code=204)
+
+
 @app.post("/internal/runs", response_model=AgentResult, dependencies=[Depends(require_service_key)])
 async def start_run(payload: RunRequest, request: Request) -> dict:
-    require_model()
     async with active_run(request.app, payload.taskId):
         gateway = JavaGateway(request.app.state.java_client, payload.taskId, payload.taskToken)
         context = await gateway.authorized_context()
+        model = model_for(context.modelName, context.modelTimeoutSeconds)
         config = graph_config(payload.taskId)
         graph = request.app.state.graph
         snapshot = await graph.aget_state(config)
@@ -123,7 +144,7 @@ async def start_run(payload: RunRequest, request: Request) -> dict:
             raise AgentError(409, "RUN_ALREADY_EXISTS", "任务检查点已存在，请使用继续或手动重试接口")
         spec = task_spec(context)
         output = await graph.ainvoke(
-            initial_state(spec), config=config, context=RunContext(gateway, spec), durability="sync",
+            initial_state(spec), config=config, context=RunContext(gateway, spec, model), durability="sync",
         )
         return output["result"]
 
@@ -137,6 +158,7 @@ async def resume_run(task_id: TaskId, payload: ResumeRequest, request: Request) 
         graph = request.app.state.graph
         snapshot = await graph.aget_state(config)
         spec = task_spec(context)
+        model = None
         if payload.action == "CONFIRM":
             if context.status != "COMPLETED" or context.planId != payload.planId:
                 raise AgentError(409, "PLAN_NOT_COMMITTED", "Java尚未保存匹配的正式计划，不能关闭确认节点")
@@ -146,19 +168,19 @@ async def resume_run(task_id: TaskId, payload: ResumeRequest, request: Request) 
                 raise AgentError(409, "RUN_NOT_WAITING_CONFIRMATION", "检查点不处于待确认状态")
             command = Command(resume={"action": "CONFIRM", "planId": payload.planId})
         elif payload.action == "INPUT":
-            require_model()
+            model = model_for(context.modelName, context.modelTimeoutSeconds)
             if not snapshot.interrupts or snapshot.values["result"]["status"] != "WAITING_INPUT":
                 raise AgentError(409, "RUN_NOT_WAITING_INPUT", "检查点不处于待补充状态")
             command = Command(resume={"action": "INPUT", "input": payload.input})
         else:
-            require_model()
+            model = model_for(context.modelName, context.modelTimeoutSeconds)
             if snapshot.interrupts or (snapshot.values and not snapshot.next):
                 raise AgentError(409, "RUN_NOT_FAILED", "该检查点不能手动重试")
             # Configuration/connection failure can occur before the first checkpoint.
             # Explicit RETRY reconstructs that same task from Java's authoritative scope.
             command = None if snapshot.values else initial_state(spec)
         output = await graph.ainvoke(
-            command, config=config, context=RunContext(gateway, spec), durability="sync",
+            command, config=config, context=RunContext(gateway, spec, model), durability="sync",
         )
         return output["result"]
 

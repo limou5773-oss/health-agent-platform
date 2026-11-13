@@ -5,13 +5,14 @@ import StateNotice from "../components/StateNotice.vue";
 
 type Settings = {
   weeklyEnabled: boolean;
+  monthlyEnabled: boolean;
   importEnabled: boolean;
   importDays: number;
   sourceName: string | null;
   notifyInApp: boolean;
 };
 type Run = {
-  kind: "WEEKLY_REVIEW" | "SLEEP_IMPORT";
+  kind: "WEEKLY_REVIEW" | "MONTHLY_REVIEW" | "SLEEP_IMPORT";
   eventKey: string;
   startDate: string;
   endDate: string;
@@ -85,6 +86,8 @@ onMounted(() => { void loadSettings(); void loadRuns(); });
         <div class="form-grid">
           <label class="checkbox-label"><input v-model="settings.weeklyEnabled" type="checkbox" />每周睡眠复盘</label>
           <p class="field-hint">按档案时区，每周回顾上周一至周日的睡眠并生成报告。</p>
+          <label class="checkbox-label"><input v-model="settings.monthlyEnabled" type="checkbox" />每月睡眠复盘</label>
+          <p class="field-hint">按档案时区，每月回顾上一个完整自然月的睡眠。</p>
           <label class="checkbox-label"><input v-model="settings.importEnabled" type="checkbox" />睡眠导入后分析</label>
           <label>分析天数（含最新导入日期）
             <input v-model.number="settings.importDays" type="number" min="1" max="31" required />
@@ -113,7 +116,8 @@ onMounted(() => { void loadSettings(); void loadRuns(); });
         <thead><tr><th>触发来源</th><th>分析周期</th><th>创建时间</th><th>任务</th></tr></thead>
         <tbody>
           <tr v-for="run in runs" :key="`${run.kind}:${run.eventKey}`">
-            <td>{{ run.kind === "WEEKLY_REVIEW" ? "每周睡眠复盘" : `睡眠导入批次 #${run.eventKey}` }}</td>
+            <td>{{ run.kind === "WEEKLY_REVIEW" ? "每周睡眠复盘"
+              : run.kind === "MONTHLY_REVIEW" ? "每月睡眠复盘" : `睡眠导入批次 #${run.eventKey}` }}</td>
             <td>{{ run.startDate }} 至 {{ run.endDate }}<br /><span class="small muted">{{ run.sourceName ?? "全部来源" }}</span></td>
             <td>{{ run.createdAt.replace("T", " ") }}</td>
             <td>

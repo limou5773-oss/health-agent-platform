@@ -6,6 +6,7 @@ import type { AdminTask, AdminUser, Article } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import AdminImports from "../components/AdminImports.vue";
 import AdminPlanTemplates from "../components/AdminPlanTemplates.vue";
+import AdminSystemSettings from "../components/AdminSystemSettings.vue";
 const tab = ref("users"),
   users = ref<AdminUser[]>([]),
   tasks = ref<AdminTask[]>([]),
@@ -132,9 +133,13 @@ onMounted(load);
     <button :class="{ active: tab === 'templates' }" :aria-pressed="tab === 'templates'" @click="tab = 'templates'">
       计划模板
     </button>
+    <button :class="{ active: tab === 'system' }" :aria-pressed="tab === 'system'" @click="tab = 'system'">
+      系统配置
+    </button>
   </div>
   <AdminImports v-if="tab === 'imports'" />
   <AdminPlanTemplates v-if="tab === 'templates'" />
+  <AdminSystemSettings v-if="tab === 'system'" />
   <p v-if="actionError" class="feedback error" role="alert">
     {{ actionError }}
   </p>

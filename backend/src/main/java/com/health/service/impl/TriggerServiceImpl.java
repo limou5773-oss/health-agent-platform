@@ -6,6 +6,7 @@ import com.health.mapper.TriggerMapper;
 import com.health.model.TriggerModels.*;
 import com.health.service.AccountService;
 import com.health.service.TaskService;
+import com.health.service.SystemSettingsService;
 import com.health.service.TriggerService;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -29,21 +30,23 @@ public class TriggerServiceImpl implements TriggerService {
   private final TaskMapper taskMapper;
   private final TaskService tasks;
   private final AccountService accounts;
+  private final SystemSettingsService systemSettings;
   private final TransactionTemplate transaction;
 
   public TriggerServiceImpl(TriggerMapper mapper, TaskMapper taskMapper, TaskService tasks,
-      AccountService accounts, PlatformTransactionManager manager) {
+      AccountService accounts, SystemSettingsService systemSettings, PlatformTransactionManager manager) {
     this.mapper = mapper;
     this.taskMapper = taskMapper;
     this.tasks = tasks;
     this.accounts = accounts;
+    this.systemSettings = systemSettings;
     this.transaction = new TransactionTemplate(manager);
   }
 
   @Override
   public Settings settings(Long userId) {
     Settings saved = mapper.settings(userId);
-    return saved == null ? new Settings(false, false, 7, null, false) : saved;
+    return saved == null ? new Settings(false, false, false, 7, null, false) : saved;
   }
 
   @Override
@@ -65,7 +68,8 @@ public class TriggerServiceImpl implements TriggerService {
     if (latestBySource.isEmpty()) return;
     taskMapper.lockUser(userId);
     Settings settings = settings(userId);
-    if (!settings.importEnabled() || !taskMapper.enabled(userId) || !accounts.profile(userId).aiConsent) return;
+    if (!settings.importEnabled() || !systemSettings.get().importAnalysisEnabled()
+        || !taskMapper.enabled(userId) || !accounts.profile(userId).aiConsent) return;
     LocalDate end = settings.sourceName() == null
         ? latestBySource.values().stream().max(Comparator.naturalOrder()).orElseThrow()
         : latestBySource.get(settings.sourceName());
@@ -76,30 +80,39 @@ public class TriggerServiceImpl implements TriggerService {
 
   @Scheduled(fixedDelay = 60_000)
   public void schedule() {
-    for (Long userId : mapper.weeklyUsers()) {
+    for (Long userId : mapper.reviewUsers()) {
       try {
         transaction.executeWithoutResult(status -> {
           taskMapper.lockUser(userId);
           Settings settings = settings(userId);
           var profile = accounts.profile(userId);
-          if (!settings.weeklyEnabled() || !profile.aiConsent || !taskMapper.enabled(userId)) return;
-          LocalDate end = LocalDate.now(ZoneId.of(profile.timezone))
-              .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusDays(1);
-          create(userId, Kind.WEEKLY_REVIEW, end.toString(), end.minusDays(6), end, settings);
+          if (!profile.aiConsent || !taskMapper.enabled(userId)) return;
+          var platform = systemSettings.get();
+          LocalDate today = LocalDate.now(ZoneId.of(profile.timezone));
+          if (settings.weeklyEnabled() && platform.weeklyEnabled()) {
+            LocalDate end = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusDays(1);
+            create(userId, Kind.WEEKLY_REVIEW, end.toString(), end.minusDays(6), end, settings);
+          }
+          if (settings.monthlyEnabled() && platform.monthlyEnabled()) {
+            LocalDate end = today.withDayOfMonth(1).minusDays(1);
+            create(userId, Kind.MONTHLY_REVIEW, end.toString(), end.withDayOfMonth(1), end, settings);
+          }
         });
       } catch (RuntimeException e) {
-        log.error("Weekly review trigger failed for user {}", userId, e);
+        log.error("Periodic review trigger failed for user {}", userId, e);
       }
     }
   }
 
   private void create(Long userId, Kind kind, String key, LocalDate start, LocalDate end, Settings settings) {
     if (mapper.exists(userId, kind, start, end)) return;
-    boolean weekly = kind == Kind.WEEKLY_REVIEW;
+    String goal = switch (kind) {
+      case WEEKLY_REVIEW -> "复盘上一周的睡眠记录，说明睡眠趋势、覆盖和可执行的后续行动。";
+      case MONTHLY_REVIEW -> "复盘上一个自然月的睡眠记录，说明睡眠趋势、覆盖和可执行的后续行动。";
+      case SLEEP_IMPORT -> "分析本次睡眠导入覆盖的近期记录，说明趋势与数据覆盖。";
+    };
     var task = tasks.create(userId, new TaskCreate(
-        weekly ? "复盘上一周的睡眠记录，说明睡眠趋势、覆盖和可执行的后续行动。"
-            : "分析本次睡眠导入覆盖的近期记录，说明趋势与数据覆盖。",
-        weekly ? "REPORT" : "ANALYZE", start, end, settings.sourceName(), null, null, false));
+        goal, kind == Kind.SLEEP_IMPORT ? "ANALYZE" : "REPORT", start, end, settings.sourceName(), null, null, false));
     mapper.insert(userId, kind, key, start, end, settings.sourceName(), task.id);
     if (settings.notifyInApp()) mapper.notifyRun(userId, kind, task.id);
   }

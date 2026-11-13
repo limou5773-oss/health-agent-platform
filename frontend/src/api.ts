@@ -21,13 +21,13 @@ export class ApiError extends Error {
     super(message);
   }
 }
-async function request(path: string, options: RequestInit = {}) {
+async function request(path: string, options: RequestInit = {}, timeoutMs = 30000) {
   const headers = new Headers(options.headers);
   if (session.token) headers.set("Authorization", `Bearer ${session.token}`);
   if (options.body && !(options.body instanceof FormData))
     headers.set("Content-Type", "application/json");
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
     response = await fetch(`/api${path}`, {
@@ -55,8 +55,8 @@ async function request(path: string, options: RequestInit = {}) {
   }
   return response;
 }
-export async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await request(path, options);
+export async function api<T>(path: string, options?: RequestInit, timeoutMs?: number): Promise<T> {
+  const response = await request(path, options, timeoutMs);
   return response.status === 204 ? (undefined as T) : response.json();
 }
 export const json = (method: string, value?: unknown): RequestInit => ({

@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Param;
 public interface TriggerMapper {
   Settings settings(Long userId);
   void save(@Param("userId") Long userId, @Param("settings") Settings settings);
-  List<Long> weeklyUsers();
+  List<Long> reviewUsers();
   List<Run> runs(Long userId);
   boolean exists(@Param("userId") Long userId, @Param("kind") Kind kind,
       @Param("start") LocalDate start, @Param("end") LocalDate end);

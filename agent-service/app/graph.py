@@ -16,7 +16,6 @@ from langgraph.graph.message import add_messages
 from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
-from app.config import Settings
 from app.gateway import AgentError, DIARY_TOOL, JavaGateway, SourceSelectionRequired, TOOLS
 from app.schemas import AgentReport, AgentResult, ArticleReference, ModelDecision, TaskContext
 
@@ -59,6 +58,7 @@ class RunContext:
     # LangGraph runtime context is invocation-scoped and is not graph state.
     gateway: JavaGateway
     spec: dict
+    model: ChatOpenAI | None = None
 
 
 def initial_state(spec: dict) -> dict:
@@ -84,24 +84,13 @@ def model_messages(state: AgentState, context: TaskContext) -> list[AnyMessage]:
     return messages
 
 
-def build_graph(settings: Settings, saver: AsyncSqliteSaver):
-    model = None
-    if settings.model_configured:
-        model = ChatOpenAI(
-            api_key=settings.api_key,
-            base_url=settings.base_url,
-            model=settings.model,
-            timeout=90,
-            max_retries=0,
-            max_completion_tokens=8192,
-        )
-
+def build_graph(saver: AsyncSqliteSaver):
     async def call_model(state: AgentState, runtime: Runtime[RunContext]) -> dict:
         if state["model_calls"] >= 12:
             raise AgentError(422, "MODEL_STEP_LIMIT", "模型超过12轮工具决策上限，请缩小目标后新建任务")
         context = await runtime.context.gateway.authorized_context()
         tools = [*TOOLS, DIARY_TOOL] if context.includeDiary else TOOLS
-        response = await model.bind_tools(tools).ainvoke(
+        response = await runtime.context.model.bind_tools(tools).ainvoke(
             model_messages(state, context)
         )
         if response.invalid_tool_calls:
@@ -156,7 +145,7 @@ def build_graph(settings: Settings, saver: AsyncSqliteSaver):
         context = await runtime.context.gateway.authorized_context()
         # function_calling is explicit: no JSON-mode fallback, repair call or retry.
         # https://reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI/with_structured_output
-        decision: ModelDecision = await model.with_structured_output(
+        decision: ModelDecision = await runtime.context.model.with_structured_output(
             ModelDecision, method="function_calling",
         ).ainvoke(
             model_messages(state, context) + [HumanMessage(content=(

@@ -32,6 +32,7 @@ public class TaskServiceImpl implements TaskService {
   private final AccountService accounts;
   private final PreferenceService preferences;
   private final NotificationService notifications;
+  private final SystemSettingsService systemSettings;
   private final ObjectMapper json;
   private final Validator validator;
   private final Executor executor;
@@ -45,6 +46,7 @@ public class TaskServiceImpl implements TaskService {
       AccountService accounts,
       PreferenceService preferences,
       NotificationService notifications,
+      SystemSettingsService systemSettings,
       ObjectMapper json,
       Validator validator,
       Executor taskExecutor,
@@ -56,6 +58,7 @@ public class TaskServiceImpl implements TaskService {
     this.accounts = accounts;
     this.preferences = preferences;
     this.notifications = notifications;
+    this.systemSettings = systemSettings;
     this.json = json;
     this.validator = validator;
     this.executor = taskExecutor;
@@ -253,6 +256,9 @@ public class TaskServiceImpl implements TaskService {
     result.put("aiConsent", p.aiConsent);
     result.put("timezone", p.timezone);
     result.put("planId", t.planId);
+    var runtime = systemSettings.get();
+    result.put("modelName", runtime.modelName());
+    result.put("modelTimeoutSeconds", runtime.modelTimeoutSeconds());
     if ("PLAN".equals(t.kind) && "RUNNING".equals(t.status)) {
       result.put("savedPreferences", preferences.list(t.userId));
     }

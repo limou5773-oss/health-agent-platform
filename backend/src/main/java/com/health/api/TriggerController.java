@@ -26,7 +26,8 @@ public class TriggerController {
   @PutMapping("/settings")
   public Settings save(HttpServletRequest request, @Valid @RequestBody Save body) {
     String source = body.sourceName() == null || body.sourceName().isBlank() ? null : body.sourceName();
-    return service.save(Identity.user(request).id, new Settings(body.weeklyEnabled(), body.importEnabled(),
+    return service.save(Identity.user(request).id, new Settings(body.weeklyEnabled(),
+        Boolean.TRUE.equals(body.monthlyEnabled()), body.importEnabled(),
         body.importDays(), source, body.notifyInApp()));
   }
 
@@ -35,7 +36,7 @@ public class TriggerController {
     return service.runs(Identity.user(request).id);
   }
 
-  public record Save(@NotNull Boolean weeklyEnabled, @NotNull Boolean importEnabled,
+  public record Save(@NotNull Boolean weeklyEnabled, Boolean monthlyEnabled, @NotNull Boolean importEnabled,
       @NotNull @Min(1) @Max(31) Integer importDays, @Size(max = 100) String sourceName,
       @NotNull Boolean notifyInApp) {}
 }

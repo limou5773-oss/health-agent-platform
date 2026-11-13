@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 public final class TriggerModels {
   private TriggerModels() {}
 
-  public enum Kind { WEEKLY_REVIEW, SLEEP_IMPORT }
+  public enum Kind { WEEKLY_REVIEW, SLEEP_IMPORT, MONTHLY_REVIEW }
 
-  public record Settings(boolean weeklyEnabled, boolean importEnabled,
+  public record Settings(boolean weeklyEnabled, boolean monthlyEnabled, boolean importEnabled,
       int importDays, String sourceName, boolean notifyInApp) {}
 
   public record Run(Kind kind, String eventKey, LocalDate startDate, LocalDate endDate,

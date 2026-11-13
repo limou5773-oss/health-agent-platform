@@ -67,6 +67,8 @@ class TaskContext(TaskSpec):
     timezone: str
     planId: int | None = None
     savedPreferences: list[SavedPreference] = Field(default_factory=list)
+    modelName: str = ""
+    modelTimeoutSeconds: int = Field(default=90, ge=5, le=90)
 
 
 class DailySleep(BaseModel):

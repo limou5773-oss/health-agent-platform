@@ -33,7 +33,9 @@
   <select id="activeZones" resultType="string">
     SELECT DISTINCT p.timezone FROM profiles p JOIN users u ON u.id=p.user_id AND u.enabled=TRUE
     JOIN notification_settings s ON s.user_id=p.user_id
-    WHERE s.checkin_enabled OR s.plan_due_enabled OR s.data_change_enabled
+    JOIN system_settings g ON g.id=1
+    WHERE (s.checkin_enabled AND g.checkin_enabled) OR (s.plan_due_enabled AND g.plan_due_enabled)
+      OR (s.data_change_enabled AND g.data_change_enabled)
   </select>
   <insert id="schedule">
     INSERT INTO notifications(user_id,kind,event_key,title,body,target,data_cutoff)
@@ -42,17 +44,19 @@
       CONCAT('任务「',i.title,'」等待打卡。') AS body,CONCAT('/plans?id=',p.id) AS target,NULL AS data_cutoff
     FROM notification_settings s JOIN profiles f ON f.user_id=s.user_id AND f.timezone=#{zone}
     JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
+    JOIN system_settings g ON g.id=1
     JOIN plans p ON p.user_id=s.user_id AND p.status='ACTIVE'
     JOIN plan_items i ON i.plan_id=p.id AND i.retired=FALSE AND i.date=DATE(#{localNow})
     LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
-    WHERE s.checkin_enabled AND s.checkin_frequency='PER_TASK' AND c.id IS NULL
+    WHERE g.checkin_enabled AND s.checkin_enabled AND s.checkin_frequency='PER_TASK' AND c.id IS NULL
       AND COALESCE(i.reminder_time,i.time) &lt;= TIME(#{localNow})
     UNION ALL
     SELECT s.user_id,'CHECKIN',CONCAT('daily:',DATE(#{localNow})),'每日打卡提醒',
       '今天还有计划任务等待打卡。','/plans',NULL
     FROM notification_settings s JOIN profiles f ON f.user_id=s.user_id AND f.timezone=#{zone}
     JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
-    WHERE s.checkin_enabled AND s.checkin_frequency='DAILY' AND s.daily_time &lt;= TIME(#{localNow})
+    JOIN system_settings g ON g.id=1
+    WHERE g.checkin_enabled AND s.checkin_enabled AND s.checkin_frequency='DAILY' AND s.daily_time &lt;= TIME(#{localNow})
       AND EXISTS (
         SELECT 1 FROM plans p JOIN plan_items i ON i.plan_id=p.id
         LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
@@ -64,8 +68,9 @@
       CONCAT('计划「',p.title,'」将于今天结束。'),CONCAT('/plans?id=',p.id),NULL
     FROM notification_settings s JOIN profiles f ON f.user_id=s.user_id AND f.timezone=#{zone}
     JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
+    JOIN system_settings g ON g.id=1
     JOIN plans p ON p.user_id=s.user_id AND p.status='ACTIVE' AND p.end_date=DATE(#{localNow})
-    WHERE s.plan_due_enabled
+    WHERE g.plan_due_enabled AND s.plan_due_enabled
     UNION ALL
     SELECT observed.user_id,'DATA_CHANGE',CONCAT('weight:',observed.id,':',observed.previous_id),
       '体重记录有变化','同一来源的最近两条体重记录数值不同。', '/weight',observed.measured_at
@@ -76,8 +81,9 @@
         LEAD(w.weight_kg) OVER(PARTITION BY w.user_id,w.source_name ORDER BY w.measured_at DESC,w.id DESC) AS previous_weight
       FROM notification_settings s JOIN profiles f ON f.user_id=s.user_id AND f.timezone=#{zone}
       JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
+    JOIN system_settings g ON g.id=1
       JOIN weight_records w ON w.user_id=s.user_id
-      WHERE s.data_change_enabled AND w.measured_at &lt;= #{localNow}
+      WHERE g.data_change_enabled AND s.data_change_enabled AND w.measured_at &lt;= #{localNow}
     ) observed
     WHERE observed.position_no=1 AND DATE(observed.measured_at)=DATE(#{localNow})
       AND observed.weight_kg &lt;&gt; observed.previous_weight
@@ -91,7 +97,8 @@
     INSERT INTO notifications(user_id,kind,event_key,title,body,target)
     SELECT s.user_id,'REPORT',CAST(#{reportId} AS CHAR),'健康报告已生成',
       '可以查看本次生成的健康报告。',CONCAT('/reports?id=',#{reportId})
-    FROM notification_settings s WHERE s.user_id=#{userId} AND s.report_enabled
+    FROM notification_settings s JOIN system_settings g ON g.id=1
+    WHERE s.user_id=#{userId} AND s.report_enabled AND g.report_enabled
     ON DUPLICATE KEY UPDATE id=notifications.id
   </insert>
   <insert id="importIssues">
@@ -100,7 +107,8 @@
       IF(#{valid}=0,'导入失败','导入发现失败行'),
       CONCAT('批次中有 ',#{invalid},' 行校验失败或暂不支持。'),
       IF(#{steps},'/activity#step-import','/records#sleep-import')
-    FROM notification_settings s WHERE s.user_id=#{userId} AND s.import_failed_enabled
+    FROM notification_settings s JOIN system_settings g ON g.id=1
+    WHERE s.user_id=#{userId} AND s.import_failed_enabled AND g.import_failed_enabled
     ON DUPLICATE KEY UPDATE id=notifications.id
   </insert>
   <insert id="importRejected">
@@ -108,6 +116,7 @@
     SELECT s.user_id,'IMPORT_FAILED',CONCAT('request:',UUID()),'导入失败',
       '文件未能完成预览，请检查文件格式和导入参数后重新选择。',
       IF(#{steps},'/activity#step-import','/records#sleep-import')
-    FROM notification_settings s WHERE s.user_id=#{userId} AND s.import_failed_enabled
+    FROM notification_settings s JOIN system_settings g ON g.id=1
+    WHERE s.user_id=#{userId} AND s.import_failed_enabled AND g.import_failed_enabled
   </insert>
 </mapper>
