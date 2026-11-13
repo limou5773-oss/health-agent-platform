@@ -7,6 +7,15 @@
  <select id="lock" resultType="com.health.model.Models$Plan">SELECT * FROM plans WHERE user_id=#{userId} AND id=#{id} FOR UPDATE</select>
  <select id="items" resultType="com.health.model.Models$PlanItem">SELECT p.*,c.id IS NOT NULL AS completed,c.checked_at FROM plan_items p LEFT JOIN checkins c ON c.item_id=p.id AND c.date=p.date WHERE p.plan_id=#{planId} AND p.retired=FALSE ORDER BY p.date,p.time,p.id</select>
  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO plans(user_id,task_id,title,reason,start_date,end_date) VALUES(#{userId},#{taskId},#{title},#{reason},#{startDate},#{endDate})</insert>
+ <select id="reviewItems" resultType="com.health.model.PlanReviewModels$Item">
+  SELECT i.id,i.date,i.time,i.title,c.id IS NOT NULL AS completed,i.missed_reason
+  FROM plan_items i LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
+  WHERE i.plan_id=#{planId} AND i.retired=FALSE AND i.date BETWEEN #{start} AND #{end}
+  ORDER BY i.date,i.time,i.id
+ </select>
+ <update id="saveMissedReason">
+  UPDATE plan_items SET missed_reason=#{reason} WHERE id=#{id}
+ </update>
  <insert id="insertItem" useGeneratedKeys="true" keyProperty="id">INSERT INTO plan_items(plan_id,date,time,title,description,reminder_time) VALUES(#{planId},#{date},#{time},#{title},#{description},#{reminderTime})</insert>
  <update id="status">UPDATE plans SET status=#{status} WHERE id=#{id}</update>
  <insert id="insertStatusChange">INSERT INTO plan_status_changes(plan_id,previous_status,status) VALUES(#{planId},#{previousStatus},#{status})</insert>

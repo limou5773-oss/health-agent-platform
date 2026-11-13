@@ -18,6 +18,7 @@ const loading = ref(true);
 const error = ref("");
 const actionError = ref("");
 const busy = ref(false);
+const section = ref<HTMLElement | null>(null);
 
 const current = computed<Content>(() => {
   const { title, reason, startDate, endDate, items } = props.plan;
@@ -67,6 +68,35 @@ function edit(content: Content, reason = "") {
   note.value = reason;
 }
 
+function proposeMove(itemId: number, date: string, reason: string, version: number) {
+  section.value?.scrollIntoView({ block: "start" });
+  actionError.value = "";
+  const data = revisions.value;
+  if (!data || data.activeVersion !== version || props.plan.version !== version) {
+    actionError.value = "计划版本已变化，请刷新后重新复盘。";
+    return;
+  }
+  if (editor.value || data.draft) {
+    actionError.value = "请先处理正在编辑或已保存的修订草稿。";
+    return;
+  }
+  const item = current.value.items.find(entry => entry.id === itemId);
+  if (!item || locked.value.has(itemId)) {
+    actionError.value = "该任务已变更，请刷新后重新复盘。";
+    return;
+  }
+  const startDate = date < current.value.startDate ? date : current.value.startDate;
+  const endDate = date > current.value.endDate ? date : current.value.endDate;
+  edit({
+    ...current.value,
+    startDate,
+    endDate,
+    items: current.value.items.map(entry => entry.id === itemId ? { ...entry, date } : entry),
+  }, `周期复盘：将「${item.title}」从 ${item.date} 调整到 ${date}${reason ? `。未完成原因：${reason}` : ""}`);
+}
+
+defineExpose({ proposeMove });
+
 async function act(action: "save" | "confirm" | "discard") {
   if (!revisions.value) return;
   busy.value = true;
@@ -105,7 +135,7 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="plan-revisions" aria-labelledby="plan-revisions-title">
+  <section ref="section" class="plan-revisions" aria-labelledby="plan-revisions-title">
     <h3 id="plan-revisions-title">计划修订 · 当前版本 {{ plan.version }}</h3>
     <StateNotice :loading="loading" :error="error" @retry="load" />
     <p v-if="actionError" class="feedback error" role="alert">{{ actionError }}</p>

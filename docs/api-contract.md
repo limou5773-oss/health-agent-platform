@@ -121,6 +121,8 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 
 计划详情提供独立的版本草稿、比较、确认和放弃接口。请求、版本并发及打卡保留规则见[计划修订接口](plan-revisions.md)。
 
+周期复盘通过 `GET /api/plans/{id}/review` 读取完成情况及相邻阶段比较，通过 `PUT /api/plan-items/{id}/missed-reason` 保存未完成原因。详见[周期复盘接口](plan-review.md)。
+
 ## 站内提醒与消息中心
 
 `/api/notifications` 提供消息分页、未读计数、已读标记与提醒设置。各类别触发时机、去重和字段见[消息中心接口](notifications.md)。

@@ -61,6 +61,7 @@ public class PlanServiceImpl implements PlanService {
     Map<String, Object> existing = mapper.checkin(id);
     if (existing != null) return existing;
     mapper.insertCheckin(id, date);
+    mapper.saveMissedReason(id, "");
     return mapper.checkin(id);
   }
 

@@ -6,7 +6,9 @@ import { api, errorMessage, json, statusText } from "../api";
 import type { Plan } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import PlanRevisions from "../components/PlanRevisions.vue";
+import PlanReview from "../components/PlanReview.vue";
 const route = useRoute();
+const revisionEditor = ref<InstanceType<typeof PlanRevisions> | null>(null);
 const plans = ref<Plan[]>([]),
   plan = ref<Plan | null>(null),
   loading = ref(true),
@@ -173,7 +175,9 @@ onMounted(load);
         <p v-if="plan.status !== 'ACTIVE'" class="feedback">
           此计划{{ statusText[plan.status] }}；恢复进行后可继续打卡。
         </p>
-        <PlanRevisions :key="plan.id" :plan="plan" @refresh="refreshPlan" />
+        <PlanReview :key="plan.id" :plan="plan"
+          @propose="(id, date, reason, version) => revisionEditor?.proposeMove(id, date, reason, version)" />
+        <PlanRevisions ref="revisionEditor" :key="plan.id" :plan="plan" @refresh="refreshPlan" />
         <ul class="checkin-list">
           <li
             v-for="item in plan.items"

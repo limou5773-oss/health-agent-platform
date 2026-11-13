@@ -116,6 +116,7 @@ CREATE TABLE plan_items (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id BIGINT NOT NULL, date DATE NOT NULL,
  time TIME NOT NULL, title VARCHAR(200) NOT NULL, description VARCHAR(2000) NOT NULL,
  reminder_time TIME, retired BOOLEAN NOT NULL DEFAULT FALSE,
+ missed_reason VARCHAR(500) NOT NULL DEFAULT '',
  KEY ix_item_plan(plan_id)
 );
 CREATE TABLE checkins (

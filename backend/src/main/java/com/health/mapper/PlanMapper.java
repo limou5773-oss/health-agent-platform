@@ -5,6 +5,7 @@ import com.health.api.HealthReportRequests.Generate;
 import com.health.model.HealthReportModels.Completion;
 import com.health.model.HealthReportModels.Source;
 import com.health.model.PlanRevisionModels.Revision;
+import com.health.model.PlanReviewModels.Item;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,9 @@ public interface PlanMapper {
   Plan lock(@Param("userId") Long userId, @Param("id") Long id);
 
   List<PlanItem> items(Long planId);
+  List<Item> reviewItems(@Param("planId") Long planId, @Param("start") LocalDate start,
+      @Param("end") LocalDate end);
+  void saveMissedReason(@Param("id") Long id, @Param("reason") String reason);
 
   void insert(Plan plan);
 

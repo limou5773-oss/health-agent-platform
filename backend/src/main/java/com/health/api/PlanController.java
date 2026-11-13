@@ -5,6 +5,8 @@ import com.health.security.Identity;
 import com.health.service.HealthReportService;
 import com.health.service.PlanService;
 import com.health.service.PlanRevisionService;
+import com.health.service.PlanReviewService;
+import com.health.model.PlanReviewModels.Review;
 import com.health.model.PlanRevisionModels.Revision;
 import com.health.model.PlanRevisionModels.Revisions;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,11 +21,14 @@ public class PlanController {
   private final PlanService service;
   private final HealthReportService healthReports;
   private final PlanRevisionService revisions;
+  private final PlanReviewService reviews;
 
-  public PlanController(PlanService service, HealthReportService healthReports, PlanRevisionService revisions) {
+  public PlanController(PlanService service, HealthReportService healthReports,
+      PlanRevisionService revisions, PlanReviewService reviews) {
     this.service = service;
     this.healthReports = healthReports;
     this.revisions = revisions;
+    this.reviews = reviews;
   }
 
   @GetMapping("/plans")
@@ -45,6 +50,19 @@ public class PlanController {
   @GetMapping("/plans/{id}/revisions")
   public Revisions revisions(HttpServletRequest r, @PathVariable Long id) {
     return revisions.revisions(Identity.user(r).id, id);
+  }
+
+  @GetMapping("/plans/{id}/review")
+  public Review review(HttpServletRequest r, @PathVariable Long id,
+      @Valid @ModelAttribute PlanReviewRequests.Query query) {
+    return reviews.review(Identity.user(r).id, id, query);
+  }
+
+  @PutMapping("/plan-items/{id}/missed-reason")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void missedReason(HttpServletRequest r, @PathVariable Long id,
+      @Valid @RequestBody PlanReviewRequests.Reason body) {
+    reviews.missedReason(Identity.user(r).id, id, body.reason());
   }
 
   @PostMapping("/plans/{id}/revisions")
