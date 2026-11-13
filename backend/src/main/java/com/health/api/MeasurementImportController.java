@@ -3,6 +3,7 @@ package com.health.api;
 import com.health.model.MeasurementImportModels.*;
 import com.health.security.Identity;
 import com.health.service.MeasurementImportService;
+import com.health.service.ImportAdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
@@ -12,14 +13,24 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/{module:weight|heart-rate}/imports")
 public class MeasurementImportController {
   private final MeasurementImportService service;
+  private final ImportAdminService importAdmin;
 
-  public MeasurementImportController(MeasurementImportService service) {
+  public MeasurementImportController(MeasurementImportService service, ImportAdminService importAdmin) {
     this.service = service;
+    this.importAdmin = importAdmin;
   }
 
   @PostMapping(value = "/preview", consumes = "multipart/form-data")
   public Preview upload(HttpServletRequest request, @PathVariable String module, @RequestPart MultipartFile file) {
-    return service.preview(Identity.user(request).id, metric(module), file);
+    Long userId = Identity.user(request).id;
+    Metric metric = metric(module);
+    try {
+      return service.preview(userId, metric, file);
+    } catch (ApiException e) {
+      if (e.status == 400 || "MEASUREMENT_CONFLICT".equals(e.code))
+        importAdmin.rejected(metric.importKind, userId, e.code);
+      throw e;
+    }
   }
 
   @GetMapping("/{id}")
@@ -29,7 +40,13 @@ public class MeasurementImportController {
 
   @PostMapping("/{id}/confirm")
   public Batch confirm(HttpServletRequest request, @PathVariable String module, @PathVariable Long id) {
-    return service.confirm(Identity.user(request).id, metric(module), id);
+    Metric metric = metric(module);
+    try {
+      return service.confirm(Identity.user(request).id, metric, id);
+    } catch (ApiException e) {
+      if ("MEASUREMENT_CONFLICT".equals(e.code)) importAdmin.recordIssue(metric.importKind, id, e.code);
+      throw e;
+    }
   }
 
   @GetMapping

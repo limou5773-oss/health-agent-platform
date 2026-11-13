@@ -11,6 +11,7 @@ public interface ImportAdminMapper {
   Batch batch(@Param("kind") Kind kind, @Param("id") Long id);
   List<Issue> issues(@Param("kind") Kind kind, @Param("id") Long id, @Param("confirmed") boolean confirmed);
   void snapshotIssues(@Param("kind") Kind kind, @Param("id") Long id);
+  void recordIssue(@Param("kind") Kind kind, @Param("id") Long id, @Param("reason") String reason);
   String instructions(Kind kind);
   void saveInstructions(@Param("kind") Kind kind, @Param("instructions") String instructions);
   void rejected(@Param("kind") Kind kind, @Param("userId") Long userId, @Param("code") String code);

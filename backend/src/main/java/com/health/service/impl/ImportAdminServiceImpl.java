@@ -41,5 +41,7 @@ public class ImportAdminServiceImpl implements ImportAdminService {
 
   public void snapshotIssues(Kind kind, Long id) { mapper.snapshotIssues(kind, id); }
 
+  public void recordIssue(Kind kind, Long id, String reason) { mapper.recordIssue(kind, id, reason); }
+
   public void rejected(Kind kind, Long userId, String code) { mapper.rejected(kind, userId, code); }
 }

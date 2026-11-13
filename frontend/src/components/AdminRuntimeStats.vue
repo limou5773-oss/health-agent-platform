@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { importKindText, type ImportKind } from "../import-template";
 import { onMounted, reactive, ref } from "vue";
 import { api, dateAfter, errorMessage, recentRange, statusText } from "../api";
 import StateNotice from "./StateNotice.vue";
@@ -11,7 +12,7 @@ type Stats = {
   averageDurationMs: number | null;
   completionRate: number | null;
   toolFailures: { tool: string; count: number }[];
-  imports: { kind: "SLEEP" | "STEPS"; batches: number; confirmed: number; rejected: number; inputRows: number; insertedRows: number }[];
+  imports: { kind: ImportKind; batches: number; confirmed: number; rejected: number; inputRows: number; insertedRows: number }[];
   scheduledItems: number;
   completedItems: number;
   planCompletionRate: number | null;
@@ -93,7 +94,7 @@ onMounted(load);
             <th scope="col">预览拒绝</th><th scope="col">输入行数</th><th scope="col">已入库行数</th></tr></thead>
           <tbody>
             <tr v-for="row in stats.imports" :key="row.kind">
-              <th scope="row">{{ row.kind === "SLEEP" ? "睡眠" : "步数" }}</th>
+              <th scope="row">{{ importKindText[row.kind] }}</th>
               <td>{{ row.batches }}</td><td>{{ row.confirmed }}</td><td>{{ row.rejected }}</td>
               <td>{{ row.inputRows }}</td><td>{{ row.insertedRows }}</td>
             </tr>

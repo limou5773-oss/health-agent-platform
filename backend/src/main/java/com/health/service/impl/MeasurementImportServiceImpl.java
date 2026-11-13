@@ -48,7 +48,7 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
     batch.userId = userId;
     batch.metric = metric;
     batch.status = "PREVIEW";
-    var expectedHeaders = List.of("measuredAt", metric.valueColumn, "sourceName", "note");
+    var expectedHeaders = metric.importKind.headers;
     try (var stream = BOMInputStream.builder().setInputStream(file.getInputStream()).get();
          var reader = new InputStreamReader(stream, StandardCharsets.UTF_8.newDecoder());
          var parser = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true)
@@ -129,7 +129,7 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
   private void rejectConflict(Batch batch) {
     Long rowNumber = mapper.conflictRow(batch);
     if (rowNumber != null)
-      throw ApiException.conflict("第" + rowNumber + "行：同来源同一时刻已有不同数值，请核对记录");
+      throw new ApiException(409, "MEASUREMENT_CONFLICT", "第" + rowNumber + "行：同来源同一时刻已有不同数值，请核对记录");
   }
 
   private static ApiException invalidRow(long line, String reason) {

@@ -124,7 +124,7 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 ## 后台导入管理
 
-管理员可查看睡眠和步数导入批次、失败分类，并维护 CSV 模板填写说明。已有库执行 `database/migrations/015_import_admin.sql`。详见[后台导入管理说明](docs/import-admin.md)。
+管理员可查看睡眠、步数、体重和心率导入批次、失败分类，并维护 CSV 模板填写说明。已有库在前序迁移后执行 `database/migrations/025_measurement_import_admin.sql`。详见[后台导入管理说明](docs/import-admin.md)。
 
 ## 计划模板
 

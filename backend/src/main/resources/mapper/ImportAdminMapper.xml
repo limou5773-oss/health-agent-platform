@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.health.mapper.ImportAdminMapper">
-  <sql id="batchTable"><choose><when test="kind.name() == 'SLEEP'">import_batches</when><otherwise>step_import_batches</otherwise></choose></sql>
+  <sql id="batchTable">
+    <choose>
+      <when test="kind.name() == 'SLEEP'">import_batches</when>
+      <when test="kind.name() == 'STEPS'">step_import_batches</when>
+      <otherwise>
+        (SELECT id,user_id,status,total_rows,total_rows AS valid_rows,0 AS invalid_rows,
+          duplicate_rows,inserted_rows,created_at FROM measurement_import_batches WHERE metric=#{kind}) measurement
+      </otherwise>
+    </choose>
+  </sql>
   <sql id="rowTable"><choose><when test="kind.name() == 'SLEEP'">import_rows</when><otherwise>step_import_rows</otherwise></choose></sql>
   <sql id="columns">
     #{kind} AS kind,id,user_id,
@@ -12,7 +21,12 @@
   </sql>
   <sql id="issuesFilter">
     <if test="issuesOnly">
-      WHERE (invalid_rows &gt; 0 <if test="kind.name() == 'SLEEP'">OR unsupported_rows &gt; 0</if>)
+      <choose>
+        <when test="kind.name() == 'WEIGHT' or kind.name() == 'HEART_RATE'">
+          WHERE EXISTS (SELECT 1 FROM import_issue_counts issue WHERE issue.kind=#{kind} AND issue.batch_id=measurement.id)
+        </when>
+        <otherwise>WHERE (invalid_rows &gt; 0 <if test="kind.name() == 'SLEEP'">OR unsupported_rows &gt; 0</if>)</otherwise>
+      </choose>
     </if>
   </sql>
   <select id="batches" resultType="com.health.model.ImportAdminModels$Batch">
@@ -52,6 +66,9 @@
   <select id="issues" resultType="com.health.model.ImportAdminModels$Issue">
     <choose>
       <when test="id &lt; 0">SELECT error_code AS reason,1 AS issue_rows FROM rejected_imports WHERE kind=#{kind} AND id=-#{id}</when>
+      <when test="kind.name() == 'WEIGHT' or kind.name() == 'HEART_RATE'">
+        SELECT reason,row_count AS issue_rows FROM import_issue_counts WHERE kind=#{kind} AND batch_id=#{id} ORDER BY reason
+      </when>
       <when test="confirmed">SELECT reason,row_count AS issue_rows FROM import_issue_counts WHERE kind=#{kind} AND batch_id=#{id} ORDER BY reason</when>
       <otherwise>SELECT reason,row_count AS issue_rows FROM (<include refid="classifyIssues"/>) issues ORDER BY reason</otherwise>
     </choose>
@@ -59,6 +76,10 @@
   <insert id="snapshotIssues">
     INSERT INTO import_issue_counts(kind,batch_id,reason,row_count)
     SELECT #{kind},#{id},reason,row_count FROM (<include refid="classifyIssues"/>) issues
+  </insert>
+  <insert id="recordIssue">
+    INSERT INTO import_issue_counts(kind,batch_id,reason,row_count) VALUES(#{kind},#{id},#{reason},1)
+    ON DUPLICATE KEY UPDATE row_count=row_count+1
   </insert>
   <select id="instructions" resultType="string">SELECT instructions FROM import_template_notes WHERE kind=#{kind}</select>
   <insert id="saveInstructions">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { api, errorMessage, json, saveBlob } from "../api";
+import { api, errorMessage, json } from "../api";
+import { downloadImportTemplate, getImportTemplate } from "../import-template";
 import StateNotice from "./StateNotice.vue";
 
 interface Batch {
@@ -19,7 +20,6 @@ const props = defineProps<{ module: "weight" | "heart-rate" }>();
 const emit = defineEmits<{ imported: [] }>();
 const path = computed(() => `/${props.module}/imports`);
 const metric = computed(() => props.module === "weight" ? "体重" : "心率");
-const column = computed(() => props.module === "weight" ? "weightKg" : "bpm");
 const unit = computed(() => props.module === "weight" ? "千克" : "次/分");
 const file = ref<File>();
 const input = ref<HTMLInputElement>();
@@ -30,6 +30,9 @@ const message = ref("");
 const error = ref("");
 const historyError = ref("");
 const historyLoading = ref(false);
+const templateBusy = ref(false);
+const templateError = ref("");
+const templateNote = ref("");
 
 async function loadHistory() {
   historyLoading.value = true;
@@ -92,9 +95,18 @@ async function confirm(id: number) {
   }
 }
 
-function template() {
-  const csv = `\uFEFFmeasuredAt,${column.value},sourceName,note\r\n`;
-  saveBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `${props.module}-template.csv`);
+async function template() {
+  templateBusy.value = true;
+  templateError.value = "";
+  try {
+    const data = await getImportTemplate(props.module === "weight" ? "WEIGHT" : "HEART_RATE");
+    templateNote.value = data.instructions;
+    downloadImportTemplate(data);
+  } catch (cause) {
+    templateError.value = errorMessage(cause);
+  } finally {
+    templateBusy.value = false;
+  }
 }
 
 const time = (value: string) => value.replace("T", " ");
@@ -105,9 +117,11 @@ onMounted(loadHistory);
   <section class="panel">
     <div class="section-heading">
       <h2>导入{{ metric }} CSV</h2>
-      <button type="button" class="secondary" @click="template">下载空白模板</button>
+      <button type="button" class="secondary" :disabled="templateBusy" @click="template">下载空白模板</button>
     </div>
     <p class="muted">使用 UTF-8，测量时间按档案时区填写，如 2026-01-01T08:00:00。{{ metric }}单位为{{ unit }}。</p>
+    <p v-if="templateNote" class="prose muted">{{ templateNote }}</p>
+    <p v-if="templateError" class="feedback error" role="alert">{{ templateError }}</p>
     <form class="filter-bar" @submit.prevent="file && upload(file)">
       <label>选择 CSV
         <input ref="input" type="file" accept=".csv,text/csv" :disabled="busy" required

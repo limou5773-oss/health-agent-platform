@@ -8,7 +8,9 @@ public final class ImportAdminModels {
 
   public enum Kind {
     SLEEP(List.of("startTime", "endTime", "sourceName", "note")),
-    STEPS(List.of("startTime", "endTime", "steps", "mode", "sourceName", "note"));
+    STEPS(List.of("startTime", "endTime", "steps", "mode", "sourceName", "note")),
+    WEIGHT(List.of("measuredAt", "weightKg", "sourceName", "note")),
+    HEART_RATE(List.of("measuredAt", "bpm", "sourceName", "note"));
 
     public final List<String> headers;
 

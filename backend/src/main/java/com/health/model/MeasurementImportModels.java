@@ -1,6 +1,7 @@
 package com.health.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.health.model.ImportAdminModels.Kind;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -9,12 +10,12 @@ public final class MeasurementImportModels {
   private MeasurementImportModels() {}
 
   public enum Metric {
-    WEIGHT("weightKg"), HEART_RATE("bpm");
+    WEIGHT(Kind.WEIGHT), HEART_RATE(Kind.HEART_RATE);
 
-    public final String valueColumn;
+    public final Kind importKind;
 
-    Metric(String valueColumn) {
-      this.valueColumn = valueColumn;
+    Metric(Kind importKind) {
+      this.importKind = importKind;
     }
   }
 

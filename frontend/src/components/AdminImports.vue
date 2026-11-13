@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { api, errorMessage, json } from "../api";
-import { downloadImportTemplate, getImportTemplate } from "../import-template";
+import { downloadImportTemplate, getImportTemplate, importKindText } from "../import-template";
 import type { ImportKind, ImportTemplate } from "../import-template";
 import type { Page } from "../types";
 import StateNotice from "./StateNotice.vue";
@@ -29,6 +29,8 @@ const reasonText: Record<string, string> = {
   INVALID_FIELDS: "CSV 列数不符",
   OVERLAPPING_INTERVAL: "步数区间重叠",
   INVALID_ROW: "时间、字段或记录校验失败",
+  INVALID_CSV_ROW: "测量记录字段错误或文件内数值冲突",
+  MEASUREMENT_CONFLICT: "同来源同一时刻已有不同数值",
 };
 const status = { PREVIEW: "待确认", CONFIRMED: "已确认", REJECTED: "预览失败" };
 const kind = ref<ImportKind>("SLEEP");
@@ -116,7 +118,7 @@ watch(kind, loadTemplate, { immediate: true });
     <div class="filter-bar">
       <label>数据类型
         <select v-model="kind" :disabled="saving" @change="page = 1">
-          <option value="SLEEP">睡眠</option><option value="STEPS">步数</option>
+          <option v-for="(label, value) in importKindText" :key="value" :value="value">{{ label }}</option>
         </select>
       </label>
       <label class="checkbox-label"><input v-model="issuesOnly" type="checkbox" @change="page = 1" />只看有问题的批次</label>
@@ -151,7 +153,7 @@ watch(kind, loadTemplate, { immediate: true });
         @retry="show(selected)" />
       <ul v-if="issues.length">
         <li v-for="issue in issues" :key="issue.reason">{{ reasonText[issue.reason] ?? issue.reason }}
-          <span v-if="selected.id > 0"> · {{ issue.issueRows }} 行</span>
+          <span v-if="selected.id > 0"> · {{ issue.issueRows }} {{ issue.reason === "MEASUREMENT_CONFLICT" ? "次" : "行" }}</span>
         </li>
       </ul>
     </div>

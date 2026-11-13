@@ -13,7 +13,7 @@
   <select id="toolFailures" resultType="com.health.model.RuntimeStats$ToolFailure">
     SELECT CASE WHEN name='睡眠统计来源选择' THEN 'get_sleep_statistics' ELSE name END AS tool, COUNT(*) AS count
     FROM agent_steps WHERE status='FAILED' AND <include refid="createdWindow"/>
-      AND name IN ('睡眠统计来源选择','get_sleep_statistics','get_profile','get_plans','search_knowledge','get_authorized_diary')
+      AND name IN ('睡眠统计来源选择','get_sleep_statistics','get_combined_statistics','get_profile','get_plans','search_knowledge','get_authorized_diary')
     GROUP BY tool ORDER BY count DESC,tool
   </select>
   <sql id="volumeColumns">
@@ -30,6 +30,18 @@
       (SELECT COUNT(*) FROM rejected_imports WHERE kind='STEPS' AND <include refid="createdWindow"/>),
       b.input_rows,b.inserted_rows
     FROM (SELECT <include refid="volumeColumns"/> FROM step_import_batches WHERE <include refid="createdWindow"/>) b
+    UNION ALL
+    SELECT 'WEIGHT',b.batches,b.confirmed,
+      (SELECT COUNT(*) FROM rejected_imports WHERE kind='WEIGHT' AND <include refid="createdWindow"/>),
+      b.input_rows,b.inserted_rows
+    FROM (SELECT <include refid="volumeColumns"/> FROM measurement_import_batches
+      WHERE metric='WEIGHT' AND <include refid="createdWindow"/>) b
+    UNION ALL
+    SELECT 'HEART_RATE',b.batches,b.confirmed,
+      (SELECT COUNT(*) FROM rejected_imports WHERE kind='HEART_RATE' AND <include refid="createdWindow"/>),
+      b.input_rows,b.inserted_rows
+    FROM (SELECT <include refid="volumeColumns"/> FROM measurement_import_batches
+      WHERE metric='HEART_RATE' AND <include refid="createdWindow"/>) b
   </select>
   <select id="completion" resultType="com.health.model.RuntimeStats$Completion">
     SELECT COUNT(*) AS scheduled,COUNT(c.id) AS completed
