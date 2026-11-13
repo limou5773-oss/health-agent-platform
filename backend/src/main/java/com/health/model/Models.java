@@ -161,6 +161,9 @@ public final class Models {
     @JsonIgnore public String sourceName;
     public String reportType = "SLEEP";
     public int reportVersion = 1;
+    public String metric;
+    public LocalDate comparisonStartDate;
+    public LocalDate comparisonEndDate;
     public String title;
     public LocalDate startDate;
     public LocalDate endDate;

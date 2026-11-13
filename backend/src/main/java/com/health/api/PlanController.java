@@ -106,6 +106,12 @@ public class PlanController {
     return healthReports.generate(Identity.user(r).id, q);
   }
 
+  @PostMapping("/reports/focused")
+  @ResponseStatus(HttpStatus.CREATED)
+  public Report generateFocusedReport(HttpServletRequest r, @Valid @RequestBody HealthReportRequests.Focused q) {
+    return healthReports.focused(Identity.user(r).id, q);
+  }
+
   @GetMapping("/reports/{id}")
   public Report report(HttpServletRequest r, @PathVariable Long id) {
     return service.report(Identity.user(r).id, id);

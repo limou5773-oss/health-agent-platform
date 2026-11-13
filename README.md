@@ -100,6 +100,8 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「健康报告」生成已结束周期的综合周报或月报，查看六项指标、数据来源、覆盖和计划完成情况。同周期重生成保留版本。已有库执行 `database/migrations/009_comprehensive_health_reports.sql`。详见[综合健康报告说明](docs/comprehensive-health-reports.md)。
 
+报告中心也支持六项指标的专项报告和双周期对比。已有库执行 `database/migrations/021_focused_health_reports.sql`。详见[专项报告与阶段对比](docs/focused-health-reports.md)。
+
 ## 用户偏好记忆
 
 在「个人档案」逐项管理长期目标、运动偏好、作息和提醒时段。授权后的计划任务读取最新保存内容。已有库执行 `database/migrations/010_user_preferences.sql`。详见[偏好记忆说明](docs/preference-memory.md)。

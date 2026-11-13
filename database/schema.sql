@@ -176,8 +176,9 @@ CREATE TABLE reports (
  title VARCHAR(200) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, source_name VARCHAR(100),
  include_diary BOOLEAN NOT NULL DEFAULT FALSE,
  content MEDIUMTEXT, statistics_json JSON, references_json JSON, source_deleted BOOLEAN NOT NULL DEFAULT FALSE,
- report_type ENUM('SLEEP','HEALTH_WEEK','HEALTH_MONTH') NOT NULL DEFAULT 'SLEEP',
+ report_type ENUM('SLEEP','HEALTH_WEEK','HEALTH_MONTH','HEALTH_FOCUSED','HEALTH_COMPARISON') NOT NULL DEFAULT 'SLEEP',
  report_version INT NOT NULL DEFAULT 1,
+ metric VARCHAR(16), comparison_start_date DATE, comparison_end_date DATE,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_report_user(user_id),
  KEY ix_report_period(user_id,report_type,start_date,end_date,report_version)

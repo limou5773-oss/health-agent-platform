@@ -90,6 +90,8 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 `POST /api/reports/health` 保存周报或月报，通过原报告列表和详情接口查询。请求、快照、版本及失效规则见[综合健康报告接口](comprehensive-health-reports.md)。
 
+`POST /api/reports/focused` 保存专项报告或阶段对比。详见[专项报告接口](focused-health-reports.md)。
+
 ## 用户偏好记忆
 
 `GET /api/profile/preferences` 查询当前用户的记忆，`PUT /api/profile/preferences/{kind}` 保存指定类别，`DELETE /api/profile/preferences/{kind}` 删除指定类别。Agent 通过已鉴权的运行上下文读取计划任务当前偏好。详见[偏好记忆接口](preference-memory.md)。

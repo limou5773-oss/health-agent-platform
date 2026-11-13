@@ -53,6 +53,11 @@ public class BaselineServiceImpl implements BaselineService {
     return new Comparison(query.metric(), source, recent, historical, difference);
   }
 
+  @Override
+  public Period summarize(Long userId, Metric metric, String source, LocalDate start, LocalDate end) {
+    return period(userId, metric, source, start, end, 0);
+  }
+
   private Period period(
       Long userId, Metric metric, String source, LocalDate start, LocalDate end, int presetRequiredDays) {
     // Each statistics service returns one ordered entry per calendar date, with null for missing values.

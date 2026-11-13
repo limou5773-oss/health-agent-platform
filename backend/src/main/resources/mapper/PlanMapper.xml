@@ -56,16 +56,24 @@
  <insert id="insertCheckin">INSERT INTO checkins(item_id,date) VALUES(#{id},#{date})</insert>
  <delete id="deleteCheckin">DELETE FROM checkins WHERE item_id=#{itemId}</delete>
  <select id="reports" resultType="com.health.model.Models$Report">
-  SELECT id,task_id,title,start_date,end_date,created_at,source_deleted,include_diary,report_type,report_version
+  SELECT id,task_id,title,start_date,end_date,created_at,source_deleted,include_diary,report_type,report_version,
+    metric,comparison_start_date,comparison_end_date
   FROM reports WHERE user_id=#{userId} ORDER BY created_at DESC,id DESC
  </select>
  <select id="report" resultType="com.health.model.Models$Report">SELECT * FROM reports WHERE user_id=#{userId} AND id=#{id}</select>
  <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">
   INSERT INTO reports(user_id,task_id,title,start_date,end_date,source_name,include_diary,content,statistics_json,
-    references_json,report_type,report_version)
+    references_json,report_type,report_version,metric,comparison_start_date,comparison_end_date)
   VALUES(#{userId},#{taskId},#{title},#{startDate},#{endDate},#{sourceName},#{includeDiary},#{content},#{statisticsJson},
-    #{referencesJson},#{reportType},#{reportVersion})
+    #{referencesJson},#{reportType},#{reportVersion},#{metric},#{comparisonStartDate},#{comparisonEndDate})
  </insert>
+ <select id="nextFocusedVersion" resultType="int">
+  SELECT COALESCE(MAX(report_version),0)+1 FROM reports
+  WHERE user_id=#{userId} AND report_type=#{reportType} AND metric=#{metric}
+    AND start_date=#{startDate} AND end_date=#{endDate}
+    AND comparison_start_date &lt;=> #{comparisonStartDate}
+    AND comparison_end_date &lt;=> #{comparisonEndDate}
+ </select>
  <select id="nextReportVersion" resultType="int">
   SELECT COALESCE(MAX(report_version),0)+1 FROM reports
   WHERE user_id=#{userId} AND report_type=#{type} AND start_date=#{start} AND end_date=#{end}
@@ -105,7 +113,8 @@
  <update id="invalidateHealthReports">
   UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',
     content=NULL,statistics_json=NULL,references_json=NULL
-  WHERE user_id=#{userId} AND report_type IN ('HEALTH_WEEK','HEALTH_MONTH')
-    AND source_deleted=FALSE AND start_date &lt;= #{end} AND end_date &gt;= #{start}
+  WHERE user_id=#{userId} AND report_type &lt;> 'SLEEP' AND source_deleted=FALSE
+    AND ((start_date &lt;= #{end} AND end_date &gt;= #{start})
+      OR (comparison_start_date &lt;= #{end} AND comparison_end_date &gt;= #{start}))
  </update>
 </mapper>

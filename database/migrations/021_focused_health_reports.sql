@@ -1,0 +1,7 @@
+USE health_agent;
+
+ALTER TABLE reports
+ MODIFY COLUMN report_type ENUM('SLEEP','HEALTH_WEEK','HEALTH_MONTH','HEALTH_FOCUSED','HEALTH_COMPARISON') NOT NULL DEFAULT 'SLEEP',
+ ADD COLUMN metric VARCHAR(16),
+ ADD COLUMN comparison_start_date DATE,
+ ADD COLUMN comparison_end_date DATE;

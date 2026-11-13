@@ -3,12 +3,15 @@ package com.health.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.ApiException;
 import com.health.api.HealthReportRequests.Generate;
+import com.health.api.HealthReportRequests.Focused;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
+import com.health.model.BaselineModels;
 import com.health.model.HealthReportModels.*;
 import com.health.model.Models.Report;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
+import com.health.service.BaselineService;
 import com.health.service.HealthReportService;
 import com.health.service.NutritionService;
 import com.health.service.NotificationService;
@@ -39,10 +42,11 @@ public class HealthReportServiceImpl implements HealthReportService {
   private final TaskMapper tasks;
   private final ObjectMapper json;
   private final NotificationService notifications;
+  private final BaselineService baseline;
 
   public HealthReportServiceImpl(AccountService accounts, SleepService sleep, ActivityService activity,
       NutritionService nutrition, WeightService weight, PlanService plans, PlanMapper mapper,
-      TaskMapper tasks, ObjectMapper json, NotificationService notifications) {
+      TaskMapper tasks, ObjectMapper json, NotificationService notifications, BaselineService baseline) {
     this.accounts = accounts;
     this.sleep = sleep;
     this.activity = activity;
@@ -53,6 +57,7 @@ public class HealthReportServiceImpl implements HealthReportService {
     this.tasks = tasks;
     this.json = json;
     this.notifications = notifications;
+    this.baseline = baseline;
   }
 
   @Override
@@ -91,10 +96,7 @@ public class HealthReportServiceImpl implements HealthReportService {
         metric("WEIGHT", "取每日最后一次测量，再计算有效日均值", weights.validDays(), weights.averageKg(), sources));
     if (completion.scheduled() == 0 && metrics.stream().noneMatch(m -> m.validDays() > 0))
       throw new ApiException(422, "REPORT_NO_DATA", "所选周期没有健康记录或应完成的计划任务");
-    BigDecimal rate = completion.scheduled() == 0 ? null
-        : BigDecimal.valueOf(completion.completed() * 100)
-            .divide(BigDecimal.valueOf(completion.scheduled()), 2, RoundingMode.HALF_UP);
-    Snapshot snapshot = new Snapshot(ChronoUnit.DAYS.between(start, end) + 1, metrics, completion, rate);
+    Snapshot snapshot = new Snapshot(ChronoUnit.DAYS.between(start, end) + 1, metrics, completion, rate(completion));
 
     Report report = new Report();
     report.userId = userId;
@@ -104,9 +106,74 @@ public class HealthReportServiceImpl implements HealthReportService {
     report.title = weekly ? "综合健康周报" : "综合健康月报";
     report.reportVersion = mapper.nextReportVersion(userId, report.reportType, start, end);
     report.statisticsJson = json.valueToTree(snapshot).toString();
+    return save(report);
+  }
+
+  @Override
+  @Transactional
+  public Report focused(Long userId, Focused request) {
+    tasks.lockUser(userId);
+    LocalDate today = LocalDate.now(ZoneId.of(accounts.profile(userId).timezone));
+    if (!request.endDate().isBefore(today))
+      throw new ApiException(400, "INVALID_INPUT", "请选择已结束的报告周期");
+    String source = request.sourceName() == null || request.sourceName().isBlank() ? null : request.sourceName();
+    var metric = request.metric();
+    // Reuse the same source predicates as the comprehensive report and the metric statistics.
+    Generate filter = new Generate(null, null,
+        metric == BaselineModels.Metric.SLEEP ? source : null,
+        metric == BaselineModels.Metric.STEPS ? source : null,
+        metric == BaselineModels.Metric.WORKOUT ? source : null,
+        metric == BaselineModels.Metric.MEAL ? source : null,
+        metric == BaselineModels.Metric.WATER ? source : null,
+        metric == BaselineModels.Metric.WEIGHT ? source : null);
+    var current = focusedPeriod(userId, metric, source, request.startDate(), request.endDate(), filter);
+    var comparison = request.comparisonStartDate() == null ? null
+        : focusedPeriod(userId, metric, source, request.comparisonStartDate(), request.comparisonEndDate(), filter);
+    if (current.statistics().validDays() == 0 && (comparison == null || comparison.statistics().validDays() == 0))
+      throw new ApiException(422, "REPORT_NO_DATA", "所选周期没有该指标的有效记录");
+    BigDecimal difference = comparison != null && current.statistics().sufficient() && comparison.statistics().sufficient()
+        ? current.statistics().average().subtract(comparison.statistics().average()) : null;
+    String label = switch (metric) {
+      case SLEEP -> "睡眠时长";
+      case STEPS -> "步数";
+      case WORKOUT -> "运动时长";
+      case MEAL -> "饮食热量";
+      case WATER -> "饮水量";
+      case WEIGHT -> "体重";
+    };
+    Report report = new Report();
+    report.userId = userId;
+    report.startDate = request.startDate();
+    report.endDate = request.endDate();
+    report.comparisonStartDate = request.comparisonStartDate();
+    report.comparisonEndDate = request.comparisonEndDate();
+    report.metric = metric.name();
+    report.sourceName = source;
+    report.reportType = comparison == null ? "HEALTH_FOCUSED" : "HEALTH_COMPARISON";
+    report.title = label + (comparison == null ? "专项报告" : "阶段对比");
+    report.reportVersion = mapper.nextFocusedVersion(report);
+    report.statisticsJson = json.valueToTree(new FocusedSnapshot(metric, source, current, comparison, difference)).toString();
+    return save(report);
+  }
+
+  private FocusedPeriod focusedPeriod(Long userId, BaselineModels.Metric metric,
+      String source, LocalDate start, LocalDate end, Generate filter) {
+    var statistics = baseline.summarize(userId, metric, source, start, end);
+    var sources = mapper.reportSources(userId, start, end, filter).stream()
+        .filter(row -> row.metric().equals(metric.name())).map(Source::sourceName).toList();
+    var completion = mapper.reportCompletion(userId, start, end);
+    return new FocusedPeriod(statistics, sources, completion, rate(completion));
+  }
+
+  private Report save(Report report) {
     mapper.insertReport(report);
-    notifications.reportReady(userId, report.id);
-    return plans.report(userId, report.id);
+    notifications.reportReady(report.userId, report.id);
+    return plans.report(report.userId, report.id);
+  }
+
+  private static BigDecimal rate(Completion completion) {
+    return completion.scheduled() == 0 ? null : BigDecimal.valueOf(completion.completed() * 100)
+        .divide(BigDecimal.valueOf(completion.scheduled()), 2, RoundingMode.HALF_UP);
   }
 
   private static Metric metric(

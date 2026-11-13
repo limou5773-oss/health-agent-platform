@@ -8,6 +8,7 @@ import StateNotice from "../components/StateNotice.vue";
 import SleepSummary from "../components/SleepSummary.vue";
 import HealthReportForm from "../components/HealthReportForm.vue";
 import HealthReportSummary from "../components/HealthReportSummary.vue";
+import FocusedReportSummary from "../components/FocusedReportSummary.vue";
 const route = useRoute();
 const reports = ref<Report[]>([]),
   report = ref<Report | null>(null),
@@ -56,7 +57,7 @@ onMounted(load);
     :error="error"
     :empty="!reports.length"
     title="还没有健康报告"
-    description="可以在上方生成综合报告，或在健康助手中生成睡眠周报。"
+    description="可以在上方生成报告，或在健康助手中生成睡眠周报。"
     @retry="load"
     ><RouterLink class="button" to="/agent"
       >生成睡眠周报</RouterLink
@@ -79,7 +80,9 @@ onMounted(load);
             ><strong>{{ entry.title }}</strong
             ><span class="small muted"
               >{{ entry.startDate }} — {{ entry.endDate }}</span
-            ><span v-if="entry.reportType !== 'SLEEP'" class="tag">第 {{ entry.reportVersion }} 版</span>
+            ><span v-if="entry.comparisonStartDate" class="small muted">
+              对照 {{ entry.comparisonStartDate }} 至 {{ entry.comparisonEndDate }}
+            </span><span v-if="entry.reportType !== 'SLEEP'" class="tag">第 {{ entry.reportVersion }} 版</span>
             <span v-else class="tag" :class="{ warm: !entry.includeDiary }">{{
               entry.includeDiary ? "已启用授权日记" : "仅睡眠数据"
             }}</span
@@ -133,7 +136,11 @@ onMounted(load);
             :statistics="report.statistics"
           />
           <HealthReportSummary
-            v-if="report.reportType !== 'SLEEP' && report.statistics"
+            v-if="(report.reportType === 'HEALTH_WEEK' || report.reportType === 'HEALTH_MONTH') && report.statistics"
+            :snapshot="report.statistics"
+          />
+          <FocusedReportSummary
+            v-if="(report.reportType === 'HEALTH_FOCUSED' || report.reportType === 'HEALTH_COMPARISON') && report.statistics"
             :snapshot="report.statistics"
           />
           <section v-if="report.references?.length" class="references">

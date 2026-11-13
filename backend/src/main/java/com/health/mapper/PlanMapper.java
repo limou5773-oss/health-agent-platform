@@ -60,6 +60,7 @@ public interface PlanMapper {
   Report report(@Param("userId") Long userId, @Param("id") Long id);
 
   void insertReport(Report report);
+  int nextFocusedVersion(Report report);
 
   int nextReportVersion(@Param("userId") Long userId, @Param("type") String type,
       @Param("start") LocalDate start, @Param("end") LocalDate end);

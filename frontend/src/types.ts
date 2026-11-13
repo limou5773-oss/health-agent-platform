@@ -175,6 +175,8 @@ interface ReportMetadata {
   id: number;
   taskId: string | null;
   reportVersion: number;
+  comparisonStartDate?: string | null;
+  comparisonEndDate?: string | null;
   title: string;
   startDate: string;
   endDate: string;
@@ -189,9 +191,26 @@ interface ReportMetadata {
     sourceUrl: string;
   }[];
 }
+export interface FocusedSnapshot {
+  metric: import("./report-metrics").ReportMetric;
+  sourceName: string | null;
+  current: FocusedPeriod;
+  comparison: FocusedPeriod | null;
+  difference: number | null;
+}
+interface FocusedPeriod {
+  statistics: {
+    startDate: string; endDate: string; validDays: number; periodDays: number;
+    average: number | null; missingDates: string[];
+  };
+  sources: string[];
+  completion: { scheduled: number; completed: number };
+  completionRate: number | null;
+}
 export type Report = ReportMetadata & (
   | { reportType: "SLEEP"; statistics?: SleepStatistics | null }
   | { reportType: "HEALTH_WEEK" | "HEALTH_MONTH"; statistics?: HealthSnapshot | null }
+  | { reportType: "HEALTH_FOCUSED" | "HEALTH_COMPARISON"; statistics?: FocusedSnapshot | null }
 );
 export interface AdminUser extends User {
   enabled: boolean;

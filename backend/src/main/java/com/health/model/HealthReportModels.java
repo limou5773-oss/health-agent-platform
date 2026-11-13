@@ -16,4 +16,10 @@ public final class HealthReportModels {
   public record Completion(long scheduled, long completed) {}
   public record Snapshot(long periodDays, List<Metric> metrics, Completion completion,
                          BigDecimal completionRate) {}
+
+  public record FocusedPeriod(BaselineModels.Period statistics, List<String> sources,
+      Completion completion, BigDecimal completionRate) {}
+
+  public record FocusedSnapshot(BaselineModels.Metric metric, String sourceName, FocusedPeriod current,
+      FocusedPeriod comparison, BigDecimal difference) {}
 }
