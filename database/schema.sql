@@ -72,9 +72,17 @@ CREATE TABLE plans (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL, task_id CHAR(36) UNIQUE,
  title VARCHAR(200) NOT NULL, reason TEXT NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
  status ENUM('ACTIVE','PAUSED','ENDED') NOT NULL DEFAULT 'ACTIVE',
+ version INT NOT NULL DEFAULT 1,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_plan_user(user_id),
  CHECK(end_date >= start_date)
+);
+CREATE TABLE plan_revisions (
+ plan_id BIGINT NOT NULL, version INT NOT NULL,
+ status ENUM('DRAFT','CONFIRMED','DISCARDED') NOT NULL,
+ note VARCHAR(1000) NOT NULL, content_json JSON,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ PRIMARY KEY(plan_id,version)
 );
 CREATE TABLE plan_status_changes (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id BIGINT NOT NULL,
@@ -87,6 +95,7 @@ CREATE TABLE plan_status_changes (
 CREATE TABLE plan_items (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id BIGINT NOT NULL, date DATE NOT NULL,
  time TIME NOT NULL, title VARCHAR(200) NOT NULL, description VARCHAR(2000) NOT NULL,
+ reminder_time TIME, retired BOOLEAN NOT NULL DEFAULT FALSE,
  KEY ix_item_plan(plan_id)
 );
 CREATE TABLE checkins (

@@ -131,6 +131,7 @@ public final class Models {
     public LocalDate startDate;
     public LocalDate endDate;
     public String status;
+    public int version;
     public LocalDateTime createdAt;
     public List<PlanItem> items;
   }
@@ -140,6 +141,7 @@ public final class Models {
     @JsonIgnore public Long planId;
     public LocalDate date;
     public LocalTime time;
+    public LocalTime reminderTime;
     public String title;
     public String description;
     public boolean completed;

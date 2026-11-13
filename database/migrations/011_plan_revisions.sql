@@ -1,0 +1,14 @@
+USE health_agent;
+
+ALTER TABLE plans ADD COLUMN version INT NOT NULL DEFAULT 1;
+ALTER TABLE plan_items
+ ADD COLUMN reminder_time TIME,
+ ADD COLUMN retired BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE plan_revisions (
+ plan_id BIGINT NOT NULL, version INT NOT NULL,
+ status ENUM('DRAFT','CONFIRMED','DISCARDED') NOT NULL,
+ note VARCHAR(1000) NOT NULL, content_json JSON,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ PRIMARY KEY(plan_id,version)
+);

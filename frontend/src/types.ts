@@ -137,6 +137,7 @@ export interface TaskDetail {
 }
 export interface Plan {
   id: number;
+  version: number;
   title: string;
   reason: string;
   startDate: string;
@@ -145,6 +146,7 @@ export interface Plan {
   createdAt: string;
   items?: (DraftItem & {
     id: number;
+    reminderTime: string | null;
     completed: boolean;
     checkedAt: string | null;
   })[];

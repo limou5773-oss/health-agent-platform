@@ -88,7 +88,7 @@
     SELECT i.id,i.plan_id,i.title,p.title AS plan_title,i.date,c.id IS NOT NULL AS completed
     FROM plan_items i JOIN plans p ON p.id=i.plan_id
     LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
-    WHERE p.user_id=#{userId} AND p.status='ACTIVE' AND i.date=#{date}
+    WHERE p.user_id=#{userId} AND p.status='ACTIVE' AND i.retired=FALSE AND i.date=#{date}
     ORDER BY i.time,i.id
   </select>
 </mapper>

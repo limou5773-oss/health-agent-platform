@@ -55,6 +55,7 @@ public class PlanServiceImpl implements PlanService {
     PlanItem item = mapper.itemOwner(uid, id);
     if (item == null) throw ApiException.missing();
     Plan p = mapper.lock(uid, item.planId);
+    if (mapper.currentItem(id) == null) throw ApiException.conflict("该任务已被计划修订替换");
     if (!date.equals(item.date)) throw new ApiException(400, "DATE_MISMATCH", "打卡日期须与计划项目日期一致");
     if (!"ACTIVE".equals(p.status)) throw ApiException.conflict("仅进行中的计划可打卡");
     Map<String, Object> existing = mapper.checkin(id);

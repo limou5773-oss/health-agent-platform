@@ -5,6 +5,7 @@ import { CalendarCheck, Check, RotateCcw } from "@lucide/vue";
 import { api, errorMessage, json, statusText } from "../api";
 import type { Plan } from "../types";
 import StateNotice from "../components/StateNotice.vue";
+import PlanRevisions from "../components/PlanRevisions.vue";
 const route = useRoute();
 const plans = ref<Plan[]>([]),
   plan = ref<Plan | null>(null),
@@ -58,12 +59,15 @@ async function status(value: Plan["status"]) {
       `/plans/${plan.value.id}/status`,
       json("PATCH", { status: value }),
     );
-    await Promise.all([load(), loadDetail()]);
+    await refreshPlan();
   } catch (cause) {
     actionError.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
+}
+async function refreshPlan() {
+  await Promise.all([load(), loadDetail()]);
 }
 async function checkin(item: NonNullable<Plan["items"]>[number]) {
   busy.value = true;
@@ -169,6 +173,7 @@ onMounted(load);
         <p v-if="plan.status !== 'ACTIVE'" class="feedback">
           此计划{{ statusText[plan.status] }}；恢复进行后可继续打卡。
         </p>
+        <PlanRevisions :key="plan.id" :plan="plan" @refresh="refreshPlan" />
         <ul class="checkin-list">
           <li
             v-for="item in plan.items"
@@ -182,6 +187,7 @@ onMounted(load);
             <div class="checkin-body">
               <h3>{{ item.title }}</h3>
               <p class="prose">{{ item.description }}</p>
+              <p v-if="item.reminderTime" class="small muted">提醒时间 {{ item.reminderTime.slice(0, 5) }}</p>
               <p v-if="item.completed && item.checkedAt" class="small muted">
                 打卡时间 {{ item.checkedAt.replace("T", " ") }}
               </p>

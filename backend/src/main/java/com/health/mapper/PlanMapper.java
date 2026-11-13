@@ -4,6 +4,7 @@ import com.health.model.Models.*;
 import com.health.api.HealthReportRequests.Generate;
 import com.health.model.HealthReportModels.Completion;
 import com.health.model.HealthReportModels.Source;
+import com.health.model.PlanRevisionModels.Revision;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,17 @@ public interface PlanMapper {
       @Param("status") String status);
 
   PlanItem itemOwner(@Param("userId") Long userId, @Param("id") Long id);
+  PlanItem currentItem(Long id);
+  int latestRevision(Long planId);
+  List<Revision> revisions(Long planId);
+  Revision revision(@Param("planId") Long planId, @Param("version") int version);
+  void insertRevision(Revision revision);
+  void discardDraft(Long planId);
+  int discardRevision(@Param("planId") Long planId, @Param("version") int version);
+  void confirmRevision(@Param("planId") Long planId, @Param("version") int version,
+      @Param("contentJson") String contentJson);
+  void retireItem(Long id);
+  void applyRevision(Plan plan);
 
   Map<String, Object> checkin(Long itemId);
 

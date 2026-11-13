@@ -5,12 +5,44 @@
  <select id="agentPlans" resultType="com.health.model.Models$AgentPlan">SELECT id,start_date,end_date,status FROM plans WHERE user_id=#{userId} ORDER BY created_at DESC</select>
  <select id="get" resultType="com.health.model.Models$Plan">SELECT * FROM plans WHERE user_id=#{userId} AND id=#{id}</select>
  <select id="lock" resultType="com.health.model.Models$Plan">SELECT * FROM plans WHERE user_id=#{userId} AND id=#{id} FOR UPDATE</select>
- <select id="items" resultType="com.health.model.Models$PlanItem">SELECT p.*,c.id IS NOT NULL AS completed,c.checked_at FROM plan_items p LEFT JOIN checkins c ON c.item_id=p.id AND c.date=p.date WHERE p.plan_id=#{planId} ORDER BY p.date,p.time,p.id</select>
+ <select id="items" resultType="com.health.model.Models$PlanItem">SELECT p.*,c.id IS NOT NULL AS completed,c.checked_at FROM plan_items p LEFT JOIN checkins c ON c.item_id=p.id AND c.date=p.date WHERE p.plan_id=#{planId} AND p.retired=FALSE ORDER BY p.date,p.time,p.id</select>
  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO plans(user_id,task_id,title,reason,start_date,end_date) VALUES(#{userId},#{taskId},#{title},#{reason},#{startDate},#{endDate})</insert>
- <insert id="insertItem" useGeneratedKeys="true" keyProperty="id">INSERT INTO plan_items(plan_id,date,time,title,description) VALUES(#{planId},#{date},#{time},#{title},#{description})</insert>
+ <insert id="insertItem" useGeneratedKeys="true" keyProperty="id">INSERT INTO plan_items(plan_id,date,time,title,description,reminder_time) VALUES(#{planId},#{date},#{time},#{title},#{description},#{reminderTime})</insert>
  <update id="status">UPDATE plans SET status=#{status} WHERE id=#{id}</update>
  <insert id="insertStatusChange">INSERT INTO plan_status_changes(plan_id,previous_status,status) VALUES(#{planId},#{previousStatus},#{status})</insert>
  <select id="itemOwner" resultType="com.health.model.Models$PlanItem">SELECT i.plan_id,i.date FROM plan_items i JOIN plans p ON p.id=i.plan_id WHERE p.user_id=#{userId} AND i.id=#{id}</select>
+ <select id="currentItem" resultType="com.health.model.Models$PlanItem">
+  SELECT id,plan_id,date FROM plan_items WHERE id=#{id} AND retired=FALSE FOR UPDATE
+ </select>
+ <select id="latestRevision" resultType="int">
+  SELECT COALESCE(MAX(version),0) FROM plan_revisions WHERE plan_id=#{planId}
+ </select>
+ <select id="revisions" resultType="com.health.model.PlanRevisionModels$Revision">
+  SELECT * FROM plan_revisions WHERE plan_id=#{planId} AND status IN ('DRAFT','CONFIRMED') ORDER BY version DESC
+ </select>
+ <select id="revision" resultType="com.health.model.PlanRevisionModels$Revision">
+  SELECT * FROM plan_revisions WHERE plan_id=#{planId} AND version=#{version}
+ </select>
+ <insert id="insertRevision">
+  INSERT INTO plan_revisions(plan_id,version,status,note,content_json,created_at)
+  VALUES(#{planId},#{version},#{status},#{note},#{contentJson},COALESCE(#{createdAt},CURRENT_TIMESTAMP(6)))
+ </insert>
+ <update id="discardDraft">
+  UPDATE plan_revisions SET status='DISCARDED',note='',content_json=NULL WHERE plan_id=#{planId} AND status='DRAFT'
+ </update>
+ <update id="discardRevision">
+  UPDATE plan_revisions SET status='DISCARDED',note='',content_json=NULL
+  WHERE plan_id=#{planId} AND version=#{version} AND status='DRAFT'
+ </update>
+ <update id="confirmRevision">
+  UPDATE plan_revisions SET status='CONFIRMED',content_json=#{contentJson}
+  WHERE plan_id=#{planId} AND version=#{version}
+ </update>
+ <update id="retireItem">UPDATE plan_items SET retired=TRUE WHERE id=#{id}</update>
+ <update id="applyRevision">
+  UPDATE plans SET title=#{title},reason=#{reason},start_date=#{startDate},end_date=#{endDate},version=#{version}
+  WHERE id=#{id}
+ </update>
  <select id="checkin" resultType="map">SELECT id,TRUE AS completed,checked_at AS checkedAt FROM checkins WHERE item_id=#{itemId} FOR UPDATE</select>
  <insert id="insertCheckin">INSERT INTO checkins(item_id,date) VALUES(#{id},#{date})</insert>
  <delete id="deleteCheckin">DELETE FROM checkins WHERE item_id=#{itemId}</delete>
@@ -33,7 +65,7 @@
   SELECT COUNT(*) AS scheduled,COUNT(c.id) AS completed
   FROM plans p JOIN plan_items i ON i.plan_id=p.id
   LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
-  WHERE p.user_id=#{userId} AND i.date BETWEEN #{start} AND #{end}
+  WHERE p.user_id=#{userId} AND i.retired=FALSE AND i.date BETWEEN #{start} AND #{end}
  </select>
  <select id="reportSources" resultType="com.health.model.HealthReportModels$Source">
   SELECT DISTINCT 'SLEEP' AS metric, source_name COLLATE utf8mb4_0900_bin AS source_name

@@ -104,6 +104,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「个人档案」逐项管理长期目标、运动偏好、作息和提醒时段。授权后的计划任务读取最新保存内容。已有库执行 `database/migrations/010_user_preferences.sql`。详见[偏好记忆说明](docs/preference-memory.md)。
 
+## 计划修订
+
+在「我的计划」编辑修订草稿，对照当前版本后单独确认。历史版本可查看，已打卡任务保留。已有库执行 `database/migrations/011_plan_revisions.sql`。详见[计划修订说明](docs/plan-revisions.md)。
+
 ## 开发约定
 
 同一输入在入口校验一次；内部不重复判空或滥用 `try/catch`。归属、权限、状态、版本、事务与数据库唯一约束保留。功能测试与验收由用户负责，不附带自动化回归框架；开发侧只执行必要的构建检查。

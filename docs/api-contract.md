@@ -118,6 +118,8 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 - PATCH /plans/{id}/status {status:"ACTIVE"|"PAUSED"|"ENDED"} → Plan。
 - POST /plan-items/{id}/checkins {date} → {id,completed:true,checkedAt}。任务date必须匹配，所属计划ACTIVE，同任务日期唯一，重复返回已有打卡。
 - DELETE /plan-items/{id}/checkins → 204，当前用户撤销该项打卡。
+
+计划详情提供独立的版本草稿、比较、确认和放弃接口。请求、版本并发及打卡保留规则见[计划修订接口](plan-revisions.md)。
 - GET /reports → [{id,title,startDate,endDate,createdAt,sourceDeleted,includeDiary}]。
 - GET /reports/{id} → 同上 + {content,statistics,references}，失效源不再返回旧健康明细。
 

@@ -4,6 +4,9 @@ import com.health.model.Models.*;
 import com.health.security.Identity;
 import com.health.service.HealthReportService;
 import com.health.service.PlanService;
+import com.health.service.PlanRevisionService;
+import com.health.model.PlanRevisionModels.Revision;
+import com.health.model.PlanRevisionModels.Revisions;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.*;
@@ -15,10 +18,12 @@ import org.springframework.web.bind.annotation.*;
 public class PlanController {
   private final PlanService service;
   private final HealthReportService healthReports;
+  private final PlanRevisionService revisions;
 
-  public PlanController(PlanService service, HealthReportService healthReports) {
+  public PlanController(PlanService service, HealthReportService healthReports, PlanRevisionService revisions) {
     this.service = service;
     this.healthReports = healthReports;
+    this.revisions = revisions;
   }
 
   @GetMapping("/plans")
@@ -35,6 +40,29 @@ public class PlanController {
   public Plan status(
       HttpServletRequest r, @PathVariable Long id, @Valid @RequestBody Requests.PlanStatus q) {
     return service.status(Identity.user(r).id, id, q.status());
+  }
+
+  @GetMapping("/plans/{id}/revisions")
+  public Revisions revisions(HttpServletRequest r, @PathVariable Long id) {
+    return revisions.revisions(Identity.user(r).id, id);
+  }
+
+  @PostMapping("/plans/{id}/revisions")
+  @ResponseStatus(HttpStatus.CREATED)
+  public Revision saveRevision(HttpServletRequest r, @PathVariable Long id,
+      @Valid @RequestBody PlanRevisionRequests.Save q) {
+    return revisions.save(Identity.user(r).id, id, q);
+  }
+
+  @PostMapping("/plans/{id}/revisions/{version}/confirm")
+  public Plan confirmRevision(HttpServletRequest r, @PathVariable Long id, @PathVariable int version) {
+    return revisions.confirm(Identity.user(r).id, id, version);
+  }
+
+  @DeleteMapping("/plans/{id}/revisions/{version}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void discardRevision(HttpServletRequest r, @PathVariable Long id, @PathVariable int version) {
+    revisions.discard(Identity.user(r).id, id, version);
   }
 
   @PostMapping("/plan-items/{id}/checkins")

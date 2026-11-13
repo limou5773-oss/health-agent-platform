@@ -291,6 +291,7 @@ public class ActivityServiceImpl implements ActivityService {
     var item = plans.itemOwner(uid, record.planItemId);
     if (item == null) throw ApiException.missing();
     var plan = plans.lock(uid, item.planId);
+    if (plans.currentItem(record.planItemId) == null) throw ApiException.conflict("该任务已被计划修订替换");
     if (!"ACTIVE".equals(plan.status)) throw ApiException.conflict("只能关联进行中计划的任务");
     if (!record.activityDate.equals(item.date))
       throw new ApiException(400, "DATE_MISMATCH", "关联任务日期须与运动开始日期一致");
