@@ -104,10 +104,7 @@ public class InternalController {
 
   @GetMapping("/tools/checkin-summary")
   public CheckinSummary checkinSummary(HttpServletRequest r) {
-    Task t = (Task) r.getAttribute(TASK);
-    var completion = plans.completion(t.userId, t.startDate, t.endDate);
-    return new CheckinSummary(t.startDate, t.endDate, completion.scheduled(),
-        completion.completed(), completion.rate());
+    return tasks.checkinSummary((Task) r.getAttribute(TASK));
   }
 
   @PostMapping("/steps")

@@ -76,6 +76,18 @@
     AND start_date &lt;= #{end} AND end_date &gt;= #{start}
   ORDER BY id FOR UPDATE
  </select>
+ <select id="affectedCheckins" resultType="com.health.model.Models$Task">
+  WITH RECURSIVE related AS (
+    SELECT t.id FROM agent_tasks t
+    WHERE t.user_id=#{userId} AND #{date} BETWEEN t.start_date AND t.end_date
+      AND EXISTS (SELECT 1 FROM agent_steps s WHERE s.task_id=t.id
+        AND s.name='get_checkin_summary' AND s.status='COMPLETED')
+    UNION DISTINCT
+    SELECT t.id FROM agent_tasks t JOIN related r ON t.parent_task_id=r.id WHERE t.user_id=#{userId}
+  )
+  SELECT t.* FROM agent_tasks t JOIN related r ON t.id=r.id
+  WHERE t.user_id=#{userId} ORDER BY t.id FOR UPDATE
+ </select>
  <update id="invalidateDiaryReports">
   UPDATE reports SET source_deleted=TRUE,source_change=#{change},title='源日记已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
   WHERE source_deleted=FALSE AND <include refid="diaryDateFilter"/>

@@ -7,9 +7,9 @@ import com.health.api.*;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.Models.*;
-import com.health.model.HealthReportModels.Completion;
 import com.health.service.AccountService;
 import com.health.service.PlanService;
+import com.health.service.TaskService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -24,12 +24,15 @@ public class PlanServiceImpl implements PlanService {
   private final TaskMapper tasks;
   private final ObjectMapper json;
   private final AccountService accounts;
+  private final TaskService agentTasks;
 
-  public PlanServiceImpl(PlanMapper mapper, TaskMapper tasks, ObjectMapper json, AccountService accounts) {
+  public PlanServiceImpl(PlanMapper mapper, TaskMapper tasks, ObjectMapper json, AccountService accounts,
+      TaskService agentTasks) {
     this.mapper = mapper;
     this.tasks = tasks;
     this.json = json;
     this.accounts = accounts;
+    this.agentTasks = agentTasks;
   }
 
   public List<Plan> list(Long uid) {
@@ -38,10 +41,6 @@ public class PlanServiceImpl implements PlanService {
 
   public List<AgentPlan> agentPlans(Long uid) {
     return mapper.agentPlans(uid);
-  }
-
-  public Completion completion(Long uid, LocalDate start, LocalDate end) {
-    return mapper.reportCompletion(uid, start, end);
   }
 
   @Transactional(readOnly = true)
@@ -89,7 +88,10 @@ public class PlanServiceImpl implements PlanService {
     PlanItem item = mapper.itemOwner(uid, id);
     if (item == null) throw ApiException.missing();
     mapper.lock(uid, item.planId);
-    if (mapper.deleteCheckin(id) > 0) mapper.invalidateHealthReports(uid, item.date, item.date, ReportSourceChange.CHECKIN_REVOKED);
+    if (mapper.deleteCheckin(id) > 0) {
+      agentTasks.invalidateCheckins(uid, item.date);
+      mapper.invalidateHealthReports(uid, item.date, item.date, ReportSourceChange.CHECKIN_REVOKED);
+    }
   }
 
   public List<Report> reports(Long uid) {

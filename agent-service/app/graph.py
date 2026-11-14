@@ -159,7 +159,8 @@ def build_graph(saver: AsyncSqliteSaver):
                 raise exc from log_error
             raise
         else:
-            await gateway.step(name, "执行模型选择的已授权只读工具", summary)
+            if name != "get_checkin_summary":
+                await gateway.step(name, "执行模型选择的已授权只读工具", summary)
         statistics = state["statistics"]
         diary_ids = state.get("diary_ids", [])
         references = dict(state["references"])

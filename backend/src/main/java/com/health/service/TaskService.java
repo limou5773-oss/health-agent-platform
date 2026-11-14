@@ -1,6 +1,7 @@
 package com.health.service;
 
 import com.health.api.Requests;
+import com.health.model.HealthReportModels.CheckinSummary;
 import com.health.model.Models.*;
 import com.health.model.TaskAudit;
 import com.health.model.PlanTemplateModels.Template;
@@ -38,11 +39,13 @@ public interface TaskService {
   Map<String, Object> context(Task task, Profile profile);
 
   Long step(Task task, Requests.Step r);
+  CheckinSummary checkinSummary(Task task);
 
   void invalidate(Long uid, LocalDate date, String source, ReportSourceChange change);
 
   void invalidateDiary(Long uid, Set<LocalDate> dates, ReportSourceChange change);
   void invalidateCombined(Long uid, LocalDate start, LocalDate end);
+  void invalidateCheckins(Long uid, LocalDate date);
 
   void recoverInterrupted();
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.health.api.*;
 import com.health.mapper.*;
 import com.health.model.Models.*;
+import com.health.model.HealthReportModels.CheckinSummary;
 import com.health.model.TaskAudit;
 import com.health.model.PlanTemplateModels.Template;
 import com.health.service.*;
@@ -364,6 +365,21 @@ public class TaskServiceImpl implements TaskService {
     s.outputSummary = r.outputSummary();
     mapper.insertStep(s);
     return s.id;
+  }
+
+  @Transactional
+  public CheckinSummary checkinSummary(Task t) {
+    Identity.requireExisting(mapper.lockUser(t.userId));
+    var completion = plans.reportCompletion(t.userId, t.startDate, t.endDate);
+    step(t, new Requests.Step("get_checkin_summary", "COMPLETED", "查询任务分析周期",
+        "已读取：" + t.startDate + " 至 " + t.endDate));
+    return new CheckinSummary(t.startDate, t.endDate, completion.scheduled(),
+        completion.completed(), completion.rate());
+  }
+
+  @Transactional
+  public void invalidateCheckins(Long uid, LocalDate date) {
+    invalidateTasks(mapper.affectedCheckins(uid, date), "源打卡已撤销，会话内容已清除");
   }
 
   @Transactional

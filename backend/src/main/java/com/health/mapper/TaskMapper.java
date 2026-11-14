@@ -49,6 +49,7 @@ public interface TaskMapper {
   List<Task> affectedDiary(@Param("userId") Long userId, @Param("dates") Set<LocalDate> dates);
   List<Task> affectedCombined(@Param("userId") Long userId, @Param("start") LocalDate start,
       @Param("end") LocalDate end);
+  List<Task> affectedCheckins(@Param("userId") Long userId, @Param("date") LocalDate date);
 
   void invalidateDiaryReports(@Param("userId") Long userId, @Param("dates") Set<LocalDate> dates,
       @Param("change") ReportSourceChange change);
