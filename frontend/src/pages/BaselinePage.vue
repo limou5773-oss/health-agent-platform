@@ -181,7 +181,8 @@ apply();
       <table>
         <thead>
           <tr><th scope="col">周期</th><th scope="col">日期范围</th>
-            <th scope="col">{{ result.metric === "HEART_RATE" ? "采样均值" : "日均值" }}</th><th scope="col">有效覆盖</th></tr>
+            <th scope="col">{{ result.metric === "HEART_RATE" ? "采样均值" : "日均值" }}</th><th scope="col">有效覆盖</th>
+            <th scope="col">记录</th></tr>
         </thead>
         <tbody>
           <tr v-for="period in periods" :key="period.name">
@@ -193,6 +194,14 @@ apply();
               <span v-if="result.metric === 'HEART_RATE'"> · {{ period.recordCount }} 条采样</span>
               <br />{{ period.sufficient ? "达标" : "覆盖不足" }}，至少需 {{ period.requiredDays }} 天
             </td>
+            <td>
+              <RouterLink class="text-link small" :to="{ path: '/timeline', query: {
+                startDate: period.startDate, endDate: period.endDate,
+                type: result.metric, sourceName: result.sourceName ?? undefined,
+              } }">
+                {{ result.metric === "WORKOUT" ? "查看周期内开始的运动" : "查看原始记录" }}
+              </RouterLink>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -202,6 +211,9 @@ apply();
       <strong>{{ result.difference > 0 ? "+" : "" }}{{ number.format(result.difference) }} {{ metrics[result.metric].unit }}</strong>
     </p>
     <p v-else>覆盖不足，仅展示各期已有记录的均值。</p>
+    <p v-if="result.metric === 'WORKOUT'" class="small muted">
+      运动时长按与统计周期重叠的时段计算。时间线按运动开始日期归档。
+    </p>
     <details v-for="period in periods" :key="period.name" class="baseline-missing">
       <summary>{{ period.name }}缺失日期（{{ period.missingDates.length }} 天）</summary>
       <p>{{ period.missingDates.length ? period.missingDates.join("、") : "日期记录齐全" }}</p>
