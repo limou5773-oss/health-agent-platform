@@ -8,7 +8,7 @@ import DraftEditor from "./DraftEditor.vue";
 import SleepSummary from "./SleepSummary.vue";
 import CombinedAnalysisSummary from "./CombinedAnalysisSummary.vue";
 const props = defineProps<{ id: string; sources: string[] }>();
-const emit = defineEmits<{ changed: []; deleted: [] }>();
+const emit = defineEmits<{ changed: []; deleted: []; followedUp: [id: string] }>();
 const task = ref<TaskDetail | null>(null),
   loading = ref(true),
   error = ref(""),
@@ -20,6 +20,20 @@ let timer: number | undefined;
 let active = true;
 const feedbackBusy = ref(false);
 const feedbackError = ref("");
+const followupQuestion = ref("");
+async function askFollowup() {
+  busy.value = true;
+  actionError.value = "";
+  try {
+    const next = await api<TaskDetail>(`/agent/tasks/${encodeURIComponent(props.id)}/followups`,
+      json("POST", { question: followupQuestion.value }));
+    emit("followedUp", next.id);
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  } finally {
+    busy.value = false;
+  }
+}
 async function saveFeedback(feedback: NonNullable<TaskDetail["feedback"]>) {
   feedbackBusy.value = true;
   feedbackError.value = "";
@@ -81,7 +95,7 @@ async function action(name: "input" | "retry" | "cancel") {
   }
 }
 async function remove() {
-  if (!window.confirm("删除此任务及其会话记录？")) return;
+  if (!window.confirm("删除此任务及其会话记录？以它为前序的追问内容也会清除。")) return;
   busy.value = true;
   actionError.value = "";
   window.clearTimeout(timer);
@@ -151,6 +165,8 @@ onUnmounted(() => {
         >
       </div>
       <h3 class="task-goal">{{ task.goal }}</h3>
+      <RouterLink v-if="task.parentTaskId && task.status !== 'CANCELLED'" class="text-link"
+        :to="{ path: '/agent', query: { task: task.parentTaskId } }">查看前一轮任务</RouterLink>
       <div v-if="task.status === 'COMPLETED'" class="actions">
         <span>结果反馈</span>
         <button class="secondary" :disabled="feedbackBusy" :aria-pressed="task.feedback === 'HELPFUL'"
@@ -229,7 +245,7 @@ onUnmounted(() => {
             maxlength="4000"
             placeholder="填写需要补充的信息"
           /></label
-        ><label
+        ><label v-if="!task.parentTaskId"
           >指定数据来源（需要时选择）<select v-model="sourceName">
             <option value="">保持当前来源</option>
             <option v-for="source in sources" :key="source">
@@ -254,6 +270,17 @@ onUnmounted(() => {
         @updated="update"
         @confirmed="confirmed"
       />
+      <form v-if="task.status === 'COMPLETED' && (task.kind === 'ANALYZE' || task.kind === 'COMBINED')"
+        class="supplement-form" @submit.prevent="askFollowup">
+        <label>继续追问
+          <textarea v-model="followupQuestion" required maxlength="2000" rows="3"
+            :disabled="busy" aria-describedby="followup-scope" />
+        </label>
+        <p id="followup-scope" class="small muted">
+          沿用 {{ task.startDate }} 至 {{ task.endDate }} 和原来源筛选，重新查询数据。
+        </p>
+        <button :disabled="busy">发送追问</button>
+      </form>
       <div v-if="task.planId || task.reportId" class="result-links">
         <RouterLink
           v-if="task.planId"

@@ -93,6 +93,7 @@ public final class Models {
 
   public static class Task {
     public String id;
+    public String parentTaskId;
     @JsonIgnore public Long userId;
     public String kind;
     public String goal;

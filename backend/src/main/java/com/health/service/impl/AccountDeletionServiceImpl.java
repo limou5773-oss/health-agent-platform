@@ -32,7 +32,7 @@ public class AccountDeletionServiceImpl implements AccountDeletionService {
     if (!bcrypt.matches(password, account.passwordHash))
       throw new ApiException(400, "WRONG_PASSWORD", "当前密码错误");
 
-    for (String taskId : data.taskIds(userId)) tasks.delete(userId, taskId);
+    tasks.deleteForAccount(userId, data.taskIds(userId));
     data.deleteCheckins(userId);
     data.deletePlanItems(userId);
     data.deletePlanStatusChanges(userId);

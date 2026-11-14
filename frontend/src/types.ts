@@ -148,6 +148,7 @@ export interface CombinedStatistics {
 
 export interface TaskDetail {
   id: string;
+  parentTaskId: string | null;
   feedback: "HELPFUL" | "NOT_HELPFUL" | null;
   templateId: number | null;
   templateVersion: number | null;

@@ -9,6 +9,7 @@ import java.util.*;
 
 public interface TaskService {
   Task create(Long uid, Requests.TaskCreate r);
+  Task followup(Long uid, String parentId, String question);
   Task createTemplateDraft(Long uid, Template template, Requests.Draft draft);
 
   List<Task> list(Long uid);
@@ -26,6 +27,7 @@ public interface TaskService {
   Task retry(Long uid, String id);
 
   void delete(Long uid, String id);
+  void deleteForAccount(Long uid, List<String> ids);
 
   List<Map<String, Object>> admin();
   TaskAudit audit(String id);

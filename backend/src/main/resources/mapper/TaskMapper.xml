@@ -7,9 +7,9 @@
  <select id="lock" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE id=#{id} FOR UPDATE</select>
  <insert id="insert">
   INSERT INTO agent_tasks(id,user_id,kind,goal,status,start_date,end_date,plan_start_date,plan_end_date,source_name,
-    include_diary,task_token,draft_json,template_id,template_version,ai_consent_version)
+    include_diary,task_token,draft_json,template_id,template_version,ai_consent_version,parent_task_id)
   VALUES(#{id},#{userId},#{kind},#{goal},#{status},#{startDate},#{endDate},#{planStartDate},#{planEndDate},#{sourceName},
-    #{includeDiary},#{taskToken},#{draftJson},#{templateId},#{templateVersion},#{aiConsentVersion})
+    #{includeDiary},#{taskToken},#{draftJson},#{templateId},#{templateVersion},#{aiConsentVersion},#{parentTaskId})
  </insert>
  <update id="update">UPDATE agent_tasks SET status=#{status},goal=#{goal},source_name=#{sourceName},answer=#{answer},question=#{question},error=#{error},retryable=#{retryable},statistics_json=#{statisticsJson},draft_json=#{draftJson},task_token=#{taskToken},pending_input=#{pendingInput},plan_id=#{planId},report_id=#{reportId},confirmed_version=#{confirmedVersion},operation_id=#{operationId},
   confirmed_at=#{confirmedAt},feedback=#{feedback},feedback_at=IF(#{feedback} IS NULL,NULL,feedback_at),
@@ -19,6 +19,15 @@
   UPDATE agent_tasks SET duration_ms=COALESCE(duration_ms,0)+#{elapsedMs} WHERE id=#{id}
  </update>
  <select id="list" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT 50</select>
+ <select id="descendants" resultType="com.health.model.Models$Task">
+  WITH RECURSIVE related AS (
+    SELECT id FROM agent_tasks WHERE user_id=#{userId} AND parent_task_id=#{id}
+    UNION ALL
+    SELECT t.id FROM agent_tasks t JOIN related r ON t.parent_task_id=r.id WHERE t.user_id=#{userId}
+  )
+  SELECT t.* FROM agent_tasks t JOIN related r ON t.id=r.id
+  WHERE t.user_id=#{userId} ORDER BY t.id FOR UPDATE
+ </select>
  <select id="admin" resultType="map">
   SELECT id,kind,status,start_date AS startDate,end_date AS endDate,duration_ms AS durationMs,
     CASE WHEN status='FAILED' THEN '执行失败，可查看步骤定位' END AS error,

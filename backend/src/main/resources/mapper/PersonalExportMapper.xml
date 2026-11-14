@@ -52,7 +52,7 @@
         FROM weight_goals WHERE user_id=#{userId} ORDER BY user_id
       </when>
       <when test="section.name() == 'TASKS'">
-        SELECT id, kind, goal, status, start_date, end_date, plan_start_date, plan_end_date, source_name, include_diary, answer, question, error, statistics_json, draft_json, pending_input, plan_id, report_id, template_id, template_version, confirmed_at, feedback, feedback_at, created_at, updated_at
+        SELECT id, parent_task_id, kind, goal, status, start_date, end_date, plan_start_date, plan_end_date, source_name, include_diary, answer, question, error, statistics_json, draft_json, pending_input, plan_id, report_id, template_id, template_version, confirmed_at, feedback, feedback_at, created_at, updated_at
         FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at,id
       </when>
       <when test="section.name() == 'TASK_STEPS'">

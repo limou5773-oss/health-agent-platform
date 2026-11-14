@@ -7,6 +7,8 @@ import com.health.service.TaskService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,14 @@ public class TaskController {
   public Task get(HttpServletRequest r, @PathVariable String id) {
     return service.get(Identity.user(r).id, id);
   }
+
+  @PostMapping("/{id}/followups")
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  public Task followup(HttpServletRequest r, @PathVariable String id, @Valid @RequestBody Followup body) {
+    return service.followup(Identity.user(r).id, id, body.question());
+  }
+
+  public record Followup(@NotBlank @Size(max = 2000) String question) {}
 
   @PutMapping("/{id}/feedback")
   @ResponseStatus(HttpStatus.NO_CONTENT)

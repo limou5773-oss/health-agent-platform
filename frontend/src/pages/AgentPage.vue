@@ -256,6 +256,7 @@ onMounted(load);
         :sources="sources"
         @changed="refreshList"
         @deleted="deleted"
+        @followed-up="openTask"
       />
       <section v-else class="panel workspace-empty">
         <Sparkles :size="28" />

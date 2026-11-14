@@ -60,6 +60,11 @@ class SavedPreference(BaseModel):
     content: str = Field(min_length=1, max_length=500)
 
 
+class PreviousAnalysis(BaseModel):
+    question: str
+    answer: str
+
+
 class TaskContext(TaskSpec):
     id: str | int
     status: str
@@ -67,6 +72,7 @@ class TaskContext(TaskSpec):
     timezone: str
     planId: int | None = None
     savedPreferences: list[SavedPreference] = Field(default_factory=list)
+    previousAnalysis: PreviousAnalysis | None = None
     modelName: str = ""
     modelTimeoutSeconds: int = Field(default=90, ge=5, le=90)
 

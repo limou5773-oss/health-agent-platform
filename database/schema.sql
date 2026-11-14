@@ -119,6 +119,7 @@ CREATE TABLE agent_tasks (
  id CHAR(36) PRIMARY KEY, user_id BIGINT NOT NULL,
  kind ENUM('ANALYZE','PLAN','REPORT','COMBINED') NOT NULL, goal VARCHAR(2000) NOT NULL,
  ai_consent_version BIGINT NOT NULL DEFAULT 0,
+ parent_task_id CHAR(36),
  status ENUM('QUEUED','RUNNING','WAITING_INPUT','WAITING_CONFIRMATION','COMPLETED','FAILED','CANCELLED') NOT NULL,
  start_date DATE NOT NULL, end_date DATE NOT NULL, plan_start_date DATE, plan_end_date DATE, source_name VARCHAR(100),
  include_diary BOOLEAN NOT NULL DEFAULT FALSE,
@@ -130,7 +131,8 @@ CREATE TABLE agent_tasks (
  confirmed_at DATETIME(6), feedback ENUM('HELPFUL','NOT_HELPFUL'), feedback_at DATETIME(6),
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
- KEY ix_task_user(user_id,created_at), CHECK(end_date >= start_date)
+ KEY ix_task_user(user_id,created_at), KEY ix_agent_task_parent(user_id,parent_task_id),
+ CHECK(end_date >= start_date)
 );
 CREATE TABLE agent_steps (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, task_id CHAR(36) NOT NULL,

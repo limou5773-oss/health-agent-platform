@@ -25,6 +25,7 @@ public interface TaskMapper {
   void delete(String id);
 
   List<Task> list(Long userId);
+  List<Task> descendants(@Param("userId") Long userId, @Param("id") String id);
 
   List<Map<String, Object>> admin();
 

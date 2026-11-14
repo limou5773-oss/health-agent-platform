@@ -160,6 +160,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「个人档案」下载本人档案、健康记录、任务、计划和报告的 JSON。详见[个人数据导出](docs/personal-data-export.md)。
 
+## Agent 分析追问
+
+已完成的睡眠分析或综合分析可沿用相同日期和来源继续追问。已有库执行 `database/migrations/027_agent_followups.sql`。详见[Agent 分析追问](docs/agent-followups.md)。
+
 ## 开发约定
 
 同一输入在入口校验一次；内部不重复判空或滥用 `try/catch`。归属、权限、状态、版本、事务与数据库唯一约束保留。功能测试与验收由用户负责，不附带自动化回归框架；开发侧只执行必要的构建检查。

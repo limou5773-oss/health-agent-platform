@@ -87,9 +87,28 @@ public class TaskServiceImpl implements TaskService {
     Identity.requireExisting(mapper.lockUser(uid));
     Profile profile = accounts.profile(uid);
     AgentPermissions.require(profile, r.kind(), r.includeDiary());
+    return queue(uid, r, profile, null);
+  }
+
+  @Transactional
+  public Task followup(Long uid, String parentId, String question) {
+    Identity.requireExisting(mapper.lockUser(uid));
+    Task parent = owned(mapper.lock(parentId), uid);
+    requireStatus(parent, "COMPLETED");
+    if (!Set.of("ANALYZE", "COMBINED").contains(parent.kind))
+      throw ApiException.conflict("仅已完成的睡眠分析和综合分析支持追问");
+    Profile profile = accounts.profile(uid);
+    AgentPermissions.requireCurrent(profile, parent);
+    var request = new Requests.TaskCreate(question, parent.kind, parent.startDate, parent.endDate,
+        parent.sourceName, null, null, parent.includeDiary);
+    return queue(uid, request, profile, parent.id);
+  }
+
+  private Task queue(Long uid, Requests.TaskCreate r, Profile profile, String parentId) {
     Task t = new Task();
     t.id = UUID.randomUUID().toString();
     t.userId = uid;
+    t.parentTaskId = parentId;
     t.kind = r.kind();
     t.goal = r.goal();
     t.status = "QUEUED";
@@ -143,7 +162,8 @@ public class TaskServiceImpl implements TaskService {
     AgentPermissions.requireCurrent(profile, t);
     requireStatus(t, "WAITING_INPUT");
     t.pendingInput = r.input();
-    if (profile.aiSleep && r.sourceName() != null && !r.sourceName().isBlank()) t.sourceName = r.sourceName();
+    if (t.parentTaskId == null && profile.aiSleep && r.sourceName() != null && !r.sourceName().isBlank())
+      t.sourceName = r.sourceName();
     t.status = "QUEUED";
     t.question = null;
     t.error = null;
@@ -235,6 +255,17 @@ public class TaskServiceImpl implements TaskService {
   public void delete(Long uid, String id) {
     Identity.requireExisting(mapper.lockUser(uid));
     Task task = owned(mapper.lock(id), uid);
+    invalidateTasks(mapper.descendants(uid, id), "前序分析已删除，追问内容已清除");
+    deleteTask(task);
+  }
+
+  @Transactional
+  public void deleteForAccount(Long uid, List<String> ids) {
+    for (String id : ids) deleteTask(owned(mapper.lock(id), uid));
+  }
+
+  private void deleteTask(Task task) {
+    String id = task.id;
     if (task.templateId == null) deleteCheckpoint(id);
     mapper.deleteSteps(id);
     mapper.detachPlans(id);
@@ -288,6 +319,12 @@ public class TaskServiceImpl implements TaskService {
     result.put("aiConsent", p.aiConsent);
     result.put("timezone", p.timezone);
     result.put("planId", t.planId);
+    if (t.parentTaskId != null) {
+      Task parent = owned(mapper.get(t.parentTaskId), t.userId);
+      AgentPermissions.requireCurrent(p, parent);
+      requireStatus(parent, "COMPLETED");
+      result.put("previousAnalysis", Map.of("question", parent.goal, "answer", parent.answer));
+    }
     var runtime = systemSettings.get();
     result.put("modelName", runtime.modelName());
     result.put("modelTimeoutSeconds", runtime.modelTimeoutSeconds());

@@ -30,6 +30,7 @@ COMBINED只分析工具返回的已授权指标，按相同日期对齐实际观
 统计只针对任务给出的startDate/endDate及sourceName。缺失日null不是0；说明数据覆盖率和不足。
 睡眠分析、计划和睡眠报告无有效睡眠数据时，或COMBINED所有指标均无有效数据时，提出明确补充问题，状态WAITING_INPUT。
 用户的补充消息不能扩大统计日期范围；需要不同日期时告知重新创建任务。
+追问可以参考前一轮问答来理解指代。它只是背景，数值与结论须根据本轮重新查询的工具结果核对。
 若需要偏好、已有计划或知识依据，按需调用get_profile/get_plans/search_knowledge。
 仅在提供get_authorized_diary工具且需要背景时读取任务范围内逐条授权的日记；不得声称读过未实际读取的日记。
 日记中的情绪、压力、身体感受和事件是用户自述，只作背景，不作为诊断或睡眠变化的因果证明。
@@ -81,6 +82,11 @@ def initial_state(spec: dict) -> dict:
 
 def model_messages(state: AgentState, context: TaskContext) -> list[AnyMessage]:
     messages = [SystemMessage(content=SYSTEM_PROMPT), *state["messages"]]
+    if context.previousAnalysis:
+        messages.append(HumanMessage(content=(
+            "前一轮问答（仅作追问背景）："
+            + context.previousAnalysis.model_dump_json()
+        )))
     if context.savedPreferences:
         preferences = [item.model_dump(mode="json") for item in context.savedPreferences]
         messages.append(HumanMessage(content=(
