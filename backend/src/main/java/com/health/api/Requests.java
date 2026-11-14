@@ -203,7 +203,11 @@ public final class Requests {
       @Size(max = 100) String sourceName,
       LocalDate planStartDate,
       LocalDate planEndDate,
-      boolean includeDiary) {
+      boolean includeDiary,
+      @Size(max = 100) String stepSource,
+      @Size(max = 100) String workoutSource,
+      @Size(max = 100) String weightSource,
+      @Size(max = 100) String heartRateSource) {
     @AssertTrue(message = "PLAN须提供1至31天计划周期")
     @JsonIgnore
     public boolean isPlanRangeValid() {

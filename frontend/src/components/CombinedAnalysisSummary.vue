@@ -20,7 +20,7 @@ const series = computed(() => props.statistics.metrics.map(metric => ({
     <ul class="selection-list">
       <li v-for="metric in series" :key="metric.key">
         <strong>{{ reportMetrics[metric.key][0] }}（{{ metric.unit }}）</strong>
-        <p v-if="metric.issue" class="small">{{ metric.issue }}，本次未纳入该项。</p>
+        <p v-if="metric.issue" class="small">{{ metric.issue }}。可在新建综合分析时指定该指标的来源。</p>
         <p v-else class="small">
           覆盖 {{ metric.validDays }} / {{ statistics.periodDays }} 天
           <span v-if="metric.recordCount !== null"> · {{ metric.recordCount }} 条记录</span>

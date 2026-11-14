@@ -195,6 +195,12 @@ onUnmounted(() => {
           <dt>睡眠来源</dt>
           <dd>{{ task.sourceName || "未指定；多来源冲突时需要补充" }}</dd>
         </div>
+        <template v-if="task.kind === 'COMBINED'">
+          <div v-if="task.stepSource"><dt>步数来源</dt><dd>{{ task.stepSource }}</dd></div>
+          <div v-if="task.workoutSource"><dt>运动来源</dt><dd>{{ task.workoutSource }}</dd></div>
+          <div v-if="task.weightSource"><dt>体重来源</dt><dd>{{ task.weightSource }}</dd></div>
+          <div v-if="task.heartRateSource"><dt>心率来源</dt><dd>{{ task.heartRateSource }}</dd></div>
+        </template>
         <div v-if="!task.templateId">
           <dt>日记背景</dt>
           <dd>

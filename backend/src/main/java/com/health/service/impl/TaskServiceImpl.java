@@ -100,7 +100,8 @@ public class TaskServiceImpl implements TaskService {
     Profile profile = accounts.profile(uid);
     AgentPermissions.requireCurrent(profile, parent);
     var request = new Requests.TaskCreate(question, parent.kind, parent.startDate, parent.endDate,
-        parent.sourceName, null, null, parent.includeDiary);
+        parent.sourceName, null, null, parent.includeDiary,
+        parent.stepSource, parent.workoutSource, parent.weightSource, parent.heartRateSource);
     return queue(uid, request, profile, parent.id);
   }
 
@@ -117,6 +118,12 @@ public class TaskServiceImpl implements TaskService {
     t.planStartDate = r.planStartDate();
     t.planEndDate = r.planEndDate();
     t.sourceName = profile.aiSleep ? r.sourceName() : null;
+    if ("COMBINED".equals(t.kind)) {
+      t.stepSource = profile.aiActivity ? r.stepSource() : null;
+      t.workoutSource = profile.aiActivity ? r.workoutSource() : null;
+      t.weightSource = profile.aiWeight ? r.weightSource() : null;
+      t.heartRateSource = profile.aiHeartRate ? r.heartRateSource() : null;
+    }
     t.includeDiary = r.includeDiary();
     t.aiConsentVersion = profile.aiConsentVersion;
     t.taskToken = newToken();

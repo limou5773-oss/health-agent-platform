@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowUpRight, Sparkles } from "@lucide/vue";
 import {
@@ -12,7 +12,7 @@ import {
   recentRange,
   statusText,
 } from "../api";
-import type { Profile, TaskDetail as Task } from "../types";
+import type { CombinedTaskSources, Profile, TaskDetail as Task } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import TaskDetail from "../components/TaskDetail.vue";
 import UsePlanTemplate from "../components/UsePlanTemplate.vue";
@@ -31,6 +31,18 @@ const form = reactive({
   planStartDate: dateString(planStart),
   planEndDate: dateString(planEnd),
 });
+const sourceFields = [
+  { field: "stepSource", label: "步数来源", permission: "aiActivity", path: "/activity/steps/sources" },
+  { field: "workoutSource", label: "运动来源", permission: "aiActivity", path: "/activity/workouts/sources" },
+  { field: "weightSource", label: "体重来源", permission: "aiWeight", path: "/weight/sources" },
+  { field: "heartRateSource", label: "心率来源", permission: "aiHeartRate", path: "/heart-rate/sources" },
+] as const;
+const combinedSources = reactive<CombinedTaskSources>({
+  stepSource: null, workoutSource: null, weightSource: null, heartRateSource: null,
+});
+const sourceOptions = reactive<Partial<Record<keyof CombinedTaskSources, string[]>>>({});
+const sourceError = ref("");
+const loadingSources = ref(false);
 const profile = ref<Profile | null>(null),
   tasks = ref<Task[]>([]),
   sources = ref<string[]>([]),
@@ -42,6 +54,26 @@ const selected = computed(() => {
   const id = route.query.task;
   return typeof id === "string" && id ? id : null;
 });
+const availableSourceFields = computed(() => form.kind === "COMBINED"
+  ? sourceFields.filter(({ permission }) => profile.value?.[permission])
+  : []);
+async function loadCombinedSources() {
+  if (loadingSources.value) return;
+  const pending = availableSourceFields.value.filter(({ field }) => !sourceOptions[field]);
+  if (!pending.length) return;
+  sourceError.value = "";
+  loadingSources.value = true;
+  try {
+    const loaded = await Promise.all(pending.map(async ({ field, path }) =>
+      [field, await api<string[]>(path)] as const));
+    for (const [field, options] of loaded) sourceOptions[field] = options;
+  } catch (cause) {
+    sourceError.value = errorMessage(cause);
+  } finally {
+    loadingSources.value = false;
+  }
+}
+watch(availableSourceFields, loadCombinedSources);
 const canCreate = computed(() => {
   const allowed = profile.value;
   if (!allowed?.aiConsent) return false;
@@ -86,6 +118,7 @@ async function create() {
         includeDiary: rest.includeDiary && !!profile.value?.aiDiary,
         ...(sourceName && profile.value?.aiSleep ? { sourceName } : {}),
         ...(form.kind === "PLAN" ? { planStartDate, planEndDate } : {}),
+        ...Object.fromEntries(availableSourceFields.value.map(({ field }) => [field, combinedSources[field]])),
       }),
     );
     form.includeDiary = false;
@@ -187,8 +220,19 @@ onMounted(load);
           ></template>
         </div>
         <p v-if="form.kind === 'COMBINED'" class="footnote">
-          外部模型可使用所选日期内已授权的指标汇总。睡眠来源只筛选睡眠，其他指标发生来源冲突时单独标记。
+          外部模型可使用所选日期内已授权的指标汇总。未指定来源的指标遇到冲突时会在结果里标出。
         </p>
+        <div v-if="availableSourceFields.length" class="form-grid">
+          <label v-for="{ field, label } in availableSourceFields" :key="field">
+            {{ label }}
+            <select v-model="combinedSources[field]" :disabled="busy || loadingSources || !!sourceError">
+              <option :value="null">全部来源</option>
+              <option v-for="source in sourceOptions[field]" :key="source" :value="source">{{ source }}</option>
+            </select>
+          </label>
+        </div>
+        <StateNotice v-if="availableSourceFields.length && sourceError"
+          :error="sourceError" @retry="loadCombinedSources" />
         <label class="checkbox-label">
           <input
             v-model="form.includeDiary"

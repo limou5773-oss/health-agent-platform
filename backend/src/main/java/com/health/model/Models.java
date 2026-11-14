@@ -110,6 +110,10 @@ public final class Models {
     public LocalDate planStartDate;
     public LocalDate planEndDate;
     public String sourceName;
+    public String stepSource;
+    public String workoutSource;
+    public String weightSource;
+    public String heartRateSource;
     public boolean includeDiary;
     @JsonIgnore public long aiConsentVersion;
     public String answer;

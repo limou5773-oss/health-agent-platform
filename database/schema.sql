@@ -128,6 +128,7 @@ CREATE TABLE agent_tasks (
  parent_task_id CHAR(36),
  status ENUM('QUEUED','RUNNING','WAITING_INPUT','WAITING_CONFIRMATION','COMPLETED','FAILED','CANCELLED') NOT NULL,
  start_date DATE NOT NULL, end_date DATE NOT NULL, plan_start_date DATE, plan_end_date DATE, source_name VARCHAR(100),
+ step_source VARCHAR(100), workout_source VARCHAR(100), weight_source VARCHAR(100), heart_rate_source VARCHAR(100),
  include_diary BOOLEAN NOT NULL DEFAULT FALSE,
  answer MEDIUMTEXT, question TEXT, error VARCHAR(1000), retryable BOOLEAN NOT NULL DEFAULT FALSE,
  statistics_json JSON, draft_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),

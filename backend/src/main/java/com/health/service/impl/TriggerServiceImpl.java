@@ -115,7 +115,8 @@ public class TriggerServiceImpl implements TriggerService {
       case SLEEP_IMPORT -> "分析本次睡眠导入覆盖的近期记录，说明趋势与数据覆盖。";
     };
     var task = tasks.create(userId, new TaskCreate(
-        goal, kind == Kind.SLEEP_IMPORT ? "ANALYZE" : "REPORT", start, end, settings.sourceName(), null, null, false));
+        goal, kind == Kind.SLEEP_IMPORT ? "ANALYZE" : "REPORT", start, end, settings.sourceName(), null, null, false,
+        null, null, null, null));
     mapper.insert(userId, kind, key, start, end, settings.sourceName(), task.id);
     if (settings.notifyInApp()) mapper.notifyRun(userId, kind, task.id);
   }

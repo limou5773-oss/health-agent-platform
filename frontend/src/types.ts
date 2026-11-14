@@ -162,7 +162,14 @@ export interface CombinedStatistics {
   diaryIds: number[];
 }
 
-export interface TaskDetail {
+export interface CombinedTaskSources {
+  stepSource: string | null;
+  workoutSource: string | null;
+  weightSource: string | null;
+  heartRateSource: string | null;
+}
+
+export interface TaskDetail extends CombinedTaskSources {
   id: string;
   parentTaskId: string | null;
   feedback: "HELPFUL" | "NOT_HELPFUL" | null;
