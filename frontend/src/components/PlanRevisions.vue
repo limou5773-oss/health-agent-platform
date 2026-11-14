@@ -96,7 +96,21 @@ function proposeMove(itemId: number, date: string, reason: string, version: numb
   }, `周期复盘：将「${item.title}」从 ${item.date} 调整到 ${date}${reason ? `。未完成原因：${reason}` : ""}`);
 }
 
-defineExpose({ proposeMove });
+function proposeCoordination(content: Content, reason: string, version: number, latestVersion: number) {
+  section.value?.scrollIntoView({ block: "start" });
+  const data = revisions.value;
+  if (!data || props.plan.version !== version || data.activeVersion !== version || data.latestVersion !== latestVersion) {
+    actionError.value = "计划或草稿版本已变化，请刷新计划后重新检查。";
+    return;
+  }
+  if (editor.value || data.draft) {
+    actionError.value = "请先处理正在编辑或已保存的修订草稿。";
+    return;
+  }
+  edit(content, reason);
+}
+
+defineExpose({ proposeMove, proposeCoordination });
 
 async function suggest(expectedVersion: number) {
   busy.value = true;

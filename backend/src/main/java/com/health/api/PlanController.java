@@ -7,6 +7,7 @@ import com.health.service.PlanService;
 import com.health.service.PlanRevisionService;
 import com.health.service.PlanReviewService;
 import com.health.service.PlanRevisionAgentService;
+import com.health.service.PlanCoordinationService;
 import com.health.model.PlanReviewModels.Review;
 import com.health.model.PlanReviewModels.Outcome;
 import com.health.model.PlanRevisionModels.Revision;
@@ -25,14 +26,17 @@ public class PlanController {
   private final PlanRevisionService revisions;
   private final PlanReviewService reviews;
   private final PlanRevisionAgentService revisionAgent;
+  private final PlanCoordinationService coordination;
 
   public PlanController(PlanService service, HealthReportService healthReports,
-      PlanRevisionService revisions, PlanReviewService reviews, PlanRevisionAgentService revisionAgent) {
+      PlanRevisionService revisions, PlanReviewService reviews, PlanRevisionAgentService revisionAgent,
+      PlanCoordinationService coordination) {
     this.service = service;
     this.healthReports = healthReports;
     this.revisions = revisions;
     this.reviews = reviews;
     this.revisionAgent = revisionAgent;
+    this.coordination = coordination;
   }
 
   @GetMapping("/plans")
@@ -54,6 +58,12 @@ public class PlanController {
   @GetMapping("/plans/{id}/revisions")
   public Revisions revisions(HttpServletRequest r, @PathVariable Long id) {
     return revisions.revisions(Identity.user(r).id, id);
+  }
+
+  @PostMapping("/plans/{id}/coordination/preview")
+  public PlanCoordinationService.Preview coordinate(HttpServletRequest r, @PathVariable Long id,
+      @Valid @RequestBody PlanCoordinationRequest request) {
+    return coordination.preview(Identity.user(r).id, id, request);
   }
 
   @GetMapping("/plans/{id}/review")
