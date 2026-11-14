@@ -68,9 +68,9 @@ public class SleepServiceImpl implements SleepService {
       s.sleepDate = old.sleepDate;
     }
     mapper.update(s);
-    tasks.invalidate(uid, old.sleepDate, old.sourceName);
+    tasks.invalidate(uid, old.sleepDate, old.sourceName, ReportSourceChange.CORRECTED);
     if (!old.sleepDate.equals(s.sleepDate)) {
-      tasks.invalidate(uid, s.sleepDate, s.sourceName);
+      tasks.invalidate(uid, s.sleepDate, s.sourceName, ReportSourceChange.CORRECTED);
     }
     return mapper.get(uid, id);
   }
@@ -81,7 +81,7 @@ public class SleepServiceImpl implements SleepService {
     SleepRecord s = mapper.get(uid, id);
     if (s == null) throw ApiException.missing();
     mapper.delete(uid, id);
-    tasks.invalidate(uid, s.sleepDate, s.sourceName);
+    tasks.invalidate(uid, s.sleepDate, s.sourceName, ReportSourceChange.DELETED);
   }
 
   public List<String> sources(Long uid) {

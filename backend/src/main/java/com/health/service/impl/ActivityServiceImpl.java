@@ -8,6 +8,7 @@ import com.health.mapper.ActivityMapper;
 import com.health.mapper.PlanMapper;
 import com.health.model.ActivityModels.*;
 import com.health.model.Models.Page;
+import com.health.model.Models.ReportSourceChange;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
 import com.health.service.AppleHealthExportReader;
@@ -80,10 +81,10 @@ public class ActivityServiceImpl implements ActivityService {
     checkStep(record, mapper.stepDay(uid, record.activityDate, record.sourceName), false);
     mapper.updateStep(record);
     tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
-    plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate, ReportSourceChange.CORRECTED);
     if (!record.activityDate.equals(existing.activityDate)) {
       tasks.invalidateCombined(uid, record.activityDate, record.activityDate);
-      plans.invalidateHealthReports(uid, record.activityDate, record.activityDate);
+      plans.invalidateHealthReports(uid, record.activityDate, record.activityDate, ReportSourceChange.CORRECTED);
     }
     return mapper.step(uid, id);
   }
@@ -95,7 +96,7 @@ public class ActivityServiceImpl implements ActivityService {
     if (existing == null) throw ApiException.missing();
     mapper.deleteStep(uid, id);
     tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
-    plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate, ReportSourceChange.DELETED);
   }
 
   public List<String> stepSources(Long uid) { return mapper.stepSources(uid); }
@@ -394,10 +395,10 @@ public class ActivityServiceImpl implements ActivityService {
     LocalDate previousEnd = existing.endTime.minusNanos(1).toLocalDate();
     LocalDate currentEnd = record.endTime.minusNanos(1).toLocalDate();
     tasks.invalidateCombined(uid, existing.activityDate, previousEnd);
-    plans.invalidateHealthReports(uid, existing.activityDate, previousEnd);
+    plans.invalidateHealthReports(uid, existing.activityDate, previousEnd, ReportSourceChange.CORRECTED);
     if (record.activityDate.isBefore(existing.activityDate) || currentEnd.isAfter(previousEnd)) {
       tasks.invalidateCombined(uid, record.activityDate, currentEnd);
-      plans.invalidateHealthReports(uid, record.activityDate, currentEnd);
+      plans.invalidateHealthReports(uid, record.activityDate, currentEnd, ReportSourceChange.CORRECTED);
     }
     return mapper.workout(uid, id);
   }
@@ -434,7 +435,7 @@ public class ActivityServiceImpl implements ActivityService {
     if (existing == null) throw ApiException.missing();
     mapper.deleteWorkout(uid, id);
     tasks.invalidateCombined(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
-    plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
+    plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate(), ReportSourceChange.DELETED);
   }
 
   public List<String> workoutSources(Long uid) { return mapper.workoutSources(uid); }

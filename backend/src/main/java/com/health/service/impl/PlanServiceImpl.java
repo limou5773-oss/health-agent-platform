@@ -84,7 +84,7 @@ public class PlanServiceImpl implements PlanService {
     PlanItem item = mapper.itemOwner(uid, id);
     if (item == null) throw ApiException.missing();
     mapper.lock(uid, item.planId);
-    if (mapper.deleteCheckin(id) > 0) mapper.invalidateHealthReports(uid, item.date, item.date);
+    if (mapper.deleteCheckin(id) > 0) mapper.invalidateHealthReports(uid, item.date, item.date, ReportSourceChange.CHECKIN_REVOKED);
   }
 
   public List<Report> reports(Long uid) {

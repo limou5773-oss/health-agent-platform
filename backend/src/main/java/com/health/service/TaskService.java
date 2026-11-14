@@ -39,9 +39,9 @@ public interface TaskService {
 
   Long step(Task task, Requests.Step r);
 
-  void invalidate(Long uid, LocalDate date, String source);
+  void invalidate(Long uid, LocalDate date, String source, ReportSourceChange change);
 
-  void invalidateDiary(Long uid, Set<LocalDate> dates);
+  void invalidateDiary(Long uid, Set<LocalDate> dates, ReportSourceChange change);
   void invalidateCombined(Long uid, LocalDate start, LocalDate end);
 
   void recoverInterrupted();

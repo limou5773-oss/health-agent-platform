@@ -8,6 +8,8 @@
 
 健康记录修改后，按修改前后的日期标记相关综合报告失效，跨日运动使用前后区间实际覆盖的日期。删除记录按原日期处理。撤销打卡会清除覆盖其安排日期的综合报告快照。失效清除内容及快照，保留编号、周期、生成时间和版本，按周期失效也会覆盖使用其他来源的版本。新增记录或打卡通过重新生成进入新版本。
 
+报告列表和详情显示首次失效原因，分别为来源记录更正、来源记录删除、打卡撤销或日记及授权变更。已有库执行 `database/migrations/033_report_source_change.sql`。历史失效报告的原因未知，显示通用失效提示。
+
 ## 接口和升级
 
 `POST /api/reports/health` 使用现有 JWT 鉴权。请求包含 `period`（`WEEK` 或 `MONTH`）和 `date`（周报结束日期或月报所在月内的任一天），可选 `sleepSource`、`stepSource`、`workoutSource`、`mealSource`、`waterSource`、`weightSource`、`heartRateSource`。成功返回 HTTP 201 和报告详情，来源冲突返回 409，无数据返回 422 `REPORT_NO_DATA`。

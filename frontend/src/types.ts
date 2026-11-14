@@ -242,6 +242,7 @@ interface ReportMetadata {
   endDate: string;
   createdAt: string;
   sourceDeleted: boolean;
+  sourceChange: "CORRECTED" | "DELETED" | "CHECKIN_REVOKED" | "DIARY_CHANGED" | null;
   includeDiary: boolean;
   content?: string;
   references?: {

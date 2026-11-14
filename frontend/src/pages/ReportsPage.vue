@@ -20,6 +20,12 @@ const detail = ref<HTMLElement | null>(null);
 const exporting = ref(false);
 const exportError = ref("");
 let expandedForPrint: HTMLDetailsElement[] = [];
+const sourceChangeLabels = {
+  CORRECTED: "来源记录已更正",
+  DELETED: "来源记录已删除",
+  CHECKIN_REVOKED: "来源打卡已撤销",
+  DIARY_CHANGED: "日记或授权已变更",
+};
 const selected = computed(() => {
   const id = Number(route.query.id);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
@@ -129,7 +135,9 @@ onUnmounted(() => {
             <span v-else class="tag" :class="{ warm: !entry.includeDiary }">{{
               entry.includeDiary ? "已启用授权日记" : "仅睡眠数据"
             }}</span
-            ><span v-if="entry.sourceDeleted" class="tag warm">数据已失效</span
+            ><span v-if="entry.sourceDeleted" class="tag warm">{{
+              entry.sourceChange ? sourceChangeLabels[entry.sourceChange] : "数据已失效"
+            }}</span
             ><span v-else class="small muted"
               >生成于 {{ entry.createdAt.slice(0, 10) }}</span
             ></RouterLink
@@ -171,9 +179,9 @@ onUnmounted(() => {
           生成时启用了授权日记背景，实际读取范围以正文说明为准。日记是用户自述，不作诊断；日记内容或授权变化会使相关报告失效。
         </p>
         <div v-if="report.sourceDeleted" class="notice error" role="status">
-          <strong>这份报告的数据已失效</strong>
+          <strong>{{ report.sourceChange ? sourceChangeLabels[report.sourceChange] : "这份报告的数据已失效" }}</strong>
           <p>
-            关联健康记录或日记授权已发生变化，原有健康明细不再展示。请使用当前有效数据重新生成报告。
+            该版本仅保留日期、版本等信息。请使用当前有效数据重新生成报告。
           </p>
           <RouterLink v-if="report.reportType === 'SLEEP'" class="button secondary" to="/agent"
             >重新生成报告</RouterLink

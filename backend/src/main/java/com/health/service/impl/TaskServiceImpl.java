@@ -353,15 +353,15 @@ public class TaskServiceImpl implements TaskService {
   }
 
   @Transactional
-  public void invalidate(Long uid, LocalDate date, String source) {
+  public void invalidate(Long uid, LocalDate date, String source, ReportSourceChange change) {
     invalidateTasks(mapper.affected(uid, date, source), SLEEP_INVALIDATED);
-    mapper.invalidateReports(uid, date, source);
+    mapper.invalidateReports(uid, date, source, change);
   }
 
   @Transactional
-  public void invalidateDiary(Long uid, Set<LocalDate> dates) {
+  public void invalidateDiary(Long uid, Set<LocalDate> dates, ReportSourceChange change) {
     invalidateTasks(mapper.affectedDiary(uid, dates), DIARY_INVALIDATED);
-    mapper.invalidateDiaryReports(uid, dates);
+    mapper.invalidateDiaryReports(uid, dates, change);
   }
 
   @Transactional

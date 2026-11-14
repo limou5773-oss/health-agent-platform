@@ -6,6 +6,7 @@ import com.health.api.DiaryRequests;
 import com.health.mapper.DiaryMapper;
 import com.health.model.DiaryModels.*;
 import com.health.model.Models.Page;
+import com.health.model.Models.ReportSourceChange;
 import com.health.service.DiaryService;
 import com.health.service.TaskService;
 import java.time.LocalDate;
@@ -40,7 +41,7 @@ public class DiaryServiceImpl implements DiaryService {
     Identity.requireExisting(mapper.lockUser(uid));
     DiaryRecord record = record(uid, request);
     mapper.insert(record);
-    if (record.agentAllowed) tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()));
+    if (record.agentAllowed) tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()), ReportSourceChange.DIARY_CHANGED);
     return mapper.entry(uid, record.id);
   }
 
@@ -54,7 +55,7 @@ public class DiaryServiceImpl implements DiaryService {
     Set<LocalDate> dates = new HashSet<>();
     if (old.agentAllowed) dates.add(old.recordedAt.toLocalDate());
     if (record.agentAllowed) dates.add(record.recordedAt.toLocalDate());
-    if (!dates.isEmpty()) tasks.invalidateDiary(uid, dates);
+    if (!dates.isEmpty()) tasks.invalidateDiary(uid, dates, ReportSourceChange.DIARY_CHANGED);
     return mapper.entry(uid, id);
   }
 
@@ -64,7 +65,7 @@ public class DiaryServiceImpl implements DiaryService {
     DiaryRecord record = entry(uid, id);
     if (record.agentAllowed == allowed) return record;
     mapper.permission(uid, id, allowed);
-    tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()));
+    tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()), ReportSourceChange.DIARY_CHANGED);
     return mapper.entry(uid, id);
   }
 
@@ -73,7 +74,7 @@ public class DiaryServiceImpl implements DiaryService {
     Identity.requireExisting(mapper.lockUser(uid));
     DiaryRecord record = entry(uid, id);
     mapper.delete(uid, id);
-    if (record.agentAllowed) tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()));
+    if (record.agentAllowed) tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()), ReportSourceChange.DELETED);
   }
 
   public List<String> sources(Long uid) { return mapper.sources(uid); }

@@ -83,7 +83,7 @@
         FROM checkins c JOIN plan_items i ON i.id=c.item_id JOIN plans p ON p.id=i.plan_id WHERE p.user_id=#{userId} ORDER BY c.id
       </when>
       <when test="section.name() == 'REPORTS'">
-        SELECT id, task_id, title, start_date, end_date, source_name, include_diary, content, statistics_json, references_json, source_deleted, report_type, report_version, metric, comparison_start_date, comparison_end_date, created_at
+        SELECT id, task_id, title, start_date, end_date, source_name, include_diary, content, statistics_json, references_json, source_deleted, source_change, report_type, report_version, metric, comparison_start_date, comparison_end_date, created_at
         FROM reports WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'SLEEP_IMPORTS'">

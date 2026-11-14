@@ -53,8 +53,8 @@
  <update id="detachReports">UPDATE reports SET task_id=NULL WHERE task_id=#{id}</update>
  <select id="affected" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} AND template_id IS NULL AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE</select>
  <update id="invalidateReports">
-  UPDATE reports SET source_deleted=TRUE,title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
-  WHERE user_id=#{userId}
+  UPDATE reports SET source_deleted=TRUE,source_change=#{change},title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
+  WHERE user_id=#{userId} AND source_deleted=FALSE
     AND ((start_date &lt;= #{date} AND end_date &gt;= #{date})
       OR (comparison_start_date &lt;= #{date} AND comparison_end_date &gt;= #{date}))
     AND (report_type &lt;> 'SLEEP' OR source_name IS NULL OR source_name='' OR source_name=#{source})
@@ -74,8 +74,8 @@
   ORDER BY id FOR UPDATE
  </select>
  <update id="invalidateDiaryReports">
-  UPDATE reports SET source_deleted=TRUE,title='源日记已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
-  WHERE <include refid="diaryDateFilter"/>
+  UPDATE reports SET source_deleted=TRUE,source_change=#{change},title='源日记已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
+  WHERE source_deleted=FALSE AND <include refid="diaryDateFilter"/>
  </update>
  <update id="recoverInterrupted">UPDATE agent_tasks SET status='FAILED',error='Java服务重启中断任务，请手动重试',retryable=TRUE,updated_at=CURRENT_TIMESTAMP(6) WHERE status IN ('QUEUED','RUNNING')</update>
 </mapper>

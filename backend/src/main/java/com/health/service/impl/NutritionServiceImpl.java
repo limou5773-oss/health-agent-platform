@@ -6,6 +6,7 @@ import com.health.mapper.NutritionMapper;
 import com.health.mapper.PlanMapper;
 import com.health.model.NutritionModels.*;
 import com.health.model.Models.Page;
+import com.health.model.Models.ReportSourceChange;
 import com.health.service.NutritionService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,8 +48,8 @@ public class NutritionServiceImpl implements NutritionService {
     mapper.updateMeal(record);
     LocalDate previousDate = existing.consumedAt.toLocalDate();
     LocalDate currentDate = record.consumedAt.toLocalDate();
-    plans.invalidateHealthReports(uid, previousDate, previousDate);
-    if (!currentDate.equals(previousDate)) plans.invalidateHealthReports(uid, currentDate, currentDate);
+    plans.invalidateHealthReports(uid, previousDate, previousDate, ReportSourceChange.CORRECTED);
+    if (!currentDate.equals(previousDate)) plans.invalidateHealthReports(uid, currentDate, currentDate, ReportSourceChange.CORRECTED);
     return mapper.meal(uid, id);
   }
 
@@ -59,7 +60,7 @@ public class NutritionServiceImpl implements NutritionService {
     if (existing == null) throw ApiException.missing();
     mapper.deleteMeal(uid, id);
     LocalDate date = existing.consumedAt.toLocalDate();
-    plans.invalidateHealthReports(uid, date, date);
+    plans.invalidateHealthReports(uid, date, date, ReportSourceChange.DELETED);
   }
 
   public List<String> mealSources(Long uid) { return mapper.mealSources(uid); }
@@ -160,8 +161,8 @@ public class NutritionServiceImpl implements NutritionService {
     mapper.updateWater(record);
     LocalDate previousDate = existing.consumedAt.toLocalDate();
     LocalDate currentDate = record.consumedAt.toLocalDate();
-    plans.invalidateHealthReports(uid, previousDate, previousDate);
-    if (!currentDate.equals(previousDate)) plans.invalidateHealthReports(uid, currentDate, currentDate);
+    plans.invalidateHealthReports(uid, previousDate, previousDate, ReportSourceChange.CORRECTED);
+    if (!currentDate.equals(previousDate)) plans.invalidateHealthReports(uid, currentDate, currentDate, ReportSourceChange.CORRECTED);
     return mapper.waterRecord(uid, id);
   }
 
@@ -172,7 +173,7 @@ public class NutritionServiceImpl implements NutritionService {
     if (existing == null) throw ApiException.missing();
     mapper.deleteWater(uid, id);
     LocalDate date = existing.consumedAt.toLocalDate();
-    plans.invalidateHealthReports(uid, date, date);
+    plans.invalidateHealthReports(uid, date, date, ReportSourceChange.DELETED);
   }
 
   public List<String> waterSources(Long uid) { return mapper.waterSources(uid); }

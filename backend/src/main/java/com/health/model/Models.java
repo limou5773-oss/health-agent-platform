@@ -171,6 +171,8 @@ public final class Models {
 
   public record AgentPlan(Long id, LocalDate startDate, LocalDate endDate, String status) {}
 
+  public enum ReportSourceChange { CORRECTED, DELETED, CHECKIN_REVOKED, DIARY_CHANGED }
+
   public static class Report {
     public Long id;
     @JsonIgnore public Long userId;
@@ -186,6 +188,7 @@ public final class Models {
     public LocalDate endDate;
     public LocalDateTime createdAt;
     public boolean sourceDeleted;
+    public ReportSourceChange sourceChange;
     public boolean includeDiary;
     public String content;
     @JsonIgnore public String statisticsJson;

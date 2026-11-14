@@ -7,6 +7,7 @@ import com.health.api.WeightRequests;
 import com.health.mapper.WeightMapper;
 import com.health.mapper.PlanMapper;
 import com.health.model.Models.Page;
+import com.health.model.Models.ReportSourceChange;
 import com.health.model.WeightModels.*;
 import com.health.service.WeightService;
 import com.health.service.TaskService;
@@ -62,10 +63,10 @@ public class WeightServiceImpl implements WeightService {
     LocalDate previousDate = existing.measuredAt.toLocalDate();
     LocalDate currentDate = record.measuredAt.toLocalDate();
     tasks.invalidateCombined(uid, previousDate, previousDate);
-    plans.invalidateHealthReports(uid, previousDate, previousDate);
+    plans.invalidateHealthReports(uid, previousDate, previousDate, ReportSourceChange.CORRECTED);
     if (!currentDate.equals(previousDate)) {
       tasks.invalidateCombined(uid, currentDate, currentDate);
-      plans.invalidateHealthReports(uid, currentDate, currentDate);
+      plans.invalidateHealthReports(uid, currentDate, currentDate, ReportSourceChange.CORRECTED);
     }
     return mapper.record(uid, id);
   }
@@ -77,7 +78,7 @@ public class WeightServiceImpl implements WeightService {
     mapper.deleteRecord(uid, id);
     LocalDate date = existing.measuredAt.toLocalDate();
     tasks.invalidateCombined(uid, date, date);
-    plans.invalidateHealthReports(uid, date, date);
+    plans.invalidateHealthReports(uid, date, date, ReportSourceChange.DELETED);
   }
 
   public List<String> sources(Long uid) { return mapper.sources(uid); }

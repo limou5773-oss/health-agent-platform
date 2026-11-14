@@ -72,7 +72,9 @@ public interface PlanMapper {
       @Param("end") LocalDate end, @Param("request") Generate request);
 
   void invalidateHealthReports(@Param("userId") Long userId,
-      @Param("start") LocalDate start, @Param("end") LocalDate end);
+      @Param("start") LocalDate start, @Param("end") LocalDate end,
+      @Param("change") ReportSourceChange change);
 
-  void invalidateHeartRateReports(@Param("userId") Long userId, @Param("date") LocalDate date);
+  void invalidateHeartRateReports(@Param("userId") Long userId, @Param("date") LocalDate date,
+      @Param("change") ReportSourceChange change);
 }

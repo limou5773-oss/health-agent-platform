@@ -9,6 +9,7 @@ import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.HeartRateModels.*;
 import com.health.model.Models.Page;
+import com.health.model.Models.ReportSourceChange;
 import com.health.service.HeartRateService;
 import com.health.service.TaskService;
 import java.time.LocalDate;
@@ -74,10 +75,10 @@ public class HeartRateServiceImpl implements HeartRateService {
       LocalDate previousDate = previous.measuredAt.toLocalDate();
       agentTasks.invalidateCombined(userId, previousDate, previousDate);
       LocalDate newDate = sample.measuredAt.toLocalDate();
-      reports.invalidateHeartRateReports(userId, previousDate);
+      reports.invalidateHeartRateReports(userId, previousDate, ReportSourceChange.CORRECTED);
       if (!newDate.equals(previousDate)) {
         agentTasks.invalidateCombined(userId, newDate, newDate);
-        reports.invalidateHeartRateReports(userId, newDate);
+        reports.invalidateHeartRateReports(userId, newDate, ReportSourceChange.CORRECTED);
       }
     }
     return mapper.record(userId, sample.id);
@@ -90,7 +91,7 @@ public class HeartRateServiceImpl implements HeartRateService {
     if (sample == null) throw ApiException.missing();
     mapper.delete(userId, id);
     agentTasks.invalidateCombined(userId, sample.measuredAt.toLocalDate(), sample.measuredAt.toLocalDate());
-    reports.invalidateHeartRateReports(userId, sample.measuredAt.toLocalDate());
+    reports.invalidateHeartRateReports(userId, sample.measuredAt.toLocalDate(), ReportSourceChange.DELETED);
   }
 
   private static Sample sample(Long userId, Measurement input) {
