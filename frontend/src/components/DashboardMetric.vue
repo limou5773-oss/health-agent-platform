@@ -63,9 +63,16 @@ const metrics = {
 } as const;
 
 type Metric = keyof typeof metrics;
-const props = defineProps<{ metric: Metric; startDate: string; endDate: string }>();
+const props = defineProps<{
+  metric: Metric;
+  startDate: string;
+  endDate: string;
+  sourceName?: string;
+  recordsRevision?: number;
+}>();
 const metric = computed(() => metrics[props.metric]);
 const source = ref("");
+const selectedSource = computed(() => props.sourceName ?? source.value);
 const sources = ref<string[]>([]);
 const sourceError = ref("");
 const error = ref("");
@@ -76,6 +83,7 @@ const sourceRevision = ref(0);
 const summary = ref<(Summary & Coverage) | null>(null);
 
 watch(sourceRevision, async () => {
+  if (props.sourceName !== undefined) return;
   sourceLoading.value = true;
   sourceError.value = "";
   try {
@@ -102,23 +110,27 @@ const loaders = {
   heartRate: (path: string) => read(path, metrics.heartRate.map),
 };
 
-watch([() => props.startDate, () => props.endDate, source, revision], async ([startDate, endDate, sourceName], _, onCleanup) => {
-  let active = true;
-  onCleanup(() => { active = false; });
-  loading.value = true;
-  error.value = "";
-  summary.value = null;
-  const params = new URLSearchParams({ startDate, endDate, ...(sourceName ? { sourceName } : {}) });
-  const path = `${metric.value.path}/statistics?${params}`;
-  try {
-    const result = await loaders[props.metric](path);
-    if (active) summary.value = result;
-  } catch (cause) {
-    if (active) error.value = errorMessage(cause);
-  } finally {
-    if (active) loading.value = false;
-  }
-}, { immediate: true });
+watch(
+  [() => props.startDate, () => props.endDate, selectedSource, revision, () => props.recordsRevision],
+  async ([startDate, endDate, sourceName], _, onCleanup) => {
+    let active = true;
+    onCleanup(() => { active = false; });
+    loading.value = true;
+    error.value = "";
+    summary.value = null;
+    const params = new URLSearchParams({ startDate, endDate, ...(sourceName ? { sourceName } : {}) });
+    const path = `${metric.value.path}/statistics?${params}`;
+    try {
+      const result = await loaders[props.metric](path);
+      if (active) summary.value = result;
+    } catch (cause) {
+      if (active) error.value = errorMessage(cause);
+    } finally {
+      if (active) loading.value = false;
+    }
+  },
+  { immediate: true },
+);
 
 const max = computed(() => Math.max(1, ...(summary.value?.points.map(point => point.value ?? 0) ?? [])));
 const width = computed(() => 400 / (summary.value?.points.length || 1));
@@ -128,11 +140,11 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
 <template>
   <section class="panel dashboard-metric">
     <div class="section-heading">
-      <h2>{{ metric.label }}</h2>
-      <RouterLink class="text-link" :to="metric.to">查看记录</RouterLink>
+      <h2>{{ props.sourceName === undefined ? metric.label : `${metric.label}统计` }}</h2>
+      <RouterLink v-if="props.sourceName === undefined" class="text-link" :to="metric.to">查看记录</RouterLink>
     </div>
     <SleepGoalForm v-if="props.metric === 'sleep'" @saved="revision++" />
-    <label>数据来源
+    <label v-if="props.sourceName === undefined">数据来源
       <select v-model="source" :disabled="sourceLoading || !!sourceError">
         <option value="">全部来源</option>
         <option v-for="name in sources" :key="name" :value="name">{{ name }}</option>
@@ -143,6 +155,7 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
     <template v-if="summary && !loading && !error">
       <p>{{ summary.label }} <strong>{{ summary.value === null ? "—" : `${number.format(summary.value)} ${metric.unit}` }}</strong></p>
       <p class="small muted">{{ startDate }} 至 {{ endDate }} · 有记录 {{ summary.validDays }} / {{ summary.periodDays }} 天</p>
+      <p v-if="props.sourceName !== undefined" class="small muted">来源 {{ selectedSource || "全部来源" }}</p>
       <p v-if="summary.cutoff" class="small muted">数据截至 {{ summary.cutoff.replace("T", " ") }}</p>
       <p v-if="summary.note" class="small muted">{{ summary.note }}</p>
       <p v-if="summary.goalNote" class="small muted">{{ summary.goalNote }}</p>

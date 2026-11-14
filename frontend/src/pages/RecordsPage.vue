@@ -11,10 +11,12 @@ import {
 } from "../api";
 import type { Page, SleepRecord } from "../types";
 import StateNotice from "../components/StateNotice.vue";
+import DashboardMetric from "../components/DashboardMetric.vue";
 import ImportPanel from "../components/ImportPanel.vue";
 import { wearableLabel } from "../wearables";
 const filters = reactive({ ...recentRange(), sourceName: "" });
 const appliedFilters = ref({ ...filters });
+const recordsRevision = ref(0);
 const data = ref<Page<SleepRecord> | null>(null),
   sources = ref<string[]>([]),
   page = ref(1),
@@ -49,6 +51,12 @@ function applyFilters() {
   appliedFilters.value = { ...filters };
   changePage(1);
 }
+function applyRecent(days: number) {
+  const { endDate } = recentRange();
+  filters.startDate = dateAfter(endDate, 1 - days);
+  filters.endDate = endDate;
+  applyFilters();
+}
 function edit(record?: SleepRecord) {
   editingId.value = record?.id || null;
   Object.assign(
@@ -77,6 +85,7 @@ async function save() {
     );
     editor.value = false;
     message.value = "睡眠记录已保存。";
+    recordsRevision.value++;
     page.value = 1;
     await load();
   } catch (cause) {
@@ -98,6 +107,7 @@ async function remove(record: SleepRecord) {
   try {
     await api(`/sleep/${record.id}`, json("DELETE"));
     message.value = "记录已删除，相关分析与报告已失效。";
+    recordsRevision.value++;
     page.value = 1;
     await load();
   } catch (cause) {
@@ -211,6 +221,8 @@ onMounted(load);
           <option v-for="source in sources" :key="source">{{ source }}</option>
         </select></label
       ><button class="secondary" :disabled="loading">筛选记录</button>
+      <button type="button" class="secondary" :disabled="loading" @click="applyRecent(7)">近 7 天</button>
+      <button type="button" class="secondary" :disabled="loading" @click="applyRecent(30)">近 30 天</button>
     </form>
     <p v-if="data" class="small muted">
       {{ appliedFilters.startDate }} 至 {{ appliedFilters.endDate }} · {{ appliedFilters.sourceName || "全部来源" }}
@@ -292,8 +304,11 @@ onMounted(load);
       </div></template
     >
   </section>
+  <DashboardMetric metric="sleep" :start-date="appliedFilters.startDate" :end-date="appliedFilters.endDate"
+    :source-name="appliedFilters.sourceName" :records-revision="recordsRevision" />
   <ImportPanel
     @imported="
+      recordsRevision++;
       page = 1;
       load();
     "
