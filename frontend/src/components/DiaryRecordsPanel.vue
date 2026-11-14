@@ -18,6 +18,7 @@ const filters = reactive({
   query: "",
   agentAllowed: "",
 });
+let appliedFilters = { ...filters };
 const records = ref<Page<DiaryRecord> | null>(null),
   page = ref(1);
 const loading = ref(false),
@@ -34,7 +35,7 @@ async function load() {
   loading.value = true;
   records.value = null;
   error.value = "";
-  const { sourceName, startDate, endDate, query, agentAllowed } = filters;
+  const { sourceName, startDate, endDate, query, agentAllowed } = appliedFilters;
   try {
     const result = await api<Page<DiaryRecord>>(
       `/diary/entries?${new URLSearchParams({
@@ -69,6 +70,13 @@ function saved() {
 }
 async function permission(record: DiaryRecord) {
   const agentAllowed = !record.agentAllowed;
+  const action = agentAllowed ? "允许健康助手读取" : "撤销健康助手对该日记的读取权限";
+  const access = agentAllowed
+    ? "读取仍须开启档案中的日记授权，并在单次任务中勾选日记。"
+    : "后续任务将无法读取此条日记。";
+  if (!window.confirm(
+    `${action}？日记 #${record.id}（${record.recordedAt.replace("T", " ")}）\n${access}\n日期相交且启用日记的任务和报告将失效，已确认的正式计划会保留。`,
+  )) return;
   busy.value = true;
   actionError.value = "";
   message.value = "";
@@ -110,6 +118,7 @@ async function remove(record: DiaryRecord) {
   }
 }
 function filter() {
+  appliedFilters = { ...filters };
   page.value = 1;
   void load();
 }
