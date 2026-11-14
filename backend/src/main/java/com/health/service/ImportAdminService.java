@@ -10,6 +10,6 @@ public interface ImportAdminService {
   Template template(Kind kind);
   Template saveTemplate(Kind kind, String instructions);
   void snapshotIssues(Kind kind, Long id);
-  void recordIssue(Kind kind, Long id, String reason);
+  void recordIssue(Kind kind, Long userId, Long id, String reason);
   void rejected(Kind kind, Long userId, String code);
 }

@@ -21,6 +21,7 @@
 - GET /profile 返回档案和授权字段。注册创建初始档案，timezone 为 Asia/Shanghai，总授权默认关闭，未知数值返回 null。
 - PUT /profile 更新档案和授权字段。身高和体重允许 null。分类授权字段及撤回规则见 [AI 数据授权](ai-data-permissions.md)。
 - GET /profile/export 下载当前登录用户的个人数据 JSON。字段与数据范围见 [个人数据导出](personal-data-export.md)。
+- DELETE /profile/account 接收当前密码，删除当前登录的普通用户及关联数据，成功返回 204。详见 [删除账号和个人数据](account-deletion.md)。
 - GET /sleep?page=1&pageSize=20&startDate=&endDate=&sourceName= → 分页SleepRecord。
 - POST /sleep {startTime,endTime,sourceName,note} → SleepRecord。
 - PUT /sleep/{id} 同POST → SleepRecord。

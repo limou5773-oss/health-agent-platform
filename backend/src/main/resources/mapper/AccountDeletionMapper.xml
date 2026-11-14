@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.AccountDeletionMapper">
+  <select id="taskIds" resultType="string">
+    SELECT id FROM agent_tasks WHERE user_id=#{userId} ORDER BY id
+  </select>
+  <delete id="deleteCheckins">
+    DELETE r FROM checkins r JOIN plan_items i ON i.id=r.item_id JOIN plans p ON p.id=i.plan_id WHERE p.user_id=#{userId}
+  </delete>
+  <delete id="deletePlanItems">
+    DELETE r FROM plan_items r JOIN plans p ON p.id=r.plan_id WHERE p.user_id=#{userId}
+  </delete>
+  <delete id="deletePlanStatusChanges">
+    DELETE r FROM plan_status_changes r JOIN plans p ON p.id=r.plan_id WHERE p.user_id=#{userId}
+  </delete>
+  <delete id="deletePlanRevisions">
+    DELETE r FROM plan_revisions r JOIN plans p ON p.id=r.plan_id WHERE p.user_id=#{userId}
+  </delete>
+  <delete id="deleteSleepImportRows">
+    DELETE r FROM import_rows r JOIN import_batches b ON b.id=r.batch_id WHERE b.user_id=#{userId}
+  </delete>
+  <delete id="deleteStepImportRows">
+    DELETE r FROM step_import_rows r JOIN step_import_batches b ON b.id=r.batch_id WHERE b.user_id=#{userId}
+  </delete>
+  <delete id="deleteMeasurementImportRows">
+    DELETE r FROM measurement_import_rows r JOIN measurement_import_batches b ON b.id=r.batch_id WHERE b.user_id=#{userId}
+  </delete>
+  <delete id="deleteSleepImportIssues">
+    DELETE r FROM import_issue_counts r JOIN import_batches b ON b.id=r.batch_id AND r.kind='SLEEP' WHERE b.user_id=#{userId}
+  </delete>
+  <delete id="deleteStepImportIssues">
+    DELETE r FROM import_issue_counts r JOIN step_import_batches b ON b.id=r.batch_id AND r.kind='STEPS' WHERE b.user_id=#{userId}
+  </delete>
+  <delete id="deleteMeasurementImportIssues">
+    DELETE r FROM import_issue_counts r JOIN measurement_import_batches b
+      ON b.id=r.batch_id AND r.kind=CAST(b.metric AS CHAR) WHERE b.user_id=#{userId}
+  </delete>
+  <delete id="deleteNotificationSettings">
+    DELETE FROM notification_settings WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteAgentTriggerSettings">
+    DELETE FROM agent_trigger_settings WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteAgentTriggerRuns">
+    DELETE FROM agent_trigger_runs WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteNotifications">
+    DELETE FROM notifications WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteUserPreferences">
+    DELETE FROM user_preferences WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteKnowledgeFavorites">
+    DELETE FROM knowledge_favorites WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteRejectedImports">
+    DELETE FROM rejected_imports WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteSleepRecords">
+    DELETE FROM sleep_records WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteStepRecords">
+    DELETE FROM step_records WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteWorkoutRecords">
+    DELETE FROM workout_records WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteMealRecords">
+    DELETE FROM meal_records WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteWaterRecords">
+    DELETE FROM water_records WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteHeartRateSamples">
+    DELETE FROM heart_rate_samples WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteWeightRecords">
+    DELETE FROM weight_records WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteDiaryEntries">
+    DELETE FROM diary_entries WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteActivityGoals">
+    DELETE FROM activity_goals WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteWeightGoals">
+    DELETE FROM weight_goals WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteImportBatches">
+    DELETE FROM import_batches WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteStepImportBatches">
+    DELETE FROM step_import_batches WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteMeasurementImportBatches">
+    DELETE FROM measurement_import_batches WHERE user_id=#{userId}
+  </delete>
+  <delete id="deletePlans">
+    DELETE FROM plans WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteReports">
+    DELETE FROM reports WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteProfiles">
+    DELETE FROM profiles WHERE user_id=#{userId}
+  </delete>
+  <delete id="deleteUsers">
+    DELETE FROM users WHERE id=#{userId}
+  </delete>
+</mapper>

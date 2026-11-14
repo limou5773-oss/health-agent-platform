@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { ShieldCheck, LockKeyhole } from "@lucide/vue";
-import { api, download, errorMessage, json, session } from "../api";
+import { api, download, errorMessage, json, logout, session } from "../api";
 import type { Profile } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import PreferenceMemory from "../components/PreferenceMemory.vue";
@@ -42,6 +42,30 @@ const passwords = reactive({ oldPassword: "", newPassword: "" }),
   passwordMessage = ref("");
 const exportBusy = ref(false);
 const exportError = ref("");
+const deleting = ref(false);
+const deletionOpen = ref(false);
+const deletionPassword = ref("");
+const deletionError = ref("");
+
+function cancelDeletion() {
+  deletionOpen.value = false;
+  deletionPassword.value = "";
+  deletionError.value = "";
+}
+
+async function deleteAccount() {
+  deleting.value = true;
+  deletionError.value = "";
+  try {
+    await api("/profile/account", json("DELETE", { password: deletionPassword.value }), 120_000);
+    cancelDeletion();
+    logout("账号及个人数据已删除。");
+  } catch (cause) {
+    deletionError.value = errorMessage(cause);
+  } finally {
+    deleting.value = false;
+  }
+}
 
 async function exportData() {
   exportBusy.value = true;
@@ -237,5 +261,22 @@ onMounted(load);
       </button>
     </section>
     <PreferenceMemory />
+    <section v-if="session.user?.role === 'USER'" class="panel">
+      <h2>删除账号和个人数据</h2>
+      <p>将永久删除本人账号、档案、健康记录、日记、导入批次、计划、报告、任务与本地 Agent 检查点。成功后会退出登录。</p>
+      <button v-if="!deletionOpen" type="button" class="secondary" @click="deletionOpen = true">继续删除</button>
+      <form v-else @submit.prevent="deleteAccount">
+        <label>
+          输入当前密码确认
+          <input v-model="deletionPassword" type="password" autocomplete="current-password" required
+            minlength="8" maxlength="72" :disabled="deleting" />
+        </label>
+        <p v-if="deletionError" class="feedback error" role="alert">{{ deletionError }}</p>
+        <div class="actions">
+          <button class="secondary danger-text" :disabled="deleting">{{ deleting ? "正在删除…" : "永久删除我的账号" }}</button>
+          <button type="button" class="secondary" :disabled="deleting" @click="cancelDeletion">取消</button>
+        </div>
+      </form>
+    </section>
   </div>
 </template>

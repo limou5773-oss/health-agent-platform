@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.model.ImportAdminModels.Kind;
 import com.health.api.*;
 import com.health.mapper.SleepMapper;
@@ -50,7 +51,7 @@ public class SleepServiceImpl implements SleepService {
 
   @Transactional
   public SleepRecord create(Long uid, Requests.Sleep r) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     SleepRecord s = record(uid, r);
     mapper.insert(s);
     return mapper.get(uid, s.id);
@@ -58,7 +59,7 @@ public class SleepServiceImpl implements SleepService {
 
   @Transactional
   public SleepRecord update(Long uid, Long id, Requests.Sleep r) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     SleepRecord old = mapper.get(uid, id);
     if (old == null) throw ApiException.missing();
     SleepRecord s = record(uid, r);
@@ -76,7 +77,7 @@ public class SleepServiceImpl implements SleepService {
 
   @Transactional
   public void delete(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     SleepRecord s = mapper.get(uid, id);
     if (s == null) throw ApiException.missing();
     mapper.delete(uid, id);
@@ -171,6 +172,7 @@ public class SleepServiceImpl implements SleepService {
 
   @Transactional
   public ImportBatch preview(Long uid, MultipartFile file, Requests.ImportOptions options) {
+    Identity.requireExisting(mapper.lockUser(uid));
     ImportBatch batch =
         "CSV".equals(options.format)
             ? parseCsv(uid, file, options.timezone)
@@ -284,7 +286,7 @@ public class SleepServiceImpl implements SleepService {
 
   @Transactional
   public ImportBatch confirm(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     ImportBatch b = mapper.lockBatch(uid, id);
     if (b == null) throw ApiException.missing();
     if ("CONFIRMED".equals(b.status)) return b;

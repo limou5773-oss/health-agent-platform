@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.model.ImportAdminModels.Kind;
 import com.health.service.ImportAdminService;
 import com.health.api.*;
@@ -53,7 +54,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public StepRecord createStep(Long uid, ActivityRequests.Step request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     StepRecord record = stepRecord(uid, request);
     checkStep(record, mapper.stepDay(uid, record.activityDate, record.sourceName), false);
     mapper.insertStep(record);
@@ -62,7 +63,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public StepRecord updateStep(Long uid, Long id, ActivityRequests.Step request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     StepRecord existing = mapper.step(uid, id);
     if (existing == null) throw ApiException.missing();
     StepRecord record = stepRecord(uid, request);
@@ -76,7 +77,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public void deleteStep(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     StepRecord existing = mapper.step(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteStep(uid, id);
@@ -90,7 +91,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public Goal updateGoal(Long uid, ActivityRequests.Goal request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     mapper.saveGoal(uid, request.dailySteps().intValueExact());
     return new Goal(request.dailySteps().intValueExact());
   }
@@ -155,7 +156,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public StepImportBatch preview(Long uid, MultipartFile file, String timezone) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024)
       throw new ApiException(400, "INVALID_CSV", "CSV不能为空且不能超过10MB");
     ZoneId profileZone = ZoneId.of(accounts.profile(uid).timezone);
@@ -243,7 +244,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public StepImportBatch confirm(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     StepImportBatch batch = mapper.batch(uid, id);
     if (batch == null) throw ApiException.missing();
     if ("CONFIRMED".equals(batch.status)) return batch;
@@ -277,7 +278,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public Workout createWorkout(Long uid, ActivityRequests.Workout request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     Workout record = workoutRecord(uid, request);
     validatePlan(uid, record);
     if (mapper.workoutDuplicate(record) != null) throw new ApiException(409, "DUPLICATE_RECORD", "相同起止时间、类型及来源的运动记录已存在");
@@ -287,7 +288,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public Workout updateWorkout(Long uid, Long id, ActivityRequests.Workout request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     Workout existing = mapper.workout(uid, id);
     if (existing == null) throw ApiException.missing();
     Workout record = workoutRecord(uid, request);
@@ -328,7 +329,7 @@ public class ActivityServiceImpl implements ActivityService {
 
   @Transactional
   public void deleteWorkout(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     Workout existing = mapper.workout(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteWorkout(uid, id);

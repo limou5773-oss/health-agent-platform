@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.ApiException;
 import com.health.api.HealthReportRequests.Generate;
@@ -67,7 +68,7 @@ public class HealthReportServiceImpl implements HealthReportService {
   @Transactional
   public Report generate(Long userId, Generate request) {
     // Record edits use this same user lock before invalidating saved reports.
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     boolean weekly = request.period() == Period.WEEK;
     LocalDate start = weekly ? request.date().minusDays(6) : YearMonth.from(request.date()).atDay(1);
     LocalDate end = weekly ? request.date() : YearMonth.from(request.date()).atEndOfMonth();
@@ -119,7 +120,7 @@ public class HealthReportServiceImpl implements HealthReportService {
   @Override
   @Transactional
   public Report focused(Long userId, Focused request) {
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     LocalDate today = LocalDate.now(ZoneId.of(accounts.profile(userId).timezone));
     if (!request.endDate().isBefore(today))
       throw new ApiException(400, "INVALID_INPUT", "请选择已结束的报告周期");

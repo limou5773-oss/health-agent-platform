@@ -2,6 +2,8 @@ package com.health.service.impl;
 
 import com.health.api.*;
 import com.health.mapper.KnowledgeMapper;
+import com.health.mapper.AccountMapper;
+import com.health.security.Identity;
 import com.health.model.Models.Article;
 import com.health.model.KnowledgeOptions.*;
 import com.health.service.KnowledgeService;
@@ -13,8 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class KnowledgeServiceImpl implements KnowledgeService {
   private final KnowledgeMapper mapper;
 
-  public KnowledgeServiceImpl(KnowledgeMapper mapper) {
+  private final AccountMapper accounts;
+
+  public KnowledgeServiceImpl(KnowledgeMapper mapper, AccountMapper accounts) {
     this.mapper = mapper;
+    this.accounts = accounts;
   }
 
   public List<Article> list(String query, boolean all) {
@@ -33,6 +38,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
   @Transactional
   public void favorite(Long userId, Long id) {
+    Identity.requireExisting(accounts.lockUser(userId));
     published(userId, id);
     mapper.favorite(userId, id);
   }

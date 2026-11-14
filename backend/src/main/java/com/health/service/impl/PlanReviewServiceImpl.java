@@ -4,6 +4,8 @@ import com.health.api.ApiException;
 import com.health.api.BaselineRequests;
 import com.health.api.PlanReviewRequests.Query;
 import com.health.mapper.PlanMapper;
+import com.health.mapper.AccountMapper;
+import com.health.security.Identity;
 import com.health.model.PlanReviewModels.Review;
 import com.health.service.AccountService;
 import com.health.service.BaselineService;
@@ -21,11 +23,13 @@ public class PlanReviewServiceImpl implements PlanReviewService {
   private final PlanMapper plans;
   private final AccountService accounts;
   private final BaselineService baseline;
+  private final AccountMapper users;
 
-  public PlanReviewServiceImpl(PlanMapper plans, AccountService accounts, BaselineService baseline) {
+  public PlanReviewServiceImpl(PlanMapper plans, AccountService accounts, BaselineService baseline, AccountMapper users) {
     this.plans = plans;
     this.accounts = accounts;
     this.baseline = baseline;
+    this.users = users;
   }
 
   @Override
@@ -54,6 +58,7 @@ public class PlanReviewServiceImpl implements PlanReviewService {
   @Override
   @Transactional
   public void missedReason(Long userId, Long itemId, String reason) {
+    Identity.requireExisting(users.lockUser(userId));
     var item = plans.itemOwner(userId, itemId);
     if (item == null) throw ApiException.missing();
     plans.lock(userId, item.planId);

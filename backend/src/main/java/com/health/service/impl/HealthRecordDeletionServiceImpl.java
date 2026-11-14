@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.ApiException;
 import com.health.api.TimelineRequests.ConfirmDelete;
 import com.health.api.TimelineRequests.DeleteQuery;
@@ -50,7 +51,7 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
   @Override
   @Transactional(rollbackFor = IOException.class)
   public int delete(Long userId, ConfirmDelete query) throws IOException {
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     var selection = selection(userId, query);
     if (!selection.preview().fingerprint().equals(query.getFingerprint()))
       throw new ApiException(409, "DELETE_SCOPE_CHANGED", "记录范围已变化，请重新预览后确认");

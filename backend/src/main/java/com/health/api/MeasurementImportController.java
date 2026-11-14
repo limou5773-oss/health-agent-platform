@@ -41,10 +41,11 @@ public class MeasurementImportController {
   @PostMapping("/{id}/confirm")
   public Batch confirm(HttpServletRequest request, @PathVariable String module, @PathVariable Long id) {
     Metric metric = metric(module);
+    Long userId = Identity.user(request).id;
     try {
-      return service.confirm(Identity.user(request).id, metric, id);
+      return service.confirm(userId, metric, id);
     } catch (ApiException e) {
-      if ("MEASUREMENT_CONFLICT".equals(e.code)) importAdmin.recordIssue(metric.importKind, id, e.code);
+      if ("MEASUREMENT_CONFLICT".equals(e.code)) importAdmin.recordIssue(metric.importKind, userId, id, e.code);
       throw e;
     }
   }

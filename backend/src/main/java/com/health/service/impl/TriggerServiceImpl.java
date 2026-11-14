@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.Requests.TaskCreate;
 import com.health.mapper.TaskMapper;
 import com.health.mapper.TriggerMapper;
@@ -52,7 +53,7 @@ public class TriggerServiceImpl implements TriggerService {
   @Override
   @Transactional
   public Settings save(Long userId, Settings settings) {
-    taskMapper.lockUser(userId);
+    Identity.requireExisting(taskMapper.lockUser(userId));
     mapper.save(userId, settings);
     return settings;
   }
@@ -66,7 +67,7 @@ public class TriggerServiceImpl implements TriggerService {
   @Transactional
   public void sleepImported(Long userId, Long batchId, Map<String, LocalDate> latestBySource) {
     if (latestBySource.isEmpty()) return;
-    taskMapper.lockUser(userId);
+    Identity.requireExisting(taskMapper.lockUser(userId));
     Settings settings = settings(userId);
     if (!settings.importEnabled() || !systemSettings.get().importAnalysisEnabled()
         || !taskMapper.enabled(userId)) return;
@@ -85,7 +86,7 @@ public class TriggerServiceImpl implements TriggerService {
     for (Long userId : mapper.reviewUsers()) {
       try {
         transaction.executeWithoutResult(status -> {
-          taskMapper.lockUser(userId);
+          if (taskMapper.lockUser(userId) == null) return;
           Settings settings = settings(userId);
           var profile = accounts.profile(userId);
           if (!profile.aiConsent || !profile.aiSleep || !taskMapper.enabled(userId)) return;

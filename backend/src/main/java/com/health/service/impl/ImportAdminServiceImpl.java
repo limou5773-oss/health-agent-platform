@@ -2,6 +2,8 @@ package com.health.service.impl;
 
 import com.health.api.ApiException;
 import com.health.mapper.ImportAdminMapper;
+import com.health.mapper.AccountMapper;
+import com.health.security.Identity;
 import com.health.model.ImportAdminModels.*;
 import com.health.model.Models.Page;
 import com.health.service.ImportAdminService;
@@ -13,7 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ImportAdminServiceImpl implements ImportAdminService {
   private final ImportAdminMapper mapper;
 
-  public ImportAdminServiceImpl(ImportAdminMapper mapper) { this.mapper = mapper; }
+  private final AccountMapper accounts;
+
+  public ImportAdminServiceImpl(ImportAdminMapper mapper, AccountMapper accounts) {
+    this.mapper = mapper;
+    this.accounts = accounts;
+  }
 
   @Transactional(readOnly = true)
   public Page<Batch> batches(Kind kind, boolean issuesOnly, int page, int size) {
@@ -41,7 +48,15 @@ public class ImportAdminServiceImpl implements ImportAdminService {
 
   public void snapshotIssues(Kind kind, Long id) { mapper.snapshotIssues(kind, id); }
 
-  public void recordIssue(Kind kind, Long id, String reason) { mapper.recordIssue(kind, id, reason); }
+  @Transactional
+  public void recordIssue(Kind kind, Long userId, Long id, String reason) {
+    Identity.requireExisting(accounts.lockUser(userId));
+    mapper.recordIssue(kind, id, reason);
+  }
 
-  public void rejected(Kind kind, Long userId, String code) { mapper.rejected(kind, userId, code); }
+  @Transactional
+  public void rejected(Kind kind, Long userId, String code) {
+    Identity.requireExisting(accounts.lockUser(userId));
+    mapper.rejected(kind, userId, code);
+  }
 }

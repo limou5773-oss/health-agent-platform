@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.ApiException;
 import com.health.api.DiaryRequests;
 import com.health.mapper.DiaryMapper;
@@ -36,7 +37,7 @@ public class DiaryServiceImpl implements DiaryService {
 
   @Transactional
   public DiaryRecord create(Long uid, DiaryRequests.Entry request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     DiaryRecord record = record(uid, request);
     mapper.insert(record);
     if (record.agentAllowed) tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()));
@@ -45,7 +46,7 @@ public class DiaryServiceImpl implements DiaryService {
 
   @Transactional
   public DiaryRecord update(Long uid, Long id, DiaryRequests.Entry request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     DiaryRecord old = entry(uid, id);
     DiaryRecord record = record(uid, request);
     record.id = id;
@@ -59,7 +60,7 @@ public class DiaryServiceImpl implements DiaryService {
 
   @Transactional
   public DiaryRecord permission(Long uid, Long id, boolean allowed) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     DiaryRecord record = entry(uid, id);
     if (record.agentAllowed == allowed) return record;
     mapper.permission(uid, id, allowed);
@@ -69,7 +70,7 @@ public class DiaryServiceImpl implements DiaryService {
 
   @Transactional
   public void delete(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     DiaryRecord record = entry(uid, id);
     mapper.delete(uid, id);
     if (record.agentAllowed) tasks.invalidateDiary(uid, Set.of(record.recordedAt.toLocalDate()));

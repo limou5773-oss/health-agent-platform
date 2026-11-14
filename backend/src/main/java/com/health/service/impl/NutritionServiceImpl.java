@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.*;
 import com.health.mapper.NutritionMapper;
 import com.health.mapper.PlanMapper;
@@ -30,7 +31,7 @@ public class NutritionServiceImpl implements NutritionService {
 
   @Transactional
   public MealRecord createMeal(Long uid, NutritionRequests.Meal request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     MealRecord record = mealRecord(uid, request);
     mapper.insertMeal(record);
     return mapper.meal(uid, record.id);
@@ -38,7 +39,7 @@ public class NutritionServiceImpl implements NutritionService {
 
   @Transactional
   public MealRecord updateMeal(Long uid, Long id, NutritionRequests.Meal request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     MealRecord existing = mapper.meal(uid, id);
     if (existing == null) throw ApiException.missing();
     MealRecord record = mealRecord(uid, request);
@@ -51,7 +52,7 @@ public class NutritionServiceImpl implements NutritionService {
 
   @Transactional
   public void deleteMeal(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     MealRecord existing = mapper.meal(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteMeal(uid, id);
@@ -141,7 +142,7 @@ public class NutritionServiceImpl implements NutritionService {
 
   @Transactional
   public WaterRecord createWater(Long uid, NutritionRequests.Water request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WaterRecord record = waterRecord(uid, request);
     mapper.insertWater(record);
     return mapper.waterRecord(uid, record.id);
@@ -149,7 +150,7 @@ public class NutritionServiceImpl implements NutritionService {
 
   @Transactional
   public WaterRecord updateWater(Long uid, Long id, NutritionRequests.Water request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WaterRecord existing = mapper.waterRecord(uid, id);
     if (existing == null) throw ApiException.missing();
     WaterRecord record = waterRecord(uid, request);
@@ -162,7 +163,7 @@ public class NutritionServiceImpl implements NutritionService {
 
   @Transactional
   public void deleteWater(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WaterRecord existing = mapper.waterRecord(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteWater(uid, id);

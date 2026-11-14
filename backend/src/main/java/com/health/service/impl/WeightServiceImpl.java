@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.ApiException;
 import com.health.api.Requests;
 import com.health.api.WeightRequests;
@@ -45,7 +46,7 @@ public class WeightServiceImpl implements WeightService {
 
   @Transactional
   public WeightRecord createRecord(Long uid, WeightRequests.Measurement request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WeightRecord record = measurement(uid, request);
     mapper.insertRecord(record);
     return mapper.record(uid, record.id);
@@ -53,7 +54,7 @@ public class WeightServiceImpl implements WeightService {
 
   @Transactional
   public WeightRecord updateRecord(Long uid, Long id, WeightRequests.Measurement request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WeightRecord existing = record(uid, id);
     WeightRecord record = measurement(uid, request);
     record.id = id;
@@ -66,7 +67,7 @@ public class WeightServiceImpl implements WeightService {
 
   @Transactional
   public void deleteRecord(Long uid, Long id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WeightRecord existing = record(uid, id);
     mapper.deleteRecord(uid, id);
     LocalDate date = existing.measuredAt.toLocalDate();
@@ -127,7 +128,7 @@ public class WeightServiceImpl implements WeightService {
 
   @Transactional
   public WeightGoal saveGoal(Long uid, WeightRequests.Goal request) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     WeightGoal goal = new WeightGoal();
     goal.userId = uid;
     goal.startDate = request.startDate();
@@ -140,7 +141,7 @@ public class WeightServiceImpl implements WeightService {
 
   @Transactional
   public void deleteGoal(Long uid) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     mapper.deleteGoal(uid);
   }
 

@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.*;
 import com.health.mapper.AccountMapper;
 import com.health.model.Models.*;
@@ -56,7 +57,7 @@ public class AccountServiceImpl implements AccountService {
 
   @Transactional
   public Profile profile(Long id, Requests.Profile r) {
-    mapper.lockUser(id);
+    Identity.requireExisting(mapper.lockUser(id));
     Profile p = mapper.profile(id);
     if ((p.aiConsent && Boolean.FALSE.equals(r.aiConsent()))
         || (p.aiSleep && Boolean.FALSE.equals(r.aiSleep()))
@@ -80,7 +81,9 @@ public class AccountServiceImpl implements AccountService {
     return mapper.profile(id);
   }
 
+  @Transactional
   public void password(Long id, Requests.Password r) {
+    Identity.requireExisting(mapper.lockUser(id));
     User u = mapper.byId(id);
     if (!bcrypt.matches(r.oldPassword(), u.passwordHash))
       throw new ApiException(400, "WRONG_PASSWORD", "原密码错误");

@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.ApiException;
 import com.health.api.HeartRateController;
 import com.health.api.WeightRequests;
@@ -87,7 +88,7 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
     var rows = new ArrayList<>(unique.values());
     batch.firstMeasurement = rows.stream().map(Row::measuredAt).min(LocalDateTime::compareTo).orElseThrow();
     batch.lastMeasurement = rows.stream().map(Row::measuredAt).max(LocalDateTime::compareTo).orElseThrow();
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     mapper.insertBatch(batch);
     for (int start = 0; start < rows.size(); start += 500)
       mapper.insertRows(batch.id, rows.subList(start, Math.min(start + 500, rows.size())));
@@ -105,7 +106,7 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
 
   @Transactional
   public Batch confirm(Long userId, Metric metric, Long id) {
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     Batch batch = batch(userId, metric, id);
     if ("CONFIRMED".equals(batch.status)) return batch;
     rejectConflict(batch);

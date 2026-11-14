@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.health.api.ApiException;
 import com.health.api.HeartRateController.Measurement;
 import com.health.api.Requests.StatisticsQuery;
@@ -60,7 +61,7 @@ public class HeartRateServiceImpl implements HeartRateService {
 
   @Transactional
   public Sample save(Long userId, Long id, Measurement measurement) {
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     Sample sample = sample(userId, measurement);
     if (id == null) {
       mapper.insert(sample);
@@ -81,7 +82,7 @@ public class HeartRateServiceImpl implements HeartRateService {
 
   @Transactional
   public void delete(Long userId, Long id) {
-    tasks.lockUser(userId);
+    Identity.requireExisting(tasks.lockUser(userId));
     Sample sample = mapper.record(userId, id);
     if (sample == null) throw ApiException.missing();
     mapper.delete(userId, id);

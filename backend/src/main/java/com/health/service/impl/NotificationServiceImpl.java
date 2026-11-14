@@ -1,6 +1,8 @@
 package com.health.service.impl;
 
 import com.health.mapper.NotificationMapper;
+import com.health.mapper.AccountMapper;
+import com.health.security.Identity;
 import com.health.model.Models.Page;
 import com.health.model.NotificationModels.*;
 import com.health.service.NotificationService;
@@ -15,8 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationServiceImpl implements NotificationService {
   private final NotificationMapper mapper;
 
-  public NotificationServiceImpl(NotificationMapper mapper) {
+  private final AccountMapper accounts;
+
+  public NotificationServiceImpl(NotificationMapper mapper, AccountMapper accounts) {
     this.mapper = mapper;
+    this.accounts = accounts;
   }
 
   @Override
@@ -50,7 +55,9 @@ public class NotificationServiceImpl implements NotificationService {
   }
 
   @Override
+  @Transactional
   public Settings saveSettings(Long userId, Settings settings) {
+    Identity.requireExisting(accounts.lockUser(userId));
     mapper.saveSettings(userId, settings);
     return settings;
   }

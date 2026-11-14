@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.ApiException;
 import com.health.api.PlanRevisionRequests.*;
 import com.health.mapper.PlanMapper;
+import com.health.mapper.AccountMapper;
+import com.health.security.Identity;
 import com.health.model.Models.Plan;
 import com.health.model.Models.PlanItem;
 import com.health.model.PlanRevisionModels.*;
@@ -23,11 +25,13 @@ public class PlanRevisionServiceImpl implements PlanRevisionService {
   private final PlanMapper mapper;
   private final PlanService plans;
   private final ObjectMapper json;
+  private final AccountMapper accounts;
 
-  public PlanRevisionServiceImpl(PlanMapper mapper, PlanService plans, ObjectMapper json) {
+  public PlanRevisionServiceImpl(PlanMapper mapper, PlanService plans, ObjectMapper json, AccountMapper accounts) {
     this.mapper = mapper;
     this.plans = plans;
     this.json = json;
+    this.accounts = accounts;
   }
 
   @Override
@@ -113,6 +117,7 @@ public class PlanRevisionServiceImpl implements PlanRevisionService {
   }
 
   private Plan lockPlan(Long userId, Long planId) {
+    Identity.requireExisting(accounts.lockUser(userId));
     Plan plan = mapper.lock(userId, planId);
     if (plan == null) throw ApiException.missing();
     return plan;

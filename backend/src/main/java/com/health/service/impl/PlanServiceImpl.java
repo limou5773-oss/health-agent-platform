@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.*;
@@ -49,6 +50,7 @@ public class PlanServiceImpl implements PlanService {
 
   @Transactional
   public Plan status(Long uid, Long id, String status) {
+    Identity.requireExisting(tasks.lockUser(uid));
     Plan plan = mapper.lock(uid, id);
     if (plan == null) throw ApiException.missing();
     if (!status.equals(plan.status)) {
@@ -60,6 +62,7 @@ public class PlanServiceImpl implements PlanService {
 
   @Transactional
   public Map<String, Object> checkin(Long uid, Long id, LocalDate date) {
+    Identity.requireExisting(tasks.lockUser(uid));
     PlanItem item = mapper.itemOwner(uid, id);
     if (item == null) throw ApiException.missing();
     Plan p = mapper.lock(uid, item.planId);
@@ -77,7 +80,7 @@ public class PlanServiceImpl implements PlanService {
 
   @Transactional
   public void uncheck(Long uid, Long id) {
-    tasks.lockUser(uid);
+    Identity.requireExisting(tasks.lockUser(uid));
     PlanItem item = mapper.itemOwner(uid, id);
     if (item == null) throw ApiException.missing();
     mapper.lock(uid, item.planId);

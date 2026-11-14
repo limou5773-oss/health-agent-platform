@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.health.security.Identity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -83,7 +84,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task create(Long uid, Requests.TaskCreate r) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     Profile profile = accounts.profile(uid);
     AgentPermissions.require(profile, r.kind(), r.includeDiary());
     Task t = new Task();
@@ -113,6 +114,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task createTemplateDraft(Long uid, Template template, Requests.Draft draft) {
+    Identity.requireExisting(mapper.lockUser(uid));
     Task task = new Task();
     task.id = UUID.randomUUID().toString();
     task.userId = uid;
@@ -135,7 +137,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task input(Long uid, String id, Requests.TaskInput r) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     Task t = owned(mapper.lock(id), uid);
     Profile profile = accounts.profile(uid);
     AgentPermissions.requireCurrent(profile, t);
@@ -165,6 +167,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Map<String, Object> confirm(Long uid, String id, Requests.Confirm r) {
+    Identity.requireExisting(mapper.lockUser(uid));
     Task t = owned(mapper.lock(id), uid);
     if (t.planId != null) {
       if (!Objects.equals(t.confirmedVersion, r.version())) throw ApiException.conflict("草稿版本已失效");
@@ -215,7 +218,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task retry(Long uid, String id) {
-    mapper.lockUser(uid);
+    Identity.requireExisting(mapper.lockUser(uid));
     Task t = owned(mapper.lock(id), uid);
     AgentPermissions.requireCurrent(accounts.profile(uid), t);
     requireStatus(t, "FAILED");
@@ -230,6 +233,7 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public void delete(Long uid, String id) {
+    Identity.requireExisting(mapper.lockUser(uid));
     Task task = owned(mapper.lock(id), uid);
     if (task.templateId == null) deleteCheckpoint(id);
     mapper.deleteSteps(id);
@@ -256,8 +260,9 @@ public class TaskServiceImpl implements TaskService {
     mapper.saveFeedback(id, feedback);
   }
 
+  @Transactional
   public Task internalIdentity(String id, String token) {
-    Task t = mapper.get(id);
+    Task t = mapper.lock(id);
     if (t == null
         || token == null
         || !MessageDigest.isEqual(
