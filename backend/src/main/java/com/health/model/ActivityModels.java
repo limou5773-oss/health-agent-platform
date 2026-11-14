@@ -37,11 +37,15 @@ public final class ActivityModels {
     public LocalDateTime createdAt;
   }
 
+  public enum StepImportFormat { CSV, APPLE_HEALTH }
+
   public static class StepImportBatch {
     public Long id;
     @JsonIgnore public Long userId;
     public String status;
+    public StepImportFormat importFormat;
     public int totalRows;
+    public int skippedRows;
     public int validRows;
     public int invalidRows;
     public int duplicateRows;

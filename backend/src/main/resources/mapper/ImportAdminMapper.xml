@@ -14,7 +14,7 @@
   <sql id="rowTable"><choose><when test="kind.name() == 'SLEEP'">import_rows</when><otherwise>step_import_rows</otherwise></choose></sql>
   <sql id="columns">
     #{kind} AS kind,id,user_id,
-    <choose><when test="kind.name() == 'STEPS'">'CSV'</when><otherwise>import_format</otherwise></choose> AS format,
+    import_format AS format,
     status,total_rows,valid_rows,invalid_rows,duplicate_rows,
     <choose><when test="kind.name() == 'SLEEP'">unsupported_rows</when><otherwise>0</otherwise></choose> AS unsupported_rows,
     inserted_rows,created_at

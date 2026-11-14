@@ -66,10 +66,12 @@ public class ActivityController {
   }
 
   @PostMapping(value = "/step-imports/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public StepImportBatch preview(HttpServletRequest r, @RequestPart MultipartFile file, @RequestParam(required = false) String timezone) {
+  public StepImportBatch preview(HttpServletRequest r, @RequestPart MultipartFile file,
+      @RequestParam(defaultValue = "CSV") StepImportFormat format, @RequestParam(required = false) String timezone) {
     Long userId = Identity.user(r).id;
     try {
-      return service.preview(userId, file, timezone);
+      return format == StepImportFormat.APPLE_HEALTH
+          ? service.previewApple(userId, file) : service.preview(userId, file, timezone);
     } catch (ApiException e) {
       if (e.status == 400) {
         importAdmin.rejected(Kind.STEPS, userId, e.code);

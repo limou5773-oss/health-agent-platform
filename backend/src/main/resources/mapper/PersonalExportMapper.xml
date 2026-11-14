@@ -91,7 +91,7 @@
         FROM import_batches WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'STEP_IMPORTS'">
-        SELECT id, status, total_rows, valid_rows, invalid_rows, duplicate_rows, inserted_rows, created_at
+        SELECT id, status, import_format, total_rows, skipped_rows, valid_rows, invalid_rows, duplicate_rows, inserted_rows, created_at
         FROM step_import_batches WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'MEASUREMENT_IMPORTS'">

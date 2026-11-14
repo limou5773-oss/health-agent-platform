@@ -230,6 +230,8 @@ CREATE TABLE activity_goals (
 CREATE TABLE step_import_batches (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
  status ENUM('PREVIEW','CONFIRMED') NOT NULL DEFAULT 'PREVIEW',
+ import_format VARCHAR(20) NOT NULL DEFAULT 'CSV',
+ skipped_rows INT NOT NULL DEFAULT 0,
  total_rows INT NOT NULL, valid_rows INT NOT NULL, invalid_rows INT NOT NULL,
  duplicate_rows INT NOT NULL, inserted_rows INT NOT NULL DEFAULT 0,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

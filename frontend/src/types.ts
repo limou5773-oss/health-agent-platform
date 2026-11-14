@@ -319,7 +319,9 @@ export interface StepImportRow {
 export interface StepImportBatch {
   id: number;
   status: string;
+  importFormat: "CSV" | "APPLE_HEALTH";
   totalRows: number;
+  skippedRows: number;
   validRows: number;
   invalidRows: number;
   duplicateRows: number;

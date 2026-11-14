@@ -6,7 +6,7 @@
 
 - 步数记录包含startTime、endTime、steps（非负整数）、mode（CUMULATIVE或DELTA）、sourceName及note。日期为开始日期；区间至少1秒，须在同一本地日期内，可恰好结束于次日零点。CUMULATIVE必须从当日零点开始。
 - 每个用户、来源、日期只使用一种步数语义；混合累计与增量时返回409。累计快照取结束时间最新的一条，不将快照相加；增量区间不得重叠，首尾相接允许。更正快照通过修改原记录完成。
-- 同一用户、来源、起止时间构成步数唯一记录；重复且步数及mode相同的CSV行跳过，内容不同则提示冲突。数据库唯一约束和用户行锁保护写入。
+- 同一用户、来源、起止时间构成步数唯一记录；步数及mode均相同的重复导入行跳过，内容不同则提示冲突。数据库唯一约束和用户行锁保护写入。
 - 统计时同一天出现多个步数来源且未指定sourceName，返回409 SOURCE_SELECTION_REQUIRED；每日保留实际采用的来源。没有记录的日期steps=null，真实零步为0；平均值按有记录日期计算。
 - 每日步数目标由用户设置为正整数；未设置时dailyGoal、goalDays及goalRate=null，不生成默认健康目标。目标比例可超过100%，达标天数按实际记录及当前设置的目标计算，不保存历史目标版本。
 - 运动记录包含exerciseType（自由文本，最多50字符）、startTime、endTime、sourceName、note及可选planItemId，时长由程序以秒计算为分钟，按开始日期归档。相同用户、起止时间、类型及来源不重复录入。
@@ -22,9 +22,10 @@
 - GET /steps/sources → string[]。
 - GET /steps/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalSteps,averageSteps,dailyGoal,goalDays,daily:[{date,steps,sourceName,goalRate}]}。
 - GET /goal → {dailySteps:number|null}；PUT /goal {dailySteps:正整数} → 相同结构。
-- POST /step-imports/preview：multipart file、timezone（可选，默认档案时区）；UTF-8、最多10MB及10000行，表头startTime,endTime,steps,mode,sourceName,note。时间为ISO本地时间或带offset，转换为档案时区后按上述日期/语义规则校验。每行保留错误，不直接写正式记录。
+- POST /step-imports/preview 接收 multipart file 和 format（默认 CSV，可选 APPLE_HEALTH）。CSV 接收可选 timezone，默认档案时区。文件为 UTF-8，最多 10 MB、10000 行，表头为 `startTime,endTime,steps,mode,sourceName,note`。时间使用 ISO 本地时间或带 offset 的时间，转换到档案时区后按日期和步数语义校验。
+- APPLE_HEALTH 读取导出的 XML 或 ZIP，最多 100 MB、10000 条步数记录，沿用苹果健康 ZIP 展开上限及路径要求。每条 StepCount 样本按起止时间和 count 单位保存为 DELTA，来源保留原始 sourceName，备注保留原始偏移时间。转换到档案时区后，跨日或同来源区间重叠的样本在预览中标为无效。档案时区发生偏移切换或端点时间有歧义时提示改用 UTC 时区重新导入。[Apple HealthKit StepCount](https://developer.apple.com/documentation/healthkit/hkquantitytypeidentifier/stepcount)
 - POST /step-imports/{id}/confirm → StepImportBatch；GET /step-imports → StepImportBatch[]。确认在事务内重新核对当前业务状态，同批确认幂等；预览后发生新的语义冲突时明确返回409，不吞错。成功确认后清理临时预览行，历史仅保留批次计数。
-- StepImportBatch={id,status,totalRows,validRows,invalidRows,duplicateRows,insertedRows,createdAt,rows?}；rows为预览行数组：{rowNumber,startTime,endTime,steps,mode,sourceName,note,valid,error}。其中steps为原始文本，避免无效数字无法预览。重复数是有效数的子集。
+- StepImportBatch={id,status,importFormat,totalRows,skippedRows,validRows,invalidRows,duplicateRows,insertedRows,createdAt,rows?}。`totalRows` 为预览记录数，`skippedRows` 为苹果文件中的其他指标数，`duplicateRows` 是有效数的子集。无效行可查看原始步数，有效的苹果步数显示为规范整数。升级已有库需执行 `031_apple_step_import.sql`，历史批次默认标为 CSV。
 - GET /workouts → Page<Workout>；POST /workouts、PUT /workouts/{id}：{exerciseType,startTime,endTime,sourceName,note,planItemId:number|null} → Workout；DELETE /workouts/{id} → 204。
 - GET /workouts/sources → string[]。
 - GET /workouts/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalMinutes,recordCount,daily:[{date,minutes:number|null,recordCount}]}。

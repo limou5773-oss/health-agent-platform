@@ -7,7 +7,9 @@ import type { StepImportBatch, StepImportPreview } from "../types";
 import StateNotice from "./StateNotice.vue";
 const emit = defineEmits<{ imported: [] }>();
 const file = ref<File | null>(null),
-  timezone = ref("");
+  timezone = ref(""),
+  format = ref<StepImportBatch["importFormat"]>("CSV");
+const formatText = { CSV: "通用 CSV", APPLE_HEALTH: "苹果健康 XML / ZIP" };
 const preview = ref<StepImportPreview | null>(null),
   result = ref<StepImportBatch | null>(null);
 const batches = ref<StepImportBatch[]>([]),
@@ -41,6 +43,10 @@ function selectFile(event: Event) {
   resetPreview();
 }
 watch(timezone, resetPreview);
+watch(format, () => {
+  file.value = null;
+  resetPreview();
+});
 const templateNote = ref("");
 const templateError = ref("");
 async function template() {
@@ -70,7 +76,9 @@ async function upload() {
   resetPreview();
   const body = new FormData();
   body.append("file", file.value);
-  if (timezone.value.trim()) body.append("timezone", timezone.value.trim());
+  body.append("format", format.value);
+  if (format.value === "CSV" && timezone.value.trim())
+    body.append("timezone", timezone.value.trim());
   try {
     preview.value = await api<StepImportPreview>(
       "/activity/step-imports/preview",
@@ -110,23 +118,30 @@ onMounted(loadHistory);
     <p v-if="templateNote" class="prose muted">{{ templateNote }}</p>
     <div class="section-heading">
       <div>
-        <h2>导入步数 CSV</h2>
-        <p>先逐行预览，再确认有效记录。通用模板支持累计快照与区间增量。</p>
+        <h2>导入步数</h2>
+        <p>先逐行预览，再确认有效记录。</p>
       </div>
-      <button class="secondary" @click="template">
+      <button v-if="format === 'CSV'" class="secondary" @click="template">
         <Download :size="16" />下载空白模板
       </button>
     </div>
     <form class="form-grid" @submit.prevent="upload">
+      <label>文件格式
+        <select v-model="format" :disabled="busy">
+          <option value="CSV">{{ formatText.CSV }}</option>
+          <option value="APPLE_HEALTH">{{ formatText.APPLE_HEALTH }}</option>
+        </select>
+      </label>
       <label
-        >UTF-8 CSV 文件<input
+        >{{ formatText[format] }} 文件<input
+          :key="format"
           type="file"
-          accept=".csv,text/csv"
+          :accept="format === 'CSV' ? '.csv,text/csv' : '.xml,.zip'"
           required
           :disabled="busy"
           @change="selectFile"
       /></label>
-      <label
+      <label v-if="format === 'CSV'"
         >文件时区（选填）<input
           v-model="timezone"
           :disabled="busy"
@@ -138,12 +153,16 @@ onMounted(loadHistory);
         </button>
       </div>
     </form>
-    <p class="footnote">
+    <p v-if="format === 'CSV'" class="footnote">
       最多 10 MB、10,000 行；固定表头为
       startTime,endTime,steps,mode,sourceName,note。时间使用 ISO 本地时间或带
       offset 的时间，mode 填 CUMULATIVE 或
       DELTA。下载模板只包含表头，请填写自己的真实数据。Mi Fitness
       私有原始格式需要先整理为此模板。
+    </p>
+    <p v-else class="footnote">
+      上传苹果健康导出的 XML 或 ZIP，最多 100 MB、10,000 条步数记录。
+      步数按档案时区转换为区间增量。跨日或重叠区间可在预览中查看。
     </p>
     <p v-if="previewError" class="feedback error" role="alert">
       {{ previewError }}
@@ -159,12 +178,13 @@ onMounted(loadHistory);
     <section v-if="preview" class="import-preview" aria-label="步数导入预览">
       <div class="section-heading">
         <div>
-          <h3>批次 #{{ preview.id }} · 导入预览</h3>
+          <h3>批次 #{{ preview.id }} · {{ formatText[preview.importFormat] }}</h3>
           <p>
             共 {{ preview.totalRows }} 行 · 有效 {{ preview.validRows }} · 无效
             {{ preview.invalidRows }} · 重复
             {{ preview.duplicateRows }}（已包含在有效行中）
           </p>
+          <p v-if="preview.importFormat === 'APPLE_HEALTH'">已跳过其他指标 {{ preview.skippedRows }} 条。</p>
           <p>确认后仅写入有效且不重复的记录，无效行保留错误说明。</p>
         </div>
         <button :disabled="busy || preview.validRows === 0" @click="confirm">
@@ -254,10 +274,11 @@ onMounted(loadHistory);
         <table>
           <thead>
             <tr>
-              <th>批次 / 创建时间</th>
+              <th>批次 / 格式 / 创建时间</th>
               <th>状态</th>
               <th>总行数</th>
               <th>有效 / 无效 / 重复</th>
+              <th>跳过</th>
               <th>实际写入</th>
             </tr>
           </thead>
@@ -265,6 +286,7 @@ onMounted(loadHistory);
             <tr v-for="batch in batches" :key="batch.id">
               <td>
                 #{{ batch.id }}
+                <p class="small">{{ formatText[batch.importFormat] }}</p>
                 <p class="small">{{ batch.createdAt.replace("T", " ") }}</p>
               </td>
               <td>{{ statusText[batch.status] || batch.status }}</td>
@@ -273,6 +295,7 @@ onMounted(loadHistory);
                 {{ batch.validRows }} / {{ batch.invalidRows }} /
                 {{ batch.duplicateRows }}
               </td>
+              <td>{{ batch.skippedRows }}</td>
               <td>
                 {{
                   batch.status === "CONFIRMED" ? batch.insertedRows : "尚未确认"

@@ -10,6 +10,7 @@ import com.health.model.ActivityModels.*;
 import com.health.model.Models.Page;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
+import com.health.service.AppleHealthExportReader;
 import com.health.service.NotificationService;
 import com.health.service.TaskService;
 import jakarta.validation.Validator;
@@ -18,8 +19,10 @@ import java.math.BigDecimal;
 import java.nio.charset.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.csv.*;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ActivityServiceImpl implements ActivityService {
+  private static final DateTimeFormatter APPLE_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss xx")
+      .withResolverStyle(ResolverStyle.STRICT);
+  private static final Pattern APPLE_STEP_VALUE = Pattern.compile("[0-9]+(?:\\.0+)?");
   private final ActivityMapper mapper;
   private final PlanMapper plans;
   private final AccountService accounts;
@@ -35,10 +41,11 @@ public class ActivityServiceImpl implements ActivityService {
   private final NotificationService notifications;
   private final ImportAdminService importAdmin;
   private final TaskService tasks;
+  private final AppleHealthExportReader apple;
 
   public ActivityServiceImpl(ActivityMapper mapper, PlanMapper plans, AccountService accounts,
       Validator validator, NotificationService notifications,
-      ImportAdminService importAdmin, TaskService tasks) {
+      ImportAdminService importAdmin, TaskService tasks, AppleHealthExportReader apple) {
     this.mapper = mapper;
     this.plans = plans;
     this.accounts = accounts;
@@ -46,6 +53,7 @@ public class ActivityServiceImpl implements ActivityService {
     this.notifications = notifications;
     this.importAdmin = importAdmin;
     this.tasks = tasks;
+    this.apple = apple;
   }
 
   public Page<StepRecord> steps(Long uid, Requests.SleepQuery q) {
@@ -167,6 +175,7 @@ public class ActivityServiceImpl implements ActivityService {
     StepImportBatch batch = new StepImportBatch();
     batch.userId = uid;
     batch.status = "PREVIEW";
+    batch.importFormat = StepImportFormat.CSV;
     batch.rows = new ArrayList<>();
     Map<StepDay, List<StepRecord>> buckets = new HashMap<>();
     try (Reader reader = new InputStreamReader(file.getInputStream(),
@@ -191,45 +200,119 @@ public class ActivityServiceImpl implements ActivityService {
             ActivityRequests.Step request = new ActivityRequests.Step(
                 parseTime(row.startTime, zone, profileZone), parseTime(row.endTime, zone, profileZone),
                 BigDecimal.valueOf(Integer.parseInt(row.steps)), row.mode, row.sourceName, row.note);
-            var violations = validator.validate(request);
-            if (!violations.isEmpty()) row.error = violations.iterator().next().getMessage();
-            else {
-              StepRecord record = stepRecord(uid, request);
-              List<StepRecord> bucket = buckets.computeIfAbsent(new StepDay(record.activityDate, record.sourceName),
-                  key -> new ArrayList<>(mapper.stepDay(uid, key.date(), key.source())));
-              boolean duplicate = checkStep(record, bucket, true);
-              row.valid = true;
-              row.startTime = record.startTime.toString();
-              row.endTime = record.endTime.toString();
-              if (duplicate) {
-                row.error = "重复记录，确认时跳过";
-                batch.duplicateRows++;
-              } else bucket.add(record);
-            }
+            validatePreviewStep(batch, row, buckets, request);
           } catch (DateTimeException | IllegalArgumentException e) {
             row.error = "时间须为ISO本地时间或带offset时间；步数须为非负整数";
           } catch (ApiException e) {
             row.error = e.getMessage();
           }
         }
-        if (row.valid) batch.validRows++;
-        else {
-          batch.invalidRows++;
-          row.error = "第" + row.rowNumber + "行：" + row.error;
-        }
-        batch.rows.add(row);
+        addPreviewRow(batch, row);
       }
     } catch (IOException | UncheckedIOException | IllegalArgumentException e) {
       throw new ApiException(400, "INVALID_CSV", "无法解析UTF-8 CSV，请检查编码、表头及引号格式");
     }
+    return saveStepPreview(batch);
+  }
+
+  @Transactional
+  public StepImportBatch previewApple(Long uid, MultipartFile file) {
+    Identity.requireExisting(mapper.lockUser(uid));
+    ZoneId zone = ZoneId.of(accounts.profile(uid).timezone);
+    StepImportBatch batch = new StepImportBatch();
+    batch.userId = uid;
+    batch.status = "PREVIEW";
+    batch.importFormat = StepImportFormat.APPLE_HEALTH;
+    batch.rows = new ArrayList<>();
+    Map<StepDay, List<StepRecord>> buckets = new HashMap<>();
+    apple.read(file, xml -> {
+      if (!"HKQuantityTypeIdentifierStepCount".equals(xml.getAttributeValue(null, "type"))) {
+        batch.skippedRows++;
+        return;
+      }
+      if (batch.rows.size() >= 10000)
+        throw new ApiException(400, "TOO_MANY_ROWS", "苹果健康文件最多导入10000条步数记录");
+      StepImportRow row = new StepImportRow();
+      row.rowNumber = batch.rows.size() + batch.skippedRows + 1;
+      row.startTime = Objects.toString(xml.getAttributeValue(null, "startDate"), "");
+      row.endTime = Objects.toString(xml.getAttributeValue(null, "endDate"), "");
+      row.steps = Objects.toString(xml.getAttributeValue(null, "value"), "");
+      row.mode = "DELTA";
+      String source = xml.getAttributeValue(null, "sourceName");
+      row.sourceName = source == null || source.isBlank() ? "" : "苹果健康 · " + source;
+      if (!"count".equals(xml.getAttributeValue(null, "unit"))) row.error = "步数单位须为 count";
+      else if (row.steps.length() > 32 || !APPLE_STEP_VALUE.matcher(row.steps).matches())
+        row.error = "步数须为非负整数";
+      else {
+        try {
+          OffsetDateTime start = OffsetDateTime.parse(row.startTime, APPLE_TIME);
+          OffsetDateTime end = OffsetDateTime.parse(row.endTime, APPLE_TIME);
+          ZonedDateTime localStart = start.atZoneSameInstant(zone);
+          ZonedDateTime localEnd = end.atZoneSameInstant(zone);
+          if (!localStart.getOffset().equals(localEnd.getOffset())
+              || zone.getRules().getValidOffsets(localStart.toLocalDateTime()).size() != 1
+              || zone.getRules().getValidOffsets(localEnd.toLocalDateTime()).size() != 1) {
+            row.error = "档案时区存在偏移切换或时间歧义，请改用 UTC 时区后重新导入";
+          } else {
+            BigDecimal steps = new BigDecimal(row.steps).setScale(0);
+            row.note = "苹果健康原始区间 " + row.startTime + " 至 " + row.endTime;
+            ActivityRequests.Step request = new ActivityRequests.Step(
+                localStart.toLocalDateTime(), localEnd.toLocalDateTime(), steps, row.mode, row.sourceName, row.note);
+            validatePreviewStep(batch, row, buckets, request);
+            if (row.valid) row.steps = steps.toPlainString();
+          }
+        } catch (DateTimeException e) {
+          row.error = "苹果健康记录的起止时间须包含有效日期、时间及UTC偏移";
+        } catch (ApiException e) {
+          row.error = e.getMessage();
+        }
+      }
+      addPreviewRow(batch, row);
+    });
+    if (batch.rows.isEmpty())
+      throw new ApiException(400, "APPLE_METRIC_MISSING",
+          "文件中没有步数记录，已跳过 " + batch.skippedRows + " 条其他记录");
+    return saveStepPreview(batch);
+  }
+
+  private void validatePreviewStep(StepImportBatch batch, StepImportRow row,
+      Map<StepDay, List<StepRecord>> buckets, ActivityRequests.Step request) {
+    var violations = validator.validate(request);
+    if (!violations.isEmpty()) {
+      row.error = violations.iterator().next().getMessage();
+      return;
+    }
+    StepRecord record = stepRecord(batch.userId, request);
+    List<StepRecord> bucket = buckets.computeIfAbsent(new StepDay(record.activityDate, record.sourceName),
+        key -> new ArrayList<>(mapper.stepDay(batch.userId, key.date(), key.source())));
+    boolean duplicate = checkStep(record, bucket, true);
+    row.valid = true;
+    row.startTime = record.startTime.toString();
+    row.endTime = record.endTime.toString();
+    if (duplicate) {
+      row.error = "重复记录，确认时跳过";
+      batch.duplicateRows++;
+    } else bucket.add(record);
+  }
+
+  private static void addPreviewRow(StepImportBatch batch, StepImportRow row) {
+    if (row.valid) batch.validRows++;
+    else {
+      batch.invalidRows++;
+      row.error = "第" + row.rowNumber + "行：" + row.error;
+    }
+    batch.rows.add(row);
+  }
+
+  private StepImportBatch saveStepPreview(StepImportBatch batch) {
     batch.totalRows = batch.rows.size();
     mapper.insertBatch(batch);
     for (StepImportRow row : batch.rows) {
       row.batchId = batch.id;
       mapper.insertRow(row);
     }
-    batch.createdAt = mapper.batch(uid, batch.id).createdAt;
-    notifications.importIssues(uid, batch.id, true, batch.validRows, batch.invalidRows);
+    batch.createdAt = mapper.batch(batch.userId, batch.id).createdAt;
+    notifications.importIssues(batch.userId, batch.id, true, batch.validRows, batch.invalidRows);
     return batch;
   }
 
