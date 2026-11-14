@@ -33,6 +33,7 @@ const reasonText: Record<string, string> = {
   INVALID_ROW: "时间、字段或记录校验失败",
   INVALID_CSV_ROW: "测量记录字段错误或文件内数值冲突",
   MEASUREMENT_CONFLICT: "同来源同一时刻已有不同数值",
+  STEP_CONFIRM_CONFLICT: "确认时与已有步数记录冲突",
 };
 const status = { PREVIEW: "待确认", CONFIRMED: "已确认", REJECTED: "预览失败" };
 const kind = ref<ImportKind>("SLEEP");
@@ -155,7 +156,9 @@ watch(kind, loadTemplate, { immediate: true });
         @retry="show(selected)" />
       <ul v-if="issues.length">
         <li v-for="issue in issues" :key="issue.reason">{{ reasonText[issue.reason] ?? issue.reason }}
-          <span v-if="selected.id > 0"> · {{ issue.issueRows }} {{ issue.reason === "MEASUREMENT_CONFLICT" ? "次" : "行" }}</span>
+          <span v-if="selected.id > 0">
+            · {{ issue.issueRows }} {{ ["MEASUREMENT_CONFLICT", "STEP_CONFIRM_CONFLICT"].includes(issue.reason) ? "次" : "行" }}
+          </span>
         </li>
       </ul>
     </div>

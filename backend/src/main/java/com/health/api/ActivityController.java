@@ -82,7 +82,18 @@ public class ActivityController {
   }
 
   @PostMapping("/step-imports/{id}/confirm")
-  public StepImportBatch confirm(HttpServletRequest r, @PathVariable Long id) { return service.confirm(Identity.user(r).id, id); }
+  public StepImportBatch confirm(HttpServletRequest r, @PathVariable Long id) {
+    Long userId = Identity.user(r).id;
+    try {
+      return service.confirm(userId, id);
+    } catch (ApiException e) {
+      if (e.status == 409) {
+        importAdmin.recordIssue(Kind.STEPS, userId, id, "STEP_CONFIRM_CONFLICT");
+        notifications.importConflict(userId, id, Kind.STEPS);
+      }
+      throw e;
+    }
+  }
 
   @GetMapping("/step-imports")
   public List<StepImportBatch> imports(HttpServletRequest r) { return service.imports(Identity.user(r).id); }

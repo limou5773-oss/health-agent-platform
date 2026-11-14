@@ -25,6 +25,11 @@
         <when test="kind.name() == 'WEIGHT' or kind.name() == 'HEART_RATE'">
           WHERE EXISTS (SELECT 1 FROM import_issue_counts issue WHERE issue.kind=#{kind} AND issue.batch_id=measurement.id)
         </when>
+        <when test="kind.name() == 'STEPS'">
+          WHERE (invalid_rows &gt; 0 OR EXISTS (
+            SELECT 1 FROM import_issue_counts issue
+            WHERE issue.kind=#{kind} AND issue.batch_id=step_import_batches.id))
+        </when>
         <otherwise>WHERE (invalid_rows &gt; 0 <if test="kind.name() == 'SLEEP'">OR unsupported_rows &gt; 0</if>)</otherwise>
       </choose>
     </if>
@@ -70,6 +75,13 @@
         SELECT reason,row_count AS issue_rows FROM import_issue_counts WHERE kind=#{kind} AND batch_id=#{id} ORDER BY reason
       </when>
       <when test="confirmed">SELECT reason,row_count AS issue_rows FROM import_issue_counts WHERE kind=#{kind} AND batch_id=#{id} ORDER BY reason</when>
+      <when test="kind.name() == 'STEPS'">
+        SELECT reason,issue_rows FROM (
+          SELECT reason,row_count AS issue_rows FROM (<include refid="classifyIssues"/>) preview_issues
+          UNION ALL
+          SELECT reason,row_count AS issue_rows FROM import_issue_counts WHERE kind=#{kind} AND batch_id=#{id}
+        ) issues ORDER BY reason
+      </when>
       <otherwise>SELECT reason,row_count AS issue_rows FROM (<include refid="classifyIssues"/>) issues ORDER BY reason</otherwise>
     </choose>
   </select>
