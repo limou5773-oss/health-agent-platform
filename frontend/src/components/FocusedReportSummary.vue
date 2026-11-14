@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { reportMetrics } from "../report-metrics";
 import type { FocusedSnapshot } from "../types";
+import ReportCoverageBar from "./ReportCoverageBar.vue";
 
 const props = defineProps<{ snapshot: FocusedSnapshot }>();
 const periods = computed(() => [
@@ -21,9 +22,10 @@ const periods = computed(() => [
         <strong v-if="period.statistics.average !== null">{{ snapshot.metric === "HEART_RATE" ? "采样均值" : "日均" }} {{ period.statistics.average }} {{ reportMetrics[snapshot.metric][1] }}</strong>
         <span v-else>无有效均值</span>
       </p>
+      <ReportCoverageBar :valid-days="period.statistics.validDays" :period-days="period.statistics.periodDays" />
       <p v-if="snapshot.metric === 'HEART_RATE'" class="small muted">采样 {{ period.statistics.recordCount }} 条</p>
       <p v-if="period.sources.length" class="small muted">记录来源 {{ period.sources.join("、") }}</p>
-      <RouterLink v-if="period.sources.length" class="text-link small" :to="{ path: '/timeline', query: {
+      <RouterLink v-if="period.sources.length" class="text-link small report-screen-only" :to="{ path: '/timeline', query: {
         startDate: period.statistics.startDate, endDate: period.statistics.endDate,
         type: snapshot.metric, sourceName: snapshot.sourceName ?? undefined,
       } }">{{ snapshot.metric === "WORKOUT" ? "查看周期内开始的运动" : "查看周期原始记录" }}</RouterLink>

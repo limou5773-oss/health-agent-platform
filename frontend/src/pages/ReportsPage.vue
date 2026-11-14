@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { FileText } from "@lucide/vue";
 import { api, errorMessage, safeLink } from "../api";
@@ -16,6 +16,10 @@ const reports = ref<Report[]>([]),
   error = ref(""),
   detailLoading = ref(false),
   detailError = ref("");
+const detail = ref<HTMLElement | null>(null);
+const exporting = ref(false);
+const exportError = ref("");
+let expandedForPrint: HTMLDetailsElement[] = [];
 const selected = computed(() => {
   const id = Number(route.query.id);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
@@ -33,6 +37,7 @@ async function load() {
 }
 async function loadDetail() {
   report.value = null;
+  exportError.value = "";
   detailError.value = "";
   detailLoading.value = false;
   if (!selected.value) return;
@@ -47,12 +52,50 @@ async function loadDetail() {
     if (selected.value === id) detailLoading.value = false;
   }
 }
+async function exportPdf(id: number) {
+  exporting.value = true;
+  exportError.value = "";
+  try {
+    const latest = await api<Report>(`/reports/${id}`);
+    if (selected.value !== id) return;
+    report.value = latest;
+    if (latest.sourceDeleted) {
+      await load();
+      return;
+    }
+    await nextTick();
+    if (selected.value === id) window.print();
+  } catch (cause) {
+    if (selected.value === id) exportError.value = errorMessage(cause);
+  } finally {
+    exporting.value = false;
+  }
+}
+
+function preparePrint() {
+  expandedForPrint = Array.from(detail.value?.querySelectorAll<HTMLDetailsElement>("details:not([open])") ?? []);
+  for (const disclosure of expandedForPrint) disclosure.open = true;
+}
+
+function restorePrint() {
+  for (const disclosure of expandedForPrint) disclosure.open = false;
+  expandedForPrint = [];
+}
+
 watch(selected, loadDetail, { immediate: true });
-onMounted(load);
+onMounted(() => {
+  void load();
+  window.addEventListener("beforeprint", preparePrint);
+  window.addEventListener("afterprint", restorePrint);
+});
+onUnmounted(() => {
+  window.removeEventListener("beforeprint", preparePrint);
+  window.removeEventListener("afterprint", restorePrint);
+});
 </script>
 <template>
-  <HealthReportForm @generated="load" />
-  <StateNotice
+  <div class="report-screen-only"><HealthReportForm @generated="load" /></div>
+  <div class="report-screen-only"><StateNotice
     :loading="loading"
     :error="error"
     :empty="!reports.length"
@@ -62,12 +105,12 @@ onMounted(load);
     ><RouterLink class="button" to="/agent"
       >生成睡眠周报</RouterLink
     ></StateNotice
-  >
+  ></div>
   <div
     v-if="!loading && !error && (reports.length || selected)"
-    class="workspace-grid"
+    class="workspace-grid report-workspace"
   >
-    <section class="panel">
+    <section class="panel report-screen-only">
       <div class="section-heading">
         <h2>报告列表</h2>
         <span class="small muted">{{ reports.length }} 份</span>
@@ -94,7 +137,8 @@ onMounted(load);
         </li>
       </ul>
     </section>
-    <article class="panel report-detail">
+    <article ref="detail" class="panel report-detail"
+      :class="{ 'report-print-ready': report && !report.sourceDeleted && !detailLoading && !detailError }">
       <StateNotice
         :loading="detailLoading"
         :error="detailError"
@@ -102,10 +146,17 @@ onMounted(load);
       /><template v-if="report && !detailLoading && !detailError"
         ><p class="eyebrow">{{ report.reportType === "SLEEP" ? "睡眠回顾" : `第 ${report.reportVersion} 版` }}</p>
         <h2>{{ report.title }}</h2>
+        <div v-if="!report.sourceDeleted" class="actions report-screen-only">
+          <button type="button" class="secondary" :disabled="exporting" @click="exportPdf(report.id)">
+            {{ exporting ? "正在准备…" : "导出 PDF" }}
+          </button>
+          <span v-if="exportError" class="feedback error" role="alert">{{ exportError }}</span>
+        </div>
         <p class="small muted">
           {{ report.startDate }} 至 {{ report.endDate }} ·
           {{ report.createdAt.replace("T", " ") }}
         </p>
+        <p class="report-print-only">报告 #{{ report.id }} · 第 {{ report.reportVersion }} 版</p>
         <p v-if="report.reportType === 'SLEEP'" class="small">
           <span class="tag" :class="{ warm: !report.includeDiary }">{{
             report.includeDiary
@@ -113,7 +164,7 @@ onMounted(load);
               : "来源设置：睡眠数据"
           }}</span>
         </p>
-        <RouterLink v-if="report.taskId" :to="{ path: '/agent', query: { task: report.taskId } }">
+        <RouterLink v-if="report.taskId" class="report-screen-only" :to="{ path: '/agent', query: { task: report.taskId } }">
           查看生成任务
         </RouterLink>
         <p v-if="report.includeDiary" class="footnote">
@@ -156,7 +207,7 @@ onMounted(load);
                   >{{ reference.title }}</a
                 ><strong v-else>{{ reference.title }}</strong
                 ><span class="muted small"> · {{ reference.sourceName }}</span>
-                <RouterLink class="small" :to="{ path: '/knowledge', query: { id: reference.id } }">查看库内资料</RouterLink>
+                <RouterLink class="small report-screen-only" :to="{ path: '/knowledge', query: { id: reference.id } }">查看库内资料</RouterLink>
               </li>
             </ul>
           </section>
@@ -173,3 +224,85 @@ onMounted(load);
     </article>
   </div>
 </template>
+
+<style>
+.report-print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  body:has(.report-print-ready) {
+    background: white;
+    color: #1a261e;
+  }
+
+  .app-shell:has(.report-print-ready),
+  .report-workspace:has(.report-print-ready),
+  .main-content:has(.report-print-ready),
+  .report-print-ready {
+    display: block;
+    min-height: 0;
+    max-width: none;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: white;
+  }
+
+  .app-shell:has(.report-print-ready) > :not(.main-content),
+  .main-content:has(.report-print-ready) > .page-header,
+  .main-content:has(.report-print-ready) .report-screen-only {
+    display: none !important;
+  }
+
+  .report-print-ready {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+    font-size: 10pt;
+    overflow-wrap: anywhere;
+  }
+
+  .report-print-ready .report-print-only {
+    display: block;
+  }
+
+  .report-print-ready h2,
+  .report-print-ready h3,
+  .report-print-ready summary {
+    break-after: avoid;
+  }
+
+  .report-print-ready .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    break-inside: avoid;
+  }
+
+  .report-print-ready .chart-scroll,
+  .report-print-ready .table-wrap {
+    overflow: visible;
+    max-height: none;
+  }
+
+  .report-print-ready .sleep-chart {
+    min-width: 0;
+    width: 100%;
+    break-inside: avoid;
+  }
+
+  .report-print-ready thead {
+    display: table-header-group;
+  }
+
+  .report-print-ready tr,
+  .report-print-ready .health-report-metrics > li {
+    break-inside: avoid;
+  }
+}
+</style>
