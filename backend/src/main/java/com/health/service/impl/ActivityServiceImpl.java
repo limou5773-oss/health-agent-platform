@@ -76,6 +76,7 @@ public class ActivityServiceImpl implements ActivityService {
     if (existing == null) throw ApiException.missing();
     StepRecord record = stepRecord(uid, request);
     record.id = id;
+    record.sourceName = existing.sourceName;
     checkStep(record, mapper.stepDay(uid, record.activityDate, record.sourceName), false);
     mapper.updateStep(record);
     tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);

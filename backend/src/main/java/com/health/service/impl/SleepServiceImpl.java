@@ -52,7 +52,7 @@ public class SleepServiceImpl implements SleepService {
   @Transactional
   public SleepRecord create(Long uid, Requests.Sleep r) {
     Identity.requireExisting(mapper.lockUser(uid));
-    SleepRecord s = record(uid, r);
+    SleepRecord s = record(uid, r, r.sourceName());
     mapper.insert(s);
     return mapper.get(uid, s.id);
   }
@@ -62,14 +62,14 @@ public class SleepServiceImpl implements SleepService {
     Identity.requireExisting(mapper.lockUser(uid));
     SleepRecord old = mapper.get(uid, id);
     if (old == null) throw ApiException.missing();
-    SleepRecord s = record(uid, r);
+    SleepRecord s = record(uid, r, old.sourceName);
     s.id = id;
     if (old.startTime.equals(s.startTime) && old.endTime.equals(s.endTime)) {
       s.sleepDate = old.sleepDate;
     }
     mapper.update(s);
     tasks.invalidate(uid, old.sleepDate, old.sourceName);
-    if (!old.sleepDate.equals(s.sleepDate) || !old.sourceName.equals(s.sourceName)) {
+    if (!old.sleepDate.equals(s.sleepDate)) {
       tasks.invalidate(uid, s.sleepDate, s.sourceName);
     }
     return mapper.get(uid, id);
@@ -305,7 +305,8 @@ public class SleepServiceImpl implements SleepService {
                     LocalDateTime.parse(row.startTime),
                     LocalDateTime.parse(row.endTime),
                     row.sourceName,
-                    row.note));
+                    row.note),
+                row.sourceName);
         if (row.sleepDate != null) sleep.sleepDate = row.sleepDate;
         sleep.sourceApp = b.sourceApp;
         sleep.deviceBrand = b.deviceBrand;
@@ -327,14 +328,14 @@ public class SleepServiceImpl implements SleepService {
     return mapper.batches(uid);
   }
 
-  private static SleepRecord record(Long uid, Requests.Sleep r) {
+  private static SleepRecord record(Long uid, Requests.Sleep r, String sourceName) {
     SleepRecord s = new SleepRecord();
     s.userId = uid;
     s.startTime = r.startTime().truncatedTo(ChronoUnit.SECONDS);
     s.endTime = r.endTime().truncatedTo(ChronoUnit.SECONDS);
     s.sleepDate = s.endTime.toLocalDate();
     s.durationMinutes = ChronoUnit.SECONDS.between(s.startTime, s.endTime) / 60.0;
-    s.sourceName = r.sourceName();
+    s.sourceName = sourceName;
     s.note = r.note();
     s.dedupKey = dedup(s.startTime, s.endTime, s.sourceName);
     return s;

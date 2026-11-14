@@ -27,8 +27,8 @@
     VALUES(#{userId},#{measuredAt},#{weightKg},#{sourceName},#{note})
   </insert>
   <update id="updateRecord">
-    UPDATE weight_records SET measured_at=#{measuredAt},weight_kg=#{weightKg},source_name=#{sourceName},
-      note=#{note},updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=#{userId} AND id=#{id}
+    UPDATE weight_records SET measured_at=#{measuredAt},weight_kg=#{weightKg},
+      note=#{note},corrected=TRUE,updated_at=CURRENT_TIMESTAMP(6) WHERE user_id=#{userId} AND id=#{id}
   </update>
   <delete id="deleteRecord">DELETE FROM weight_records WHERE user_id=#{userId} AND id=#{id}</delete>
   <select id="sources" resultType="string">

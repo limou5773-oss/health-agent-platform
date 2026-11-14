@@ -159,6 +159,7 @@ onMounted(load);
       ><label
         >数据来源<input
           v-model="form.sourceName"
+          :readonly="editingId !== null"
           required
           maxlength="100"
           list="source-list"

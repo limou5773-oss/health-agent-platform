@@ -49,7 +49,10 @@ onMounted(load);
       </div>
       <div>
         <dt>来源</dt>
-        <dd>{{ record.sourceName }}</dd>
+        <dd>
+          {{ record.sourceName }}
+          <span v-if="record.corrected" class="tag">已更正</span>
+        </dd>
       </div>
       <div>
         <dt>创建时间</dt>

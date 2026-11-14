@@ -26,7 +26,8 @@
     VALUES(#{userId},#{startTime},#{endTime},#{activityDate},#{steps},#{mode},#{sourceName},#{note})
   </insert>
   <update id="updateStep">
-    UPDATE step_records SET start_time=#{startTime},end_time=#{endTime},activity_date=#{activityDate},steps=#{steps},mode=#{mode},source_name=#{sourceName},note=#{note} WHERE user_id=#{userId} AND id=#{id}
+    UPDATE step_records SET start_time=#{startTime},end_time=#{endTime},activity_date=#{activityDate},
+      steps=#{steps},mode=#{mode},note=#{note},corrected=TRUE WHERE user_id=#{userId} AND id=#{id}
   </update>
   <delete id="deleteStep">DELETE FROM step_records WHERE user_id=#{userId} AND id=#{id}</delete>
   <select id="stepSources" resultType="string">SELECT DISTINCT source_name FROM step_records WHERE user_id=#{userId} ORDER BY source_name</select>

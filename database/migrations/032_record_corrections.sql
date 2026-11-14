@@ -1,0 +1,4 @@
+USE health_agent;
+
+ALTER TABLE step_records ADD COLUMN corrected BOOLEAN NOT NULL DEFAULT FALSE AFTER note;
+ALTER TABLE weight_records ADD COLUMN corrected BOOLEAN NOT NULL DEFAULT FALSE AFTER note;

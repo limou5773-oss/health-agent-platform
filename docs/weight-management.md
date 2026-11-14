@@ -35,7 +35,7 @@
 - GET /goal → 200 WeightGoal，未设置目标时204无响应体；PUT /goal：{startDate,targetDate,targetWeightKg,sourceName} → 200 WeightGoal；DELETE /goal → 204（无目标时也为204）。
 - GET /goal/progress → 200 WeightGoalProgress，未设置目标时204无响应体。复用前端api对204的处理，不返回空200供JSON解析，不以空对象代替未设置状态。
 
-WeightRecord={id,measuredAt,weightKg,sourceName,note,createdAt,updatedAt}。
+WeightRecord={id,measuredAt,weightKg,sourceName,note,corrected,createdAt,updatedAt}。保存更正时保留原来源，并标记 `corrected=true`。
 WeightStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,recordCount,averageKg,first,last,changeKg,dataCutoff,daily:[{date,recordCount,representative:WeightRecord|null}]}。first、last为WeightRecord或null。
 WeightGoal={startDate,targetDate,targetWeightKg,sourceName,createdAt,updatedAt}。
 WeightGoalProgress={goal:WeightGoal,periodDays,validDays,coverageRate,baseline:WeightRecord|null,current:WeightRecord|null,changeKg,differenceToTargetKg,progressRate,direction,goalReached,dataCutoff}。

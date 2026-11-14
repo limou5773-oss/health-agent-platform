@@ -16,6 +16,7 @@ public final class WeightModels {
     public BigDecimal weightKg;
     public String sourceName;
     public String note;
+    public boolean corrected;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
   }

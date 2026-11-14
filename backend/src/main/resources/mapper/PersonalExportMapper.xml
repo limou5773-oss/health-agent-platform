@@ -16,7 +16,7 @@
         FROM sleep_records WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'STEPS'">
-        SELECT id, start_time, end_time, activity_date, steps, mode, source_name, note, created_at
+        SELECT id, start_time, end_time, activity_date, steps, mode, source_name, note, corrected, created_at
         FROM step_records WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'WORKOUTS'">
@@ -32,7 +32,7 @@
         FROM water_records WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'WEIGHT'">
-        SELECT id, measured_at, weight_kg, source_name, note, created_at, updated_at
+        SELECT id, measured_at, weight_kg, source_name, note, corrected, created_at, updated_at
         FROM weight_records WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'HEART_RATE'">

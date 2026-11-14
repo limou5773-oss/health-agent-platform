@@ -20,9 +20,10 @@ interface TimelineDetails {
     | "deviceBrand"
     | "deviceType"
     | "deviceModel"
+    | "corrected"
     | "note"
   >;
-  STEPS: Pick<StepRecord, "startTime" | "endTime" | "steps" | "mode" | "note">;
+  STEPS: Pick<StepRecord, "startTime" | "endTime" | "steps" | "mode" | "corrected" | "note">;
   WORKOUT: Pick<
     Workout,
     | "exerciseType"
@@ -37,7 +38,7 @@ interface TimelineDetails {
     "id" | "consumedAt" | "sourceName" | "createdAt" | "updatedAt"
   >;
   WATER: Pick<WaterRecord, "amountMl" | "note">;
-  WEIGHT: Pick<WeightRecord, "weightKg" | "note">;
+  WEIGHT: Pick<WeightRecord, "weightKg" | "corrected" | "note">;
   HEART_RATE: { bpm: number; note: string; corrected: boolean };
   DIARY: Pick<
     DiaryRecord,

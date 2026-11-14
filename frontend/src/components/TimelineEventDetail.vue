@@ -30,6 +30,7 @@ const fields = computed<[string, string][]>(() => {
         ["设备品牌", deviceBrands[details.deviceBrand]],
         ["设备类型", deviceTypes[details.deviceType]],
         ["设备型号", details.deviceModel || "未填写"],
+        ["更正状态", details.corrected ? "已更正" : "未标记更正"],
       ];
     case "STEPS":
       return [
@@ -37,6 +38,7 @@ const fields = computed<[string, string][]>(() => {
         ["区间结束时间", recordTime(details.endTime)],
         ["步数", `${nutritionNumber(details.steps)} 步`],
         ["记录方式", details.mode === "CUMULATIVE" ? "累计快照" : "区间增量"],
+        ["更正状态", details.corrected ? "已更正" : "未标记更正"],
       ];
     case "WORKOUT":
       return [
@@ -85,7 +87,10 @@ const fields = computed<[string, string][]>(() => {
     case "WATER":
       return [["饮水量", `${nutritionNumber(details.amountMl)} 毫升`]];
     case "WEIGHT":
-      return [["体重", weightText(details.weightKg)]];
+      return [
+        ["体重", weightText(details.weightKg)],
+        ["更正状态", details.corrected ? "已更正" : "未标记更正"],
+      ];
     case "HEART_RATE":
       return [
         ["心率", `${nutritionNumber(details.bpm, 3)} 次/分`],

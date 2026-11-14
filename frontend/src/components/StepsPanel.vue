@@ -239,6 +239,7 @@ onMounted(load);
         <label
           >来源名称<input
             v-model="form.sourceName"
+            :readonly="editingId !== null"
             list="step-sources"
             maxlength="100"
             required
@@ -314,6 +315,7 @@ onMounted(load);
               </td>
               <td class="note-cell">
                 {{ record.sourceName }}
+                <span v-if="record.corrected" class="tag">已更正</span>
                 <p v-if="record.note" class="small">{{ record.note }}</p>
               </td>
               <td>

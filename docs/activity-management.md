@@ -31,7 +31,7 @@
 - GET /workouts/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalMinutes,recordCount,daily:[{date,minutes:number|null,recordCount}]}。
 - GET /plan-items?date=yyyy-MM-dd → [{id,planId,title,planTitle,date,completed}]，仅返回本人同日进行中计划的可关联项目。
 
-StepRecord={id,startTime,endTime,activityDate,steps,mode,sourceName,note,createdAt}。
+StepRecord={id,startTime,endTime,activityDate,steps,mode,sourceName,note,corrected,createdAt}。保存更正时沿用原来源进行区间冲突核对，并标记 `corrected=true`。
 Workout={id,exerciseType,startTime,endTime,activityDate,durationMinutes,sourceName,note,planItemId,planId,planItemTitle,planItemCompleted,createdAt}。未关联时planItemCompleted及关联字段为null。
 
 ## 实施顺序与验收分工

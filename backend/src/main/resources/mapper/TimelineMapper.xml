@@ -26,6 +26,7 @@
                   'deviceBrand', e.device_brand,
                   'deviceType', e.device_type,
                   'deviceModel', e.device_model,
+                  'corrected', CAST(IF(e.corrected, 'true', 'false') AS JSON),
                   'note', e.note) AS details_json
           </if>
         </if>
@@ -52,6 +53,7 @@
                   'endTime', REPLACE(CAST(e.end_time AS CHAR), ' ', 'T'),
                   'steps', e.steps,
                   'mode', e.mode,
+                  'corrected', CAST(IF(e.corrected, 'true', 'false') AS JSON),
                   'note', e.note) AS details_json
           </if>
         </if>
@@ -158,6 +160,7 @@
           , CONVERT(CONCAT('体重 ', e.weight_kg, ' 千克') USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
           <if test="detail">
             , JSON_OBJECT('weightKg', e.weight_kg,
+                  'corrected', CAST(IF(e.corrected, 'true', 'false') AS JSON),
                   'note', e.note) AS details_json
           </if>
         </if>

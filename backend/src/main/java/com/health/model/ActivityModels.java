@@ -17,6 +17,7 @@ public final class ActivityModels {
     public String mode;
     public String sourceName;
     public String note;
+    public boolean corrected;
     public LocalDateTime createdAt;
   }
 

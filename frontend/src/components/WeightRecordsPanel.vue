@@ -178,6 +178,7 @@ onMounted(load);
               </td>
               <td class="note-cell">
                 {{ record.sourceName }}
+                <span v-if="record.corrected" class="tag">已更正</span>
                 <p class="small muted">#{{ record.id }}</p>
               </td>
               <td>

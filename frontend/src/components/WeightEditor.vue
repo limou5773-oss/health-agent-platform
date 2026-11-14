@@ -75,6 +75,7 @@ async function save() {
         >记录来源
         <input
           v-model="form.sourceName"
+          :readonly="record !== null"
           list="weight-record-sources"
           maxlength="100"
           required
@@ -83,7 +84,7 @@ async function save() {
         <datalist id="weight-record-sources">
           <option v-for="source in sources" :key="source" :value="source" />
         </datalist>
-        <span class="field-hint"
+        <span v-if="!record" class="field-hint"
           >选择已有来源或填写实际来源；来源名称按精确字符区分。</span
         >
       </label>

@@ -285,6 +285,7 @@ export interface StepRecord {
   mode: StepMode;
   sourceName: string;
   note: string;
+  corrected: boolean;
   createdAt: string;
 }
 export interface StepStatistics {
@@ -443,6 +444,7 @@ export interface WeightRecord {
   weightKg: number;
   sourceName: string;
   note: string;
+  corrected: boolean;
   createdAt: string;
   updatedAt: string;
 }
