@@ -108,7 +108,7 @@ public class TriggerServiceImpl implements TriggerService {
   }
 
   private void create(Long userId, Kind kind, String key, LocalDate start, LocalDate end, Settings settings) {
-    if (mapper.exists(userId, kind, start, end)) return;
+    if (mapper.exists(userId, kind, key, start, end)) return;
     String goal = switch (kind) {
       case WEEKLY_REVIEW -> "复盘上一周的睡眠记录，说明睡眠趋势、覆盖和可执行的后续行动。";
       case MONTHLY_REVIEW -> "复盘上一个自然月的睡眠记录，说明睡眠趋势、覆盖和可执行的后续行动。";

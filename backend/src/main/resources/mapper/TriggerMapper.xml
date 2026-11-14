@@ -27,7 +27,7 @@
   </select>
   <select id="exists" resultType="boolean">
     SELECT EXISTS(SELECT 1 FROM agent_trigger_runs WHERE user_id=#{userId} AND kind=#{kind}
-      AND start_date=#{start} AND end_date=#{end})
+      AND (event_key=#{key} OR (start_date=#{start} AND end_date=#{end})))
   </select>
   <insert id="insert">
     INSERT INTO agent_trigger_runs(user_id,kind,event_key,start_date,end_date,source_name,task_id)
