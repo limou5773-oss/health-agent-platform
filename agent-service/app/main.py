@@ -87,7 +87,7 @@ async def require_service_key(x_service_key: Annotated[str | None, Header()] = N
 def model_for(name: str, timeout: int) -> ChatOpenAI:
     model = name or settings.model
     if not (settings.api_key and settings.base_url and model):
-        raise AgentError(503, "MODEL_NOT_CONFIGURED", "请配置OPENAI_API_KEY、OPENAI_BASE_URL、OPENAI_MODEL后手动重试")
+        raise AgentError(503, "MODEL_NOT_CONFIGURED", "请配置OPENAI_API_KEY、OPENAI_BASE_URL、OPENAI_MODEL后新建任务")
     return ChatOpenAI(api_key=settings.api_key, base_url=settings.base_url, model=model,
                       timeout=timeout, max_retries=0, max_completion_tokens=8192)
 
@@ -287,13 +287,17 @@ async def schema_error_handler(request: Request, exc: Exception) -> JSONResponse
 @app.exception_handler(httpx.HTTPStatusError)
 async def java_status_error_handler(request: Request, exc: httpx.HTTPStatusError) -> JSONResponse:
     status = exc.response.status_code
+    if status in (408, 504):
+        return error_response(504, "JAVA_TIMEOUT", "Java工具请求超时，请检查Java服务后手动重试")
+    if status >= 500:
+        return error_response(502, "JAVA_UNAVAILABLE", f"Java工具返回HTTP {status}，请检查服务后手动重试")
     # Java's documented errors are {code,message}; a non-JSON proxy error is
     # reported explicitly as an upstream HTTP failure, never as an empty result.
     try:
         body = exc.response.json()
     except json.JSONDecodeError:
-        return error_response(502, "JAVA_HTTP_ERROR", f"Java接口返回HTTP {status}且错误响应不是JSON")
-    return error_response(status if status < 500 else 502, body["code"], body["message"])
+        return error_response(status, "JAVA_HTTP_ERROR", f"Java接口返回HTTP {status}且错误响应不是JSON")
+    return error_response(status, body["code"], body["message"])
 
 
 @app.exception_handler(httpx.TimeoutException)
@@ -325,7 +329,9 @@ async def model_status_handler(request: Request, exc: openai.APIStatusError) -> 
         return error_response(422, "MODEL_REQUEST_INVALID", f"模型服务拒绝请求（HTTP {status}），请检查模型名称和工具调用支持")
     if status == 429:
         return error_response(429, "MODEL_RATE_LIMITED", "模型服务限流或额度不足，请处理后手动重试")
-    return error_response(502, "MODEL_HTTP_ERROR", f"模型服务返回HTTP {status}，请检查外部模型服务后手动重试")
+    if status == 408 or status >= 500:
+        return error_response(502, "MODEL_UNAVAILABLE", f"模型服务返回HTTP {status}，请检查外部模型服务后手动重试")
+    return error_response(422, "MODEL_REQUEST_INVALID", f"模型服务拒绝请求（HTTP {status}），请检查模型配置")
 
 
 @app.exception_handler(GraphRecursionError)

@@ -465,8 +465,9 @@ public class TaskServiceImpl implements TaskService {
             if (current == null || !Set.of("QUEUED", "RUNNING").contains(current.status)) return;
             if (started != null && !current.taskToken.equals(started.taskToken)) return;
             current.status = "FAILED";
-            current.retryable = retryable(e);
-            current.error = failure(e);
+            RunFailure failure = failure(e);
+            current.retryable = failure.retryable();
+            current.error = failure.message();
             mapper.update(current);
           });
     }
@@ -556,7 +557,7 @@ public class TaskServiceImpl implements TaskService {
           status -> {
             Task current = mapper.lock(id);
             if (current != null && "COMPLETED".equals(current.status)) {
-              current.error = "计划已保存，Python检查点闭合失败：" + failure(e);
+              current.error = "计划已保存，Python检查点闭合失败：" + failure(e).message();
               mapper.update(current);
             }
           });
@@ -628,19 +629,14 @@ public class TaskServiceImpl implements TaskService {
     return new ApiException(502, "INVALID_AGENT_RESULT", message);
   }
 
-  private static boolean retryable(Exception e) {
-    if (e instanceof ApiException a) return a.status >= 500;
-    if (e instanceof RestClientResponseException h)
-      return h.getStatusCode().value() >= 500
-          || h.getStatusCode().value() == 408
-          || h.getStatusCode().value() == 429;
-    return e instanceof ResourceAccessException;
-  }
+  private record RunFailure(String message, boolean retryable) {}
 
-  private String failure(Exception e) {
-    if (e instanceof ApiException a) return a.code + "：" + a.getMessage();
+  private RunFailure failure(Exception e) {
+    if (e instanceof ApiException a) return new RunFailure(a.code + "：" + a.getMessage(), false);
     if (e instanceof RestClientResponseException h) {
-      String malformed = "Python返回非规范错误响应 HTTP " + h.getStatusCode().value();
+      int status = h.getStatusCode().value();
+      boolean transientStatus = status == 408 || status == 429 || status == 502 || status == 503 || status == 504;
+      var malformed = new RunFailure("Python返回非规范错误响应 HTTP " + status, transientStatus);
       try {
         JsonNode body = json.readTree(h.getResponseBodyAsString());
         if (body == null || !body.path("code").isTextual() || !body.path("message").isTextual())
@@ -648,13 +644,19 @@ public class TaskServiceImpl implements TaskService {
         String code = body.get("code").asText();
         String message = body.get("message").asText();
         if (!code.matches("[A-Z0-9_]{1,80}") || message.isBlank()) return malformed;
-        String summary = "Python HTTP " + h.getStatusCode().value() + " " + code + "：" + message;
-        return summary.length() > 850 ? summary.substring(0, 850) : summary;
+        String summary = "Python HTTP " + status + " " + code + "：" + message;
+        boolean retryable = switch (code) {
+          case "JAVA_TIMEOUT", "JAVA_CONNECTION_FAILED", "JAVA_UNAVAILABLE",
+              "MODEL_TIMEOUT", "MODEL_CONNECTION_FAILED", "MODEL_RATE_LIMITED", "MODEL_UNAVAILABLE" -> true;
+          default -> false;
+        };
+        return new RunFailure(summary.length() > 850 ? summary.substring(0, 850) : summary,
+            transientStatus && retryable);
       } catch (JsonProcessingException invalidJson) {
         return malformed;
       }
     }
-    if (e instanceof ResourceAccessException) return "Python服务连接或请求超时";
-    return "任务执行失败：" + e.getClass().getSimpleName();
+    if (e instanceof ResourceAccessException) return new RunFailure("Python服务连接或请求超时", true);
+    return new RunFailure("任务执行失败：" + e.getClass().getSimpleName(), false);
   }
 }
