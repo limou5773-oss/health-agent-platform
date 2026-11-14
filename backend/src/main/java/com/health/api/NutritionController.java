@@ -4,18 +4,29 @@ import com.health.model.NutritionModels.*;
 import com.health.model.Models.Page;
 import com.health.security.Identity;
 import com.health.service.NutritionService;
+import com.health.service.MealPhotoService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/nutrition")
 public class NutritionController {
   private final NutritionService service;
+  private final MealPhotoService photos;
 
-  public NutritionController(NutritionService service) { this.service = service; }
+  public NutritionController(NutritionService service, MealPhotoService photos) {
+    this.service = service;
+    this.photos = photos;
+  }
+
+  @PostMapping(value = "/meals/photo-preview", consumes = "multipart/form-data")
+  public MealPhotoService.Preview previewMealPhoto(HttpServletRequest r, @RequestPart MultipartFile photo) {
+    return photos.preview(Identity.user(r).id, photo);
+  }
 
   @GetMapping("/meals")
   public Page<MealRecord> meals(HttpServletRequest r, @Valid @ModelAttribute Requests.SleepQuery q) {

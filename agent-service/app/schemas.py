@@ -257,3 +257,13 @@ class RevisionSuggestion(RequestModel):
 
 class KnowledgeArguments(RequestModel):
     query: str = Field(min_length=1, max_length=200)
+
+
+class MealPhotoCandidate(RequestModel):
+    foodName: str = Field(min_length=1, max_length=100)
+    portionGrams: int | None = Field(ge=1, le=10000)
+    confidence: Literal["LOW", "MEDIUM", "HIGH"]
+
+
+class MealPhotoPreview(RequestModel):
+    candidates: list[MealPhotoCandidate] = Field(max_length=8)

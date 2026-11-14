@@ -4,6 +4,7 @@ import { X } from "@lucide/vue";
 import { api, errorMessage, json } from "../api";
 import type { CalorieMode, MealRecord, MealType, PortionUnit } from "../types";
 import { calorieModes, mealTypes, portionUnits } from "../nutrition";
+import MealPhotoPreview from "./MealPhotoPreview.vue";
 const props = defineProps<{ record: MealRecord | null; sources: string[] }>();
 const emit = defineEmits<{ saved: []; close: []; busy: [value: boolean] }>();
 const form = reactive({
@@ -26,6 +27,21 @@ const form = reactive({
 });
 const busy = ref(false),
   error = ref("");
+const recognizing = ref(false);
+
+function applyCandidate(foodName: string, portionGrams: number | null, confidence: string) {
+  form.foodName = foodName;
+  form.portionAmount = portionGrams ?? "";
+  form.portionUnit = "G";
+  form.calorieMode = "UNKNOWN";
+  form.caloriesKcal = "";
+  form.referenceAmount = "";
+  form.referenceCaloriesKcal = "";
+  form.nutritionSource = "";
+  form.sourceName = "照片识别后人工核对";
+  const estimate = portionGrams === null ? "份量未估计" : `初始份量粗估 ${portionGrams} 克`;
+  form.note = `照片识别候选：${foodName}，识别把握${confidence}，${estimate}。`;
+}
 watch(
   () => form.calorieMode,
   (mode) => {
@@ -81,14 +97,16 @@ async function save() {
       <h3>{{ record ? "编辑饮食记录" : "新增饮食记录" }}</h3>
       <button
         class="icon-button"
-        :disabled="busy"
+        :disabled="busy || recognizing"
         aria-label="关闭饮食编辑"
         @click="$emit('close')"
       >
         <X :size="18" />
       </button>
     </div>
-    <form class="form-grid" @submit.prevent="save">
+    <MealPhotoPreview v-if="!record" :disabled="busy" @candidate="applyCandidate"
+      @busy="recognizing = $event; emit('busy', $event)" />
+    <form class="form-grid" @submit.prevent="!recognizing && save()">
       <label
         >食用时间（档案时区）<input
           v-model="form.consumedAt"
@@ -218,7 +236,7 @@ async function save() {
         />
       </label>
       <div class="actions span-all">
-        <button :disabled="busy">{{ busy ? "保存中…" : "保存饮食记录" }}</button
+        <button :disabled="busy || recognizing">{{ busy ? "保存中…" : "保存饮食记录" }}</button
         ><button
           type="button"
           class="secondary"
