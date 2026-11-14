@@ -22,4 +22,6 @@ public final class PlanReviewRequests {
   }
 
   public record Reason(@NotNull @Size(max = 500) String reason) {}
+
+  public record OutcomeQuery(@NotNull Metric metric, @Size(max = 100) String sourceName) {}
 }

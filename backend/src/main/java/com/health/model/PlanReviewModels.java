@@ -14,4 +14,7 @@ public final class PlanReviewModels {
 
   public record Review(int planVersion, LocalDate today, int scheduled, int completed,
       BigDecimal completionRate, List<Item> missed, Comparison comparison) {}
+
+  public record Outcome(int planVersion, LocalDate planStart, LocalDate planEnd, int scheduled,
+      int completed, BigDecimal completionRate, Comparison comparison) {}
 }

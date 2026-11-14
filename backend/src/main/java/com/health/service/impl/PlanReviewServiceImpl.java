@@ -3,10 +3,12 @@ package com.health.service.impl;
 import com.health.api.ApiException;
 import com.health.api.BaselineRequests;
 import com.health.api.PlanReviewRequests.Query;
+import com.health.api.PlanReviewRequests.OutcomeQuery;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.AccountMapper;
 import com.health.security.Identity;
 import com.health.model.PlanReviewModels.Review;
+import com.health.model.PlanReviewModels.Outcome;
 import com.health.service.AccountService;
 import com.health.service.BaselineService;
 import com.health.service.PlanReviewService;
@@ -53,6 +55,25 @@ public class PlanReviewServiceImpl implements PlanReviewService {
         query.metric(), query.sourceName(), query.startDate(), query.endDate(),
         previousEnd.minusDays(span), previousEnd));
     return new Review(plan.version, today, items.size(), completed, rate, missed, comparison);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Outcome outcome(Long userId, Long planId, OutcomeQuery query) {
+    var plan = plans.get(userId, planId);
+    if (plan == null) throw ApiException.missing();
+    long days = ChronoUnit.DAYS.between(plan.startDate, plan.endDate) + 1;
+    LocalDate afterEnd = plan.endDate.plusDays(days);
+    if (!afterEnd.isBefore(today(userId)))
+      throw new ApiException(409, "OUTCOME_PERIOD_OPEN", "计划后观察期截至 " + afterEnd + "，请在该日结束后查看对比");
+
+    var items = plans.reviewItems(planId, plan.startDate, plan.endDate);
+    int completed = (int) items.stream().filter(item -> item.completed()).count();
+    BigDecimal rate = items.isEmpty() ? null : BigDecimal.valueOf(completed * 100L)
+        .divide(BigDecimal.valueOf(items.size()), 2, RoundingMode.HALF_UP);
+    var comparison = baseline.compare(userId, new BaselineRequests.Query(query.metric(), query.sourceName(),
+        plan.endDate.plusDays(1), afterEnd, plan.startDate.minusDays(days), plan.startDate.minusDays(1)));
+    return new Outcome(plan.version, plan.startDate, plan.endDate, items.size(), completed, rate, comparison);
   }
 
   @Override

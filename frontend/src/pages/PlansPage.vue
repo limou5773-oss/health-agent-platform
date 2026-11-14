@@ -7,6 +7,7 @@ import type { Plan } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import PlanRevisions from "../components/PlanRevisions.vue";
 import PlanReview from "../components/PlanReview.vue";
+import PlanOutcome from "../components/PlanOutcome.vue";
 import PlanCheckinCalendar from "../components/PlanCheckinCalendar.vue";
 const route = useRoute();
 const selectedDate = ref<string | null>(null);
@@ -185,6 +186,7 @@ onMounted(load);
         </p>
         <PlanReview :key="plan.id" :plan="plan"
           @propose="(id, date, reason, version) => revisionEditor?.proposeMove(id, date, reason, version)" />
+        <PlanOutcome :key="plan.id" :plan="plan" />
         <PlanRevisions ref="revisionEditor" :key="plan.id" :plan="plan" @refresh="refreshPlan" />
         <PlanCheckinCalendar v-if="plan.progress" :key="plan.id" :plan="plan" :today="plan.progress.today"
           :selected="selectedDate" @select="selectedDate = $event" />

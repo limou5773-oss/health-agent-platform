@@ -8,6 +8,7 @@ import com.health.service.PlanRevisionService;
 import com.health.service.PlanReviewService;
 import com.health.service.PlanRevisionAgentService;
 import com.health.model.PlanReviewModels.Review;
+import com.health.model.PlanReviewModels.Outcome;
 import com.health.model.PlanRevisionModels.Revision;
 import com.health.model.PlanRevisionModels.Revisions;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,6 +60,12 @@ public class PlanController {
   public Review review(HttpServletRequest r, @PathVariable Long id,
       @Valid @ModelAttribute PlanReviewRequests.Query query) {
     return reviews.review(Identity.user(r).id, id, query);
+  }
+
+  @GetMapping("/plans/{id}/outcome")
+  public Outcome outcome(HttpServletRequest r, @PathVariable Long id,
+      @Valid @ModelAttribute PlanReviewRequests.OutcomeQuery query) {
+    return reviews.outcome(Identity.user(r).id, id, query);
   }
 
   @PutMapping("/plan-items/{id}/missed-reason")
