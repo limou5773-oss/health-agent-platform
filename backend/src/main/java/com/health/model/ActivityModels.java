@@ -52,6 +52,8 @@ public final class ActivityModels {
     public int duplicateRows;
     public int insertedRows;
     public LocalDateTime createdAt;
+    public LocalDateTime firstStartTime;
+    public LocalDateTime lastEndTime;
     public List<StepImportRow> rows;
   }
 
@@ -82,7 +84,7 @@ public final class ActivityModels {
   public record StepStatistics(
       LocalDate startDate, LocalDate endDate, String sourceName, long periodDays,
       long validDays, double coverageRate, long totalSteps, Double averageSteps,
-      Integer dailyGoal, Long goalDays, List<StepDaily> daily) {}
+      Integer dailyGoal, Long goalDays, LocalDateTime dataCutoff, List<StepDaily> daily) {}
   public record WorkoutDaily(LocalDate date, Double minutes, int recordCount) {}
   public record WorkoutStatistics(
       LocalDate startDate, LocalDate endDate, String sourceName, long periodDays,

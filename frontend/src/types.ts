@@ -299,6 +299,7 @@ export interface StepStatistics {
   averageSteps: number | null;
   dailyGoal: number | null;
   goalDays: number | null;
+  dataCutoff: string | null;
   daily: {
     date: string;
     steps: number | null;
@@ -332,6 +333,8 @@ export interface StepImportBatch {
 }
 export interface StepImportPreview extends StepImportBatch {
   rows: StepImportRow[];
+  firstStartTime: string | null;
+  lastEndTime: string | null;
 }
 export interface Workout {
   id: number;

@@ -20,12 +20,13 @@
 - GET /steps → Page<StepRecord>。
 - POST /steps、PUT /steps/{id}：{startTime,endTime,steps,mode,sourceName,note} → StepRecord；DELETE /steps/{id} → 204。
 - GET /steps/sources → string[]。
-- GET /steps/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalSteps,averageSteps,dailyGoal,goalDays,daily:[{date,steps,sourceName,goalRate}]}。
+- GET /steps/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalSteps,averageSteps,dailyGoal,goalDays,dataCutoff,daily:[{date,steps,sourceName,goalRate}]}。`dataCutoff` 为当前筛选下纳入统计的步数记录中最晚的区间结束时间，无记录时为 null。
 - GET /goal → {dailySteps:number|null}；PUT /goal {dailySteps:正整数} → 相同结构。
 - POST /step-imports/preview 接收 multipart file 和 format（默认 CSV，可选 APPLE_HEALTH）。CSV 接收可选 timezone，默认档案时区。文件为 UTF-8，最多 10 MB、10000 行，表头为 `startTime,endTime,steps,mode,sourceName,note`。时间使用 ISO 本地时间或带 offset 的时间，转换到档案时区后按日期和步数语义校验。
 - APPLE_HEALTH 读取导出的 XML 或 ZIP，最多 100 MB、10000 条步数记录，沿用苹果健康 ZIP 展开上限及路径要求。每条 StepCount 样本按起止时间和 count 单位保存为 DELTA，来源保留原始 sourceName，备注保留原始偏移时间。转换到档案时区后，跨日或同来源区间重叠的样本在预览中标为无效。档案时区发生偏移切换或端点时间有歧义时提示改用 UTC 时区重新导入。[Apple HealthKit StepCount](https://developer.apple.com/documentation/healthkit/hkquantitytypeidentifier/stepcount)
 - POST /step-imports/{id}/confirm → StepImportBatch；GET /step-imports → StepImportBatch[]。确认在事务内重新核对当前业务状态，同批确认幂等；预览后发生新的语义冲突时明确返回409，不吞错。成功确认后清理临时预览行，历史仅保留批次计数。
 - StepImportBatch={id,status,importFormat,totalRows,skippedRows,validRows,invalidRows,duplicateRows,insertedRows,createdAt,rows?}。`totalRows` 为预览记录数，`skippedRows` 为苹果文件中的其他指标数，`duplicateRows` 是有效数的子集。无效行可查看原始步数，有效的苹果步数显示为规范整数。升级已有库需执行 `031_apple_step_import.sql`，历史批次默认标为 CSV。
+- 预览返回 `firstStartTime` 和 `lastEndTime`，分别取有效行最早的开始时间和最晚的结束时间，包括有效重复行。无有效行时均为 null，批次确认和历史的这两个字段也为 null。
 - GET /workouts → Page<Workout>；POST /workouts、PUT /workouts/{id}：{exerciseType,startTime,endTime,sourceName,note,planItemId:number|null} → Workout；DELETE /workouts/{id} → 204。
 - GET /workouts/sources → string[]。
 - GET /workouts/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalMinutes,recordCount,daily:[{date,minutes:number|null,recordCount}]}。

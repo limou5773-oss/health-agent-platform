@@ -106,7 +106,9 @@ public class ActivityServiceImpl implements ActivityService {
   }
 
   public StepStatistics stepStatistics(Long uid, LocalDate start, LocalDate end, String source) {
-    Map<LocalDate, List<StepRecord>> days = mapper.stepRange(uid, start, end, source).stream()
+    List<StepRecord> samples = mapper.stepRange(uid, start, end, source);
+    LocalDateTime dataCutoff = samples.stream().map(record -> record.endTime).max(LocalDateTime::compareTo).orElse(null);
+    Map<LocalDate, List<StepRecord>> days = samples.stream()
         .collect(Collectors.groupingBy(record -> record.activityDate));
     Integer goal = mapper.goal(uid);
     List<StepDaily> daily = new ArrayList<>();
@@ -130,7 +132,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
     long period = ChronoUnit.DAYS.between(start, end) + 1;
     return new StepStatistics(start, end, source, period, valid, round(valid * 100.0 / period),
-        total, valid == 0 ? null : round(total * 1.0 / valid), goal, goal == null ? null : goalDays, daily);
+        total, valid == 0 ? null : round(total * 1.0 / valid), goal, goal == null ? null : goalDays, dataCutoff, daily);
   }
 
   private static StepRecord stepRecord(Long uid, ActivityRequests.Step request) {
@@ -290,6 +292,10 @@ public class ActivityServiceImpl implements ActivityService {
     row.valid = true;
     row.startTime = record.startTime.toString();
     row.endTime = record.endTime.toString();
+    if (batch.firstStartTime == null || record.startTime.isBefore(batch.firstStartTime))
+      batch.firstStartTime = record.startTime;
+    if (batch.lastEndTime == null || record.endTime.isAfter(batch.lastEndTime))
+      batch.lastEndTime = record.endTime;
     if (duplicate) {
       row.error = "重复记录，确认时跳过";
       batch.duplicateRows++;

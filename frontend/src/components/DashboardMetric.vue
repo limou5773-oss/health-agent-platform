@@ -21,6 +21,7 @@ const metrics = {
   }) },
   steps: { label: "步数", unit: "步", path: "/activity/steps", to: "/activity", map: (data: StepStatistics): Summary => ({
     points: data.daily.map(day => ({ date: day.date, value: day.steps })), value: data.averageSteps, label: "日均步数",
+    cutoff: data.dataCutoff,
     note: data.dailyGoal === null ? undefined : `每日目标 ${data.dailyGoal} 步，${data.goalDays} / ${data.validDays} 个有效日达标。`,
   }) },
   workouts: { label: "运动", unit: "分钟", path: "/activity/workouts", to: "/activity", map: (data: WorkoutStatistics): Summary => ({

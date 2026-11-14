@@ -154,6 +154,9 @@ onMounted(load);
             : `每日目标 ${number(steps.dailyGoal)} 步 · 达标 ${steps.goalDays} 天（按当前目标及有记录日期计算）`
         }}
       </p>
+      <p v-if="steps?.dataCutoff" class="small muted">
+        数据截至 {{ steps.dataCutoff.replace("T", " ") }}（档案时区）
+      </p>
       <StateNotice
         :empty="summary.validDays === 0"
         title="这段时间没有记录"

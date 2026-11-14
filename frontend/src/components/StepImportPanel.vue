@@ -185,6 +185,10 @@ onMounted(loadHistory);
             {{ preview.duplicateRows }}（已包含在有效行中）
           </p>
           <p v-if="preview.importFormat === 'APPLE_HEALTH'">已跳过其他指标 {{ preview.skippedRows }} 条。</p>
+          <p v-if="preview.firstStartTime && preview.lastEndTime">
+            有效记录时间（档案时区） {{ preview.firstStartTime.replace("T", " ") }}
+            至 {{ preview.lastEndTime.replace("T", " ") }}
+          </p>
           <p>确认后仅写入有效且不重复的记录，无效行保留错误说明。</p>
         </div>
         <button :disabled="busy || preview.validRows === 0" @click="confirm">
