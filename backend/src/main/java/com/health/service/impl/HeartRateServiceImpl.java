@@ -75,7 +75,10 @@ public class HeartRateServiceImpl implements HeartRateService {
       agentTasks.invalidateCombined(userId, previousDate, previousDate);
       LocalDate newDate = sample.measuredAt.toLocalDate();
       reports.invalidateHeartRateReports(userId, previousDate);
-      if (!newDate.equals(previousDate)) reports.invalidateHeartRateReports(userId, newDate);
+      if (!newDate.equals(previousDate)) {
+        agentTasks.invalidateCombined(userId, newDate, newDate);
+        reports.invalidateHeartRateReports(userId, newDate);
+      }
     }
     return mapper.record(userId, sample.id);
   }

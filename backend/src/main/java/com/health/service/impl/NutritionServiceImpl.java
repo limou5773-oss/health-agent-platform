@@ -45,8 +45,10 @@ public class NutritionServiceImpl implements NutritionService {
     MealRecord record = mealRecord(uid, request);
     record.id = id;
     mapper.updateMeal(record);
-    LocalDate date = existing.consumedAt.toLocalDate();
-    plans.invalidateHealthReports(uid, date, date);
+    LocalDate previousDate = existing.consumedAt.toLocalDate();
+    LocalDate currentDate = record.consumedAt.toLocalDate();
+    plans.invalidateHealthReports(uid, previousDate, previousDate);
+    if (!currentDate.equals(previousDate)) plans.invalidateHealthReports(uid, currentDate, currentDate);
     return mapper.meal(uid, id);
   }
 
@@ -156,8 +158,10 @@ public class NutritionServiceImpl implements NutritionService {
     WaterRecord record = waterRecord(uid, request);
     record.id = id;
     mapper.updateWater(record);
-    LocalDate date = existing.consumedAt.toLocalDate();
-    plans.invalidateHealthReports(uid, date, date);
+    LocalDate previousDate = existing.consumedAt.toLocalDate();
+    LocalDate currentDate = record.consumedAt.toLocalDate();
+    plans.invalidateHealthReports(uid, previousDate, previousDate);
+    if (!currentDate.equals(previousDate)) plans.invalidateHealthReports(uid, currentDate, currentDate);
     return mapper.waterRecord(uid, id);
   }
 

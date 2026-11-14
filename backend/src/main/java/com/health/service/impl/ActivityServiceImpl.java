@@ -81,6 +81,10 @@ public class ActivityServiceImpl implements ActivityService {
     mapper.updateStep(record);
     tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
     plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate);
+    if (!record.activityDate.equals(existing.activityDate)) {
+      tasks.invalidateCombined(uid, record.activityDate, record.activityDate);
+      plans.invalidateHealthReports(uid, record.activityDate, record.activityDate);
+    }
     return mapper.step(uid, id);
   }
 
@@ -387,8 +391,14 @@ public class ActivityServiceImpl implements ActivityService {
         || !existing.activityDate.equals(record.activityDate)) validatePlan(uid, record);
     if (mapper.workoutDuplicate(record) != null) throw new ApiException(409, "DUPLICATE_RECORD", "相同起止时间、类型及来源的运动记录已存在");
     mapper.updateWorkout(record);
-    tasks.invalidateCombined(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
-    plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
+    LocalDate previousEnd = existing.endTime.minusNanos(1).toLocalDate();
+    LocalDate currentEnd = record.endTime.minusNanos(1).toLocalDate();
+    tasks.invalidateCombined(uid, existing.activityDate, previousEnd);
+    plans.invalidateHealthReports(uid, existing.activityDate, previousEnd);
+    if (record.activityDate.isBefore(existing.activityDate) || currentEnd.isAfter(previousEnd)) {
+      tasks.invalidateCombined(uid, record.activityDate, currentEnd);
+      plans.invalidateHealthReports(uid, record.activityDate, currentEnd);
+    }
     return mapper.workout(uid, id);
   }
 

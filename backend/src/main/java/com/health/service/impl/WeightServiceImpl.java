@@ -59,9 +59,14 @@ public class WeightServiceImpl implements WeightService {
     WeightRecord record = measurement(uid, request);
     record.id = id;
     mapper.updateRecord(record);
-    LocalDate date = existing.measuredAt.toLocalDate();
-    tasks.invalidateCombined(uid, date, date);
-    plans.invalidateHealthReports(uid, date, date);
+    LocalDate previousDate = existing.measuredAt.toLocalDate();
+    LocalDate currentDate = record.measuredAt.toLocalDate();
+    tasks.invalidateCombined(uid, previousDate, previousDate);
+    plans.invalidateHealthReports(uid, previousDate, previousDate);
+    if (!currentDate.equals(previousDate)) {
+      tasks.invalidateCombined(uid, currentDate, currentDate);
+      plans.invalidateHealthReports(uid, currentDate, currentDate);
+    }
     return mapper.record(uid, id);
   }
 
