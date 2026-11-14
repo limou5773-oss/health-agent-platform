@@ -503,6 +503,7 @@ public class TaskServiceImpl implements TaskService {
         report.content = content;
         report.startDate = t.startDate;
         report.endDate = t.endDate;
+        report.reportVersion = plans.nextReportVersion(t.userId, report.reportType, t.startDate, t.endDate);
         report.sourceName = t.sourceName;
         report.includeDiary = t.includeDiary;
         report.statisticsJson = t.statisticsJson;

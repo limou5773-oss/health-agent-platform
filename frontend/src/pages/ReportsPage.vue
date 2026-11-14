@@ -131,8 +131,8 @@ onUnmounted(() => {
               >{{ entry.startDate }} — {{ entry.endDate }}</span
             ><span v-if="entry.comparisonStartDate" class="small muted">
               对照 {{ entry.comparisonStartDate }} 至 {{ entry.comparisonEndDate }}
-            </span><span v-if="entry.reportType !== 'SLEEP'" class="tag">第 {{ entry.reportVersion }} 版</span>
-            <span v-else class="tag" :class="{ warm: !entry.includeDiary }">{{
+            </span><span class="tag">第 {{ entry.reportVersion }} 版</span>
+            <span v-if="entry.reportType === 'SLEEP'" class="tag" :class="{ warm: !entry.includeDiary }">{{
               entry.includeDiary ? "已启用授权日记" : "仅睡眠数据"
             }}</span
             ><span v-if="entry.sourceDeleted" class="tag warm">{{
@@ -152,7 +152,9 @@ onUnmounted(() => {
         :error="detailError"
         @retry="loadDetail"
       /><template v-if="report && !detailLoading && !detailError"
-        ><p class="eyebrow">{{ report.reportType === "SLEEP" ? "睡眠回顾" : `第 ${report.reportVersion} 版` }}</p>
+        ><p class="eyebrow">
+          {{ report.reportType === "SLEEP" ? "睡眠回顾 · " : "" }}第 {{ report.reportVersion }} 版
+        </p>
         <h2>{{ report.title }}</h2>
         <div v-if="!report.sourceDeleted" class="actions report-screen-only">
           <button type="button" class="secondary" :disabled="exporting" @click="exportPdf(report.id)">
