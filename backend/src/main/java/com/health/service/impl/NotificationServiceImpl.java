@@ -4,6 +4,7 @@ import com.health.mapper.NotificationMapper;
 import com.health.mapper.AccountMapper;
 import com.health.security.Identity;
 import com.health.model.Models.Page;
+import com.health.model.ImportAdminModels.Kind;
 import com.health.model.NotificationModels.*;
 import com.health.service.NotificationService;
 import java.time.Instant;
@@ -73,8 +74,13 @@ public class NotificationServiceImpl implements NotificationService {
   }
 
   @Override
-  public void importRejected(Long userId, boolean steps) {
-    mapper.importRejected(userId, steps);
+  public void importRejected(Long userId, Kind kind) {
+    mapper.importRejected(userId, kind);
+  }
+
+  @Override
+  public void importConflict(Long userId, Long batchId, Kind kind) {
+    mapper.importConflict(userId, batchId, kind);
   }
 
   @Scheduled(fixedDelay = 60_000)

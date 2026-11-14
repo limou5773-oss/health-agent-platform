@@ -111,12 +111,29 @@
     WHERE s.user_id=#{userId} AND s.import_failed_enabled AND g.import_failed_enabled
     ON DUPLICATE KEY UPDATE id=notifications.id
   </insert>
+  <sql id="importTarget">
+    CASE #{kind}
+      WHEN 'STEPS' THEN '/activity#step-import'
+      WHEN 'WEIGHT' THEN '/weight#measurement-import'
+      WHEN 'HEART_RATE' THEN '/heart-rate#measurement-import'
+      WHEN 'SLEEP' THEN '/records#sleep-import'
+    END
+  </sql>
   <insert id="importRejected">
     INSERT INTO notifications(user_id,kind,event_key,title,body,target)
     SELECT s.user_id,'IMPORT_FAILED',CONCAT('request:',UUID()),'导入失败',
       '文件未能完成预览，请检查文件格式和导入参数后重新选择。',
-      IF(#{steps},'/activity#step-import','/records#sleep-import')
+      <include refid="importTarget"/>
     FROM notification_settings s JOIN system_settings g ON g.id=1
     WHERE s.user_id=#{userId} AND s.import_failed_enabled AND g.import_failed_enabled
+  </insert>
+  <insert id="importConflict">
+    INSERT INTO notifications(user_id,kind,event_key,title,body,target)
+    SELECT s.user_id,'IMPORT_FAILED',CONCAT(#{kind},':conflict:',#{batchId}),'导入确认冲突',
+      CONCAT('批次 #',#{batchId},' 与已有测量记录冲突，请核对来源、时间和数值。'),
+      <include refid="importTarget"/>
+    FROM notification_settings s JOIN system_settings g ON g.id=1
+    WHERE s.user_id=#{userId} AND s.import_failed_enabled AND g.import_failed_enabled
+    ON DUPLICATE KEY UPDATE id=notifications.id
   </insert>
 </mapper>

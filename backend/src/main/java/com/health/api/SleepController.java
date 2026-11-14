@@ -80,7 +80,7 @@ public class SleepController {
     } catch (ApiException e) {
       if (e.status == 400) {
         importAdmin.rejected(Kind.SLEEP, userId, e.code);
-        notifications.importRejected(userId, false);
+        notifications.importRejected(userId, Kind.SLEEP);
       }
       throw e;
     }

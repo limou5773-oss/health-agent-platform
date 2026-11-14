@@ -1,6 +1,7 @@
 package com.health.mapper;
 
 import com.health.model.NotificationModels.*;
+import com.health.model.ImportAdminModels.Kind;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
@@ -20,5 +21,6 @@ public interface NotificationMapper {
   void reportReady(@Param("userId") Long userId, @Param("reportId") Long reportId);
   void importIssues(@Param("userId") Long userId, @Param("batchId") Long batchId,
       @Param("steps") boolean steps, @Param("valid") int valid, @Param("invalid") int invalid);
-  void importRejected(@Param("userId") Long userId, @Param("steps") boolean steps);
+  void importRejected(@Param("userId") Long userId, @Param("kind") Kind kind);
+  void importConflict(@Param("userId") Long userId, @Param("batchId") Long batchId, @Param("kind") Kind kind);
 }

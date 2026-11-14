@@ -123,7 +123,7 @@ onMounted(loadHistory);
 </script>
 
 <template>
-  <section class="panel">
+  <section id="measurement-import" class="panel">
     <div class="section-heading">
       <h2>导入{{ metric }}记录</h2>
       <button v-if="format === 'CSV'" type="button" class="secondary" :disabled="templateBusy" @click="template">下载空白模板</button>

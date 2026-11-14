@@ -4,6 +4,7 @@ import com.health.model.MeasurementImportModels.*;
 import com.health.security.Identity;
 import com.health.service.MeasurementImportService;
 import com.health.service.ImportAdminService;
+import com.health.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +15,13 @@ import org.springframework.web.multipart.MultipartFile;
 public class MeasurementImportController {
   private final MeasurementImportService service;
   private final ImportAdminService importAdmin;
+  private final NotificationService notifications;
 
-  public MeasurementImportController(MeasurementImportService service, ImportAdminService importAdmin) {
+  public MeasurementImportController(MeasurementImportService service, ImportAdminService importAdmin,
+      NotificationService notifications) {
     this.service = service;
     this.importAdmin = importAdmin;
+    this.notifications = notifications;
   }
 
   @PostMapping(value = "/preview", consumes = "multipart/form-data")
@@ -28,8 +32,10 @@ public class MeasurementImportController {
     try {
       return format == Format.APPLE_HEALTH ? service.previewApple(userId, metric, file) : service.preview(userId, metric, file);
     } catch (ApiException e) {
-      if (e.status == 400 || "MEASUREMENT_CONFLICT".equals(e.code))
+      if (e.status == 400 || "MEASUREMENT_CONFLICT".equals(e.code)) {
         importAdmin.rejected(metric.importKind, userId, e.code);
+        notifications.importRejected(userId, metric.importKind);
+      }
       throw e;
     }
   }
@@ -48,7 +54,10 @@ public class MeasurementImportController {
     try {
       return service.confirm(userId, metric, id);
     } catch (ApiException e) {
-      if ("MEASUREMENT_CONFLICT".equals(e.code)) importAdmin.recordIssue(metric.importKind, userId, id, e.code);
+      if ("MEASUREMENT_CONFLICT".equals(e.code)) {
+        importAdmin.recordIssue(metric.importKind, userId, id, e.code);
+        notifications.importConflict(userId, id, metric.importKind);
+      }
       throw e;
     }
   }

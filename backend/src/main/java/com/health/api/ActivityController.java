@@ -75,7 +75,7 @@ public class ActivityController {
     } catch (ApiException e) {
       if (e.status == 400) {
         importAdmin.rejected(Kind.STEPS, userId, e.code);
-        notifications.importRejected(userId, true);
+        notifications.importRejected(userId, Kind.STEPS);
       }
       throw e;
     }

@@ -1,6 +1,7 @@
 package com.health.service;
 
 import com.health.model.Models.Page;
+import com.health.model.ImportAdminModels.Kind;
 import com.health.model.NotificationModels.*;
 
 public interface NotificationService {
@@ -12,5 +13,6 @@ public interface NotificationService {
   Settings saveSettings(Long userId, Settings settings);
   void reportReady(Long userId, Long reportId);
   void importIssues(Long userId, Long batchId, boolean steps, int valid, int invalid);
-  void importRejected(Long userId, boolean steps);
+  void importRejected(Long userId, Kind kind);
+  void importConflict(Long userId, Long batchId, Kind kind);
 }
