@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.PersonalExportMapper">
+  <select id="rows" resultType="map" fetchSize="-2147483648" resultSetType="FORWARD_ONLY">
+    <choose>
+      <when test="section.name() == 'PROFILE'">
+        SELECT u.id, u.username, u.nickname, u.created_at, p.height_cm, p.weight_kg, p.timezone, p.goal, p.preferences, p.ai_consent, p.ai_sleep, p.ai_activity, p.ai_weight, p.ai_heart_rate, p.ai_diary
+        FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=#{userId} ORDER BY u.id
+      </when>
+      <when test="section.name() == 'PREFERENCES'">
+        SELECT kind, content
+        FROM user_preferences WHERE user_id=#{userId} ORDER BY kind
+      </when>
+      <when test="section.name() == 'SLEEP'">
+        SELECT id, start_time, end_time, sleep_date, duration_minutes, source_name, note, source_app, device_brand, device_type, device_model, corrected, created_at
+        FROM sleep_records WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'STEPS'">
+        SELECT id, start_time, end_time, activity_date, steps, mode, source_name, note, created_at
+        FROM step_records WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'WORKOUTS'">
+        SELECT id, exercise_type, start_time, end_time, activity_date, duration_minutes, source_name, note, plan_item_id, created_at
+        FROM workout_records WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'MEALS'">
+        SELECT id, consumed_at, meal_type, food_name, portion_amount, portion_unit, calorie_mode, calories_kcal, reference_amount, reference_calories_kcal, nutrition_source, source_name, note, created_at, updated_at
+        FROM meal_records WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'WATER'">
+        SELECT id, consumed_at, amount_ml, source_name, note, created_at, updated_at
+        FROM water_records WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'WEIGHT'">
+        SELECT id, measured_at, weight_kg, source_name, note, created_at, updated_at
+        FROM weight_records WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'HEART_RATE'">
+        SELECT id, measured_at, bpm, source_name, note, corrected
+        FROM heart_rate_samples WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'DIARY'">
+        SELECT id, recorded_at, mood, stress_level, body_feeling, events, tags, note, source_name, agent_allowed, created_at, updated_at
+        FROM diary_entries WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'ACTIVITY_GOAL'">
+        SELECT daily_steps
+        FROM activity_goals WHERE user_id=#{userId} ORDER BY user_id
+      </when>
+      <when test="section.name() == 'WEIGHT_GOAL'">
+        SELECT start_date, target_date, target_weight_kg, source_name, created_at, updated_at
+        FROM weight_goals WHERE user_id=#{userId} ORDER BY user_id
+      </when>
+      <when test="section.name() == 'TASKS'">
+        SELECT id, kind, goal, status, start_date, end_date, plan_start_date, plan_end_date, source_name, include_diary, answer, question, error, statistics_json, draft_json, pending_input, plan_id, report_id, template_id, template_version, confirmed_at, feedback, feedback_at, created_at, updated_at
+        FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at,id
+      </when>
+      <when test="section.name() == 'TASK_STEPS'">
+        SELECT s.id, s.task_id, s.name, s.status, s.input_summary, s.output_summary, s.created_at
+        FROM agent_steps s JOIN agent_tasks t ON t.id=s.task_id WHERE t.user_id=#{userId} ORDER BY s.id
+      </when>
+      <when test="section.name() == 'PLANS'">
+        SELECT id, task_id, title, reason, start_date, end_date, status, version, created_at
+        FROM plans WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'PLAN_REVISIONS'">
+        SELECT r.plan_id, r.version, r.status, r.note, r.content_json, r.created_at
+        FROM plan_revisions r JOIN plans p ON p.id=r.plan_id WHERE p.user_id=#{userId} ORDER BY r.plan_id,r.version
+      </when>
+      <when test="section.name() == 'PLAN_STATUS_CHANGES'">
+        SELECT s.id, s.plan_id, s.previous_status, s.status, s.changed_at
+        FROM plan_status_changes s JOIN plans p ON p.id=s.plan_id WHERE p.user_id=#{userId} ORDER BY s.id
+      </when>
+      <when test="section.name() == 'PLAN_ITEMS'">
+        SELECT i.id, i.plan_id, i.date, i.time, i.title, i.description, i.reminder_time, i.retired, i.missed_reason
+        FROM plan_items i JOIN plans p ON p.id=i.plan_id WHERE p.user_id=#{userId} ORDER BY i.id
+      </when>
+      <when test="section.name() == 'CHECKINS'">
+        SELECT c.id, c.item_id, c.date, c.checked_at
+        FROM checkins c JOIN plan_items i ON i.id=c.item_id JOIN plans p ON p.id=i.plan_id WHERE p.user_id=#{userId} ORDER BY c.id
+      </when>
+      <when test="section.name() == 'REPORTS'">
+        SELECT id, task_id, title, start_date, end_date, source_name, include_diary, content, statistics_json, references_json, source_deleted, report_type, report_version, metric, comparison_start_date, comparison_end_date, created_at
+        FROM reports WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'SLEEP_IMPORTS'">
+        SELECT id, status, import_format, source_app, device_brand, device_type, device_model, total_rows, valid_rows, invalid_rows, duplicate_rows, skipped_rows, unsupported_rows, inserted_rows, created_at
+        FROM import_batches WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'STEP_IMPORTS'">
+        SELECT id, status, total_rows, valid_rows, invalid_rows, duplicate_rows, inserted_rows, created_at
+        FROM step_import_batches WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'MEASUREMENT_IMPORTS'">
+        SELECT id, metric, status, total_rows, duplicate_rows, inserted_rows, first_measurement, last_measurement, created_at, confirmed_at
+        FROM measurement_import_batches WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'NOTIFICATIONS'">
+        SELECT id, kind, title, body, target, data_cutoff, created_at, read_at
+        FROM notifications WHERE user_id=#{userId} ORDER BY id
+      </when>
+      <when test="section.name() == 'NOTIFICATION_SETTINGS'">
+        SELECT checkin_enabled, checkin_frequency, daily_time, plan_due_enabled, report_enabled, data_change_enabled, import_failed_enabled
+        FROM notification_settings WHERE user_id=#{userId} ORDER BY user_id
+      </when>
+      <when test="section.name() == 'TRIGGER_SETTINGS'">
+        SELECT weekly_enabled, monthly_enabled, import_enabled, import_days, source_name, notify_in_app
+        FROM agent_trigger_settings WHERE user_id=#{userId} ORDER BY user_id
+      </when>
+      <when test="section.name() == 'TRIGGER_RUNS'">
+        SELECT kind, event_key, start_date, end_date, source_name, task_id, created_at
+        FROM agent_trigger_runs WHERE user_id=#{userId} ORDER BY created_at,kind,event_key
+      </when>
+      <when test="section.name() == 'KNOWLEDGE_FAVORITES'">
+        SELECT article_id
+        FROM knowledge_favorites WHERE user_id=#{userId} ORDER BY article_id
+      </when>
+      <when test="section.name() == 'REJECTED_IMPORTS'">
+        SELECT id, kind, error_code, created_at
+        FROM rejected_imports WHERE user_id=#{userId} ORDER BY id
+      </when>
+    </choose>
+  </select>
+</mapper>

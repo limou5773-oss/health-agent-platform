@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { ShieldCheck, LockKeyhole } from "@lucide/vue";
-import { api, errorMessage, json, session } from "../api";
+import { api, download, errorMessage, json, session } from "../api";
 import type { Profile } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import PreferenceMemory from "../components/PreferenceMemory.vue";
@@ -40,6 +40,20 @@ const passwords = reactive({ oldPassword: "", newPassword: "" }),
   passwordBusy = ref(false),
   passwordError = ref(""),
   passwordMessage = ref("");
+const exportBusy = ref(false);
+const exportError = ref("");
+
+async function exportData() {
+  exportBusy.value = true;
+  exportError.value = "";
+  try {
+    await download("/profile/export", "personal-health-data.json");
+  } catch (cause) {
+    exportError.value = errorMessage(cause);
+  } finally {
+    exportBusy.value = false;
+  }
+}
 async function load() {
   loading.value = true;
   error.value = "";
@@ -213,6 +227,14 @@ onMounted(load);
           {{ passwordBusy ? "更新中…" : "更新密码" }}
         </button>
       </form>
+    </section>
+    <section class="panel">
+      <h2>个人数据导出</h2>
+      <p class="small muted">下载已保存的档案、健康记录、偏好、任务、计划和报告。文件包含个人健康信息。</p>
+      <p v-if="exportError" class="feedback error" role="alert">{{ exportError }}</p>
+      <button type="button" class="secondary" :disabled="exportBusy" @click="exportData">
+        {{ exportBusy ? "正在导出…" : "下载 JSON" }}
+      </button>
     </section>
     <PreferenceMemory />
   </div>
