@@ -6,7 +6,7 @@ import { reportMetrics as metrics } from "../report-metrics";
 import StateNotice from "./StateNotice.vue";
 
 const props = defineProps<{ plan: Plan }>();
-const emit = defineEmits<{ propose: [itemId: number, date: string, reason: string, version: number] }>();
+const emit = defineEmits<{ propose: [items: Missed[], date: string, version: number] }>();
 type Metric = keyof typeof metrics;
 type Period = {
   startDate: string; endDate: string; periodDays: number; validDays: number; average: number | null;
@@ -34,7 +34,7 @@ const reason = reactive<Record<number, string>>({});
 const saving = ref<number | null>(null);
 const saveError = ref("");
 const saved = ref<number | null>(null);
-const moveItem = ref<number | null>(null);
+const moveItems = ref<number[]>([]);
 const moveDate = ref("");
 const periods = computed(() => review.value ? [
   { label: "复盘周期", ...review.value.comparison.recent },
@@ -46,12 +46,13 @@ async function load() {
   loading.value = true;
   error.value = "";
   review.value = null;
-  moveItem.value = null;
+  moveItems.value = [];
   saved.value = null;
   saveError.value = "";
   try {
     const result = await api<Review>(`/plans/${props.plan.id}/review?${new URLSearchParams(form)}`);
     for (const item of result.missed) reason[item.id] = item.missedReason;
+    moveDate.value = result.today;
     review.value = result;
   } catch (cause) {
     error.value = errorMessage(cause);
@@ -73,11 +74,6 @@ async function saveReason(item: Missed) {
   } finally {
     saving.value = null;
   }
-}
-
-function selectMove(item: Missed, today: string) {
-  moveItem.value = item.id;
-  moveDate.value = today;
 }
 
 watch(() => props.plan, () => { if (review.value) void load(); });
@@ -122,19 +118,21 @@ watch(() => props.plan, () => { if (review.value) void load(); });
       <p v-if="!review.missed.length">该周期没有未打卡任务。</p>
       <p v-if="saveError" class="feedback error" role="alert">{{ saveError }}</p>
       <div v-for="item in review.missed" :key="item.id" class="review-missed">
-        <strong>{{ item.date }} {{ item.time.slice(0, 5) }} · {{ item.title }}</strong>
+        <label class="checkbox-label">
+          <input v-model="moveItems" type="checkbox" :value="item.id" />
+          <strong>{{ item.date }} {{ item.time.slice(0, 5) }} · {{ item.title }}</strong>
+        </label>
         <form class="filter-bar" @submit.prevent="saveReason(item)">
           <label>未完成原因<input v-model="reason[item.id]" :disabled="saving === item.id" maxlength="500" placeholder="留空表示未填写" /></label>
           <button class="secondary" :disabled="saving !== null">保存原因</button>
           <span v-if="saved === item.id" role="status">已保存</span>
         </form>
-        <button v-if="moveItem !== item.id" class="secondary" @click="selectMove(item, review.today)">建议改期</button>
-        <form v-else class="filter-bar"
-          @submit.prevent="emit('propose', item.id, moveDate, item.missedReason, review.planVersion)">
-          <label>调整到<input v-model="moveDate" type="date" :min="review.today" required /></label>
-          <button :disabled="saving !== null">带入修订编辑器</button>
-        </form>
       </div>
+      <form v-if="review.missed.length" class="filter-bar"
+        @submit.prevent="emit('propose', review.missed.filter(item => moveItems.includes(item.id)), moveDate, review.planVersion)">
+        <label>所选任务调整到<input v-model="moveDate" type="date" :min="review.today" required /></label>
+        <button :disabled="!moveItems.length || saving !== null">将 {{ moveItems.length }} 项带入修订编辑器</button>
+      </form>
     </template>
   </details>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { api, errorMessage, json } from "../api";
+import { api, dateAfter, errorMessage, json } from "../api";
 import type { DraftItem, Plan } from "../types";
 import StateNotice from "./StateNotice.vue";
 
@@ -69,7 +69,7 @@ function edit(content: Content, reason = "") {
   note.value = reason;
 }
 
-function proposeMove(itemId: number, date: string, reason: string, version: number) {
+function proposeMove(selected: { id: number; missedReason: string }[], date: string, version: number) {
   section.value?.scrollIntoView({ block: "start" });
   actionError.value = "";
   const data = revisions.value;
@@ -81,19 +81,24 @@ function proposeMove(itemId: number, date: string, reason: string, version: numb
     actionError.value = "请先处理正在编辑或已保存的修订草稿。";
     return;
   }
-  const item = current.value.items.find(entry => entry.id === itemId);
-  if (!item || locked.value.has(itemId)) {
+  const ids = new Set(selected.map(item => item.id));
+  const items = current.value.items.filter(item => item.id !== null && ids.has(item.id));
+  if (items.length !== selected.length || selected.some(item => locked.value.has(item.id))) {
     actionError.value = "该任务已变更，请刷新后重新复盘。";
     return;
   }
   const startDate = date < current.value.startDate ? date : current.value.startDate;
   const endDate = date > current.value.endDate ? date : current.value.endDate;
+  const description = selected.length === 1
+    ? `将「${items[0].title}」从 ${items[0].date} 调整到 ${date}`
+    : `将 ${selected.length} 项未打卡任务调整到 ${date}`;
+  const reason = selected.length === 1 ? selected[0].missedReason : "";
   edit({
     ...current.value,
     startDate,
     endDate,
-    items: current.value.items.map(entry => entry.id === itemId ? { ...entry, date } : entry),
-  }, `周期复盘：将「${item.title}」从 ${item.date} 调整到 ${date}${reason ? `。未完成原因：${reason}` : ""}`);
+    items: current.value.items.map(item => item.id !== null && ids.has(item.id) ? { ...item, date } : item),
+  }, `周期复盘：${description}${reason ? `。未完成原因：${reason}` : ""}`);
 }
 
 function proposeCoordination(content: Content, reason: string, version: number, latestVersion: number) {
@@ -180,7 +185,8 @@ onMounted(load);
             <label>标题<input v-model="editor.title" required maxlength="200" /></label>
             <label>调整说明<input v-model="note" required maxlength="1000" /></label>
             <label>开始日期<input v-model="editor.startDate" type="date" required /></label>
-            <label>结束日期<input v-model="editor.endDate" type="date" :min="editor.startDate" required /></label>
+            <label>结束日期（计划最多 31 天）<input v-model="editor.endDate" type="date"
+              :min="editor.startDate" :max="dateAfter(editor.startDate, 30)" required /></label>
             <label class="span-all">计划依据<textarea v-model="editor.reason" required maxlength="4000" /></label>
           </div>
           <fieldset v-for="(item, index) in editor.items" :key="index"

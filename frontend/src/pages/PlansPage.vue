@@ -186,7 +186,7 @@ onMounted(load);
           此计划{{ statusText[plan.status] }}；恢复进行后可继续打卡。
         </p>
         <PlanReview :key="plan.id" :plan="plan"
-          @propose="(id, date, reason, version) => revisionEditor?.proposeMove(id, date, reason, version)" />
+          @propose="(items, date, version) => revisionEditor?.proposeMove(items, date, version)" />
         <PlanOutcome :key="plan.id" :plan="plan" />
         <PlanCoordination :key="`coordination-${plan.id}`" :plan="plan" :plans="plans"
           @propose="(content, note, version, latest) => revisionEditor?.proposeCoordination(content, note, version, latest)" />
