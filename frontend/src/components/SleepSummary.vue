@@ -120,12 +120,19 @@ const number = (value: number) =>
       </div>
       <details v-if="statistics.daily.length" class="data-details">
         <summary>查看逐日数据</summary>
+        <p v-if="statistics.scheduleVariation" class="small muted">
+          {{ statistics.scheduleVariation.comparedDays }} 对相邻有记录日期，
+          入睡时间平均相差 {{ number(statistics.scheduleVariation.averageStartChangeMinutes) }} 分钟，
+          醒来时间平均相差 {{ number(statistics.scheduleVariation.averageEndChangeMinutes) }} 分钟。
+        </p>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>日期</th>
                 <th>睡眠时长</th>
+                <th>最早入睡</th>
+                <th>最晚醒来</th>
                 <th>记录数</th>
               </tr>
             </thead>
@@ -137,6 +144,8 @@ const number = (value: number) =>
                     day.hours === null ? "未记录" : `${number(day.hours)} 小时`
                   }}
                 </td>
+                <td>{{ day.firstStartTime?.replace("T", " ") ?? "—" }}</td>
+                <td>{{ day.lastEndTime?.replace("T", " ") ?? "—" }}</td>
                 <td>{{ day.recordCount }}</td>
               </tr>
             </tbody>

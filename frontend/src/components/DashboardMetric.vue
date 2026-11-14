@@ -4,19 +4,28 @@ import { api, errorMessage } from "../api";
 import StateNotice from "./StateNotice.vue";
 import type { HeartRateStatistics, MealStatistics, SleepStatistics, StepStatistics, WaterStatistics, WeightStatistics, WorkoutStatistics } from "../types";
 
-type Point = { date: string; value: number | null };
+type Point = {
+  date: string;
+  value: number | null;
+  firstStartTime?: string | null;
+  lastEndTime?: string | null;
+};
 type Summary = {
   points: Point[];
   value: number | null;
   label: string;
   cutoff?: string | null;
   note?: string;
+  scheduleVariation?: SleepStatistics["scheduleVariation"];
 };
 type Coverage = { validDays: number; periodDays: number };
 const metrics = {
   sleep: { label: "睡眠", unit: "小时", path: "/sleep", to: "/records", map: (data: SleepStatistics): Summary => ({
-    points: data.daily.map(day => ({ date: day.date, value: day.hours })), value: data.averageHours,
+    points: data.daily.map(day => ({
+      date: day.date, value: day.hours, firstStartTime: day.firstStartTime, lastEndTime: day.lastEndTime,
+    })), value: data.averageHours,
     label: "日均睡眠", cutoff: data.dataCutoff,
+    scheduleVariation: data.scheduleVariation,
     note: data.validDays ? `累计 ${data.totalHours} 小时，共 ${data.recordCount} 条记录，按醒来日期归属。` : undefined,
   }) },
   steps: { label: "步数", unit: "步", path: "/activity/steps", to: "/activity", map: (data: StepStatistics): Summary => ({
@@ -146,11 +155,23 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
         </svg>
         <details>
           <summary>查看逐日数值（{{ metric.unit }}）</summary>
+          <p v-if="summary.scheduleVariation" class="small muted">
+            {{ summary.scheduleVariation.comparedDays }} 对相邻有记录日期，
+            入睡时间平均相差 {{ number.format(summary.scheduleVariation.averageStartChangeMinutes) }} 分钟，
+            醒来时间平均相差 {{ number.format(summary.scheduleVariation.averageEndChangeMinutes) }} 分钟。
+          </p>
+          <p v-else-if="props.metric === 'sleep'" class="small muted">已有记录中没有相邻日期可比较作息时间。</p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th scope="col">日期</th><th scope="col">数值</th></tr></thead>
+              <thead><tr>
+                <th scope="col">日期</th><th scope="col">数值</th>
+                <th v-if="props.metric === 'sleep'" scope="col">最早入睡</th>
+                <th v-if="props.metric === 'sleep'" scope="col">最晚醒来</th>
+              </tr></thead>
               <tbody><tr v-for="point in summary.points" :key="point.date">
                 <td>{{ point.date }}</td><td>{{ point.value === null ? "缺失" : number.format(point.value) }}</td>
+                <td v-if="props.metric === 'sleep'">{{ point.firstStartTime?.replace("T", " ") ?? "—" }}</td>
+                <td v-if="props.metric === 'sleep'">{{ point.lastEndTime?.replace("T", " ") ?? "—" }}</td>
               </tr></tbody>
             </table>
           </div>

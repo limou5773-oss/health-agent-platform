@@ -68,7 +68,18 @@ export interface SleepStatistics {
   totalHours: number;
   recordCount: number;
   dataCutoff: string | null;
-  daily: { date: string; hours: number | null; recordCount: number }[];
+  scheduleVariation?: {
+    comparedDays: number;
+    averageStartChangeMinutes: number;
+    averageEndChangeMinutes: number;
+  } | null;
+  daily: {
+    date: string;
+    hours: number | null;
+    recordCount: number;
+    firstStartTime?: string | null;
+    lastEndTime?: string | null;
+  }[];
 }
 export interface ImportRow {
   rowNumber: number;

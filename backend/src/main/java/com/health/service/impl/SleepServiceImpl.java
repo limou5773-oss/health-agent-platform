@@ -105,10 +105,12 @@ public class SleepServiceImpl implements SleepService {
     List<Daily> daily = new ArrayList<>();
     double total = 0;
     long valid = 0;
+    int comparedDays = 0;
+    long startChangeSeconds = 0, endChangeSeconds = 0;
     for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
       List<SleepRecord> day = grouped.get(date);
       if (day == null) {
-        daily.add(new Daily(date, null, 0));
+        daily.add(new Daily(date, null, 0, null, null));
         continue;
       }
       day.sort(Comparator.comparing(s -> s.startTime));
@@ -128,7 +130,14 @@ public class SleepServiceImpl implements SleepService {
       double hours = seconds / 3600.0;
       total += hours;
       valid++;
-      daily.add(new Daily(date, round(hours), day.size()));
+      LocalDateTime firstStartTime = day.getFirst().startTime;
+      if (!daily.isEmpty() && daily.getLast().recordCount() > 0) {
+        Daily previous = daily.getLast();
+        startChangeSeconds += clockDifference(previous.firstStartTime(), firstStartTime);
+        endChangeSeconds += clockDifference(previous.lastEndTime(), to);
+        comparedDays++;
+      }
+      daily.add(new Daily(date, round(hours), day.size(), firstStartTime, to));
     }
     long period = ChronoUnit.DAYS.between(start, end) + 1;
     return new Statistics(
@@ -142,7 +151,15 @@ public class SleepServiceImpl implements SleepService {
         round(total),
         records.size(),
         records.stream().map(s -> s.endTime).max(Comparator.naturalOrder()).orElse(null),
+        comparedDays == 0 ? null : new ScheduleVariation(comparedDays,
+            round(startChangeSeconds / (60.0 * comparedDays)),
+            round(endChangeSeconds / (60.0 * comparedDays))),
         daily);
+  }
+
+  private static long clockDifference(LocalDateTime first, LocalDateTime second) {
+    long seconds = Math.abs(ChronoUnit.SECONDS.between(first.toLocalTime(), second.toLocalTime()));
+    return Math.min(seconds, 86400 - seconds);
   }
 
   private static double round(double value) {

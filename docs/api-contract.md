@@ -56,7 +56,9 @@ SleepRecord={id,startTime,endTime,sleepDate,durationMinutes,sourceName,sourceApp
 
 睡眠、步数、体重和心率的更正接口保留已存记录的 `sourceName`，保存后设置 `corrected=true`。请求沿用原字段，新增时仍可填写来源。时间线详情及个人数据导出包含更正标记。升级已有数据库需执行 `032_record_corrections.sql`，旧步数和体重记录初始未标记更正。
 
-SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,averageHours,totalHours,recordCount,dataCutoff,daily:[{date,hours,recordCount}]}。coverageRate百分数0..100；无有效日期均值null，daily缺失日hours=null。按日期合并区间并集，不重叠累加重复时段。日期范围最多366天（交互限制在入口校验一次），缺失日不补零。
+SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,averageHours,totalHours,recordCount,dataCutoff,scheduleVariation,daily:[{date,hours,recordCount,firstStartTime,lastEndTime}]}。coverageRate百分数0..100；无有效日期均值null，缺失日的hours、firstStartTime和lastEndTime均为null。按日期合并区间并集，不重叠累加重复时段。日期范围最多366天（交互限制在入口校验一次），缺失日不补零。
+
+作息时刻按醒来归属日期分组，展示各日最早入睡和最晚醒来。仅在同一查询范围及来源筛选下比较相邻、均有记录的日期。两天的本地钟表时间取跨午夜也成立的最短差，例如 23:50 与 00:10 相差 20 分钟。`scheduleVariation` 返回 `comparedDays`（日期对数）、`averageStartChangeMinutes` 和 `averageEndChangeMinutes`。无符合条件的日期对时为 null。早期已保存的任务或报告可能没有这些字段。
 
 ## 运动管理
 

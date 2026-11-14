@@ -206,7 +206,11 @@ public final class Models {
     public boolean favorite;
   }
 
-  public record Daily(LocalDate date, Double hours, int recordCount) {}
+  public record Daily(LocalDate date, Double hours, int recordCount,
+      LocalDateTime firstStartTime, LocalDateTime lastEndTime) {}
+
+  public record ScheduleVariation(int comparedDays, double averageStartChangeMinutes,
+      double averageEndChangeMinutes) {}
 
   public record Statistics(
       LocalDate startDate,
@@ -219,6 +223,7 @@ public final class Models {
       double totalHours,
       int recordCount,
       LocalDateTime dataCutoff,
+      ScheduleVariation scheduleVariation,
       List<Daily> daily) {}
 
   public record Page<T>(List<T> items, long total, int page, int pageSize) {}
