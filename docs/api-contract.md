@@ -28,7 +28,7 @@
 - DELETE /sleep/{id} → 204。删除使相关分析/报告失效，不能继续显示已删除健康内容。
 - GET /sleep/statistics?startDate=必填&endDate=必填&sourceName=可选 → SleepStatistics。
 - GET /sleep/sources → string[]（当前用户已录入的来源名称）。
-- GET /sleep/export?startDate=&endDate= → UTF-8 CSV，本人范围，注意CSV公式注入转义。
+- GET /sleep/export?startDate=&endDate=&sourceName= → UTF-8 CSV，导出本人符合已应用日期及来源筛选的所有记录，包含各页。文本列保留 CSV 公式转义。
 - POST /imports/preview multipart file + format（CSV / APPLE_HEALTH，默认CSV）+ timezone（CSV使用，IANA，默认档案时区）+ sourceApp + deviceBrand + deviceType + deviceModel → ImportBatch及rows。CSV10MB、最多10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。
 - POST /imports/{id}/confirm → {id,status,insertedRows,duplicateRows,invalidRows}。只入有效未重复行，同批确认幂等。所有来源保留；同一醒来日期内，不同来源时段实际重叠且未选择sourceName时，返回409 SOURCE_SELECTION_REQUIRED，由用户选择后统计。不同来源的非重叠时段可以汇总，不能因来源数量大于1就拒绝统计。
 - 睡眠导入预览返回 `firstStartTime` 和 `lastEndTime`，即有效行最早的入睡与最晚的醒来时间，使用档案时区，包含有效重复行。无有效行时两个字段均为 null。此范围用于预览，确认和历史批次不保存。

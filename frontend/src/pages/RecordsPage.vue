@@ -14,6 +14,7 @@ import StateNotice from "../components/StateNotice.vue";
 import ImportPanel from "../components/ImportPanel.vue";
 import { wearableLabel } from "../wearables";
 const filters = reactive({ ...recentRange(), sourceName: "" });
+const appliedFilters = ref({ ...filters });
 const data = ref<Page<SleepRecord> | null>(null),
   sources = ref<string[]>([]),
   page = ref(1),
@@ -29,11 +30,10 @@ async function load() {
   loading.value = true;
   error.value = "";
   data.value = null;
-  const { sourceName, ...dates } = filters;
   try {
     const [records, names] = await Promise.all([
       api<Page<SleepRecord>>(
-        `/sleep?${new URLSearchParams({ ...dates, ...(sourceName ? { sourceName } : {}), page: String(page.value), pageSize: "20" })}`,
+        `/sleep?${new URLSearchParams({ ...appliedFilters.value, page: String(page.value), pageSize: "20" })}`,
       ),
       api<string[]>("/sleep/sources"),
     ]);
@@ -44,6 +44,10 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+function applyFilters() {
+  appliedFilters.value = { ...filters };
+  changePage(1);
 }
 function edit(record?: SleepRecord) {
   editingId.value = record?.id || null;
@@ -107,7 +111,7 @@ async function exportCsv() {
   actionError.value = "";
   try {
     await download(
-      `/sleep/export?${new URLSearchParams({ startDate: filters.startDate, endDate: filters.endDate })}`,
+      `/sleep/export?${new URLSearchParams(appliedFilters.value)}`,
       "我的睡眠记录.csv",
     );
   } catch (cause) {
@@ -126,8 +130,8 @@ onMounted(load);
   <div class="page-actions">
     <p class="muted">以醒来日期归档，时长由系统计算。</p>
     <div class="actions">
-      <button class="secondary" :disabled="busy" @click="exportCsv">
-        <Download :size="16" />导出当前日期范围</button
+      <button class="secondary" :disabled="busy || !data" @click="exportCsv">
+        <Download :size="16" />导出已筛选记录</button
       ><button @click="edit()"><Plus :size="16" />新增记录</button>
     </div>
   </div>
@@ -186,10 +190,7 @@ onMounted(load);
   <section class="panel">
     <form
       class="filter-bar"
-      @submit.prevent="
-        page = 1;
-        load();
-      "
+      @submit.prevent="applyFilters"
     >
       <label
         >开始日期<input
@@ -211,6 +212,9 @@ onMounted(load);
         </select></label
       ><button class="secondary" :disabled="loading">筛选记录</button>
     </form>
+    <p v-if="data" class="small muted">
+      {{ appliedFilters.startDate }} 至 {{ appliedFilters.endDate }} · {{ appliedFilters.sourceName || "全部来源" }}
+    </p>
     <StateNotice
       :loading="loading"
       :error="error"
