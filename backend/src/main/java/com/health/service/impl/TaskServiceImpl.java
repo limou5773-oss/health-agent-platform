@@ -481,6 +481,7 @@ public class TaskServiceImpl implements TaskService {
     mapper.lockUser(started.userId);
     Task t = mapper.lock(started.id);
     if (t == null || !"RUNNING".equals(t.status) || !t.taskToken.equals(started.taskToken)) return;
+    accounts.identity(t.userId);
     AgentPermissions.requireCurrent(accounts.profile(t.userId), t);
     if (result == null || !result.isObject()) throw invalidResult("Python未返回结构化结果");
     String status = result.path("status").asText();
