@@ -75,6 +75,8 @@ class TaskContext(TaskSpec):
     timezone: str
     planId: int | None = None
     savedPreferences: list[SavedPreference] = Field(default_factory=list)
+    profileGoal: str | None = None
+    profilePreferences: str | None = None
     availableTime: str | None = None
     limitations: str | None = None
     previousAnalysis: PreviousAnalysis | None = None

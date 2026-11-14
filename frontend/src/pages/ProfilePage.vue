@@ -178,18 +178,18 @@ onMounted(load);
               step="0.1"
               placeholder="未填写" /></label
           ><label class="span-all"
-            >健康目标<textarea
+            >健康目标（选填）<textarea
               v-model="form.goal"
               rows="3"
               maxlength="1000"
               placeholder="你希望改善什么？"
             /></label
           ><label class="span-all"
-            >生活偏好与注意事项<textarea
+            >生活习惯与运动偏好（选填）<textarea
               v-model="form.preferences"
               rows="3"
               maxlength="2000"
-              placeholder="例如作息限制、运动偏好等"
+              placeholder="例如平时睡得较晚，喜欢散步"
             />
           </label>
           <label class="span-all">
@@ -208,7 +208,7 @@ onMounted(load);
           <div>
             <h3>AI 分析授权</h3>
             <p>
-              开启总授权后，健康助手可向配置的外部模型发送下方允许的数据、必要的档案信息和任务上下文。制定计划时也会使用已保存的可用时间、计划限制和长期偏好。
+              开启总授权后，健康助手可向配置的外部模型发送下方允许的数据、必要的档案信息和任务上下文。制定计划时会参考已保存的健康目标、生活习惯与运动偏好、可用时间、计划限制和长期偏好。
             </p>
             <label class="checkbox-label"
               ><input

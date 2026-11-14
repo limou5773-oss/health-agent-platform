@@ -10,4 +10,4 @@
 
 `GET /api/profile` 返回 `aiConsent`、`aiSleep`、`aiActivity`、`aiWeight`、`aiHeartRate` 和 `aiDiary`。通过 `PUT /api/profile` 保存。旧客户端省略各数据权限时保留原设置。授权版本由服务端维护。
 
-档案中的可用时间和计划限制只在已授权的计划任务运行时作为安排依据，空白字段省略。已有库执行 `database/migrations/036_profile_plan_constraints.sql`，旧档案首次保存前没有最近保存时间。
+已授权的计划任务运行时会读取档案中当前保存的健康目标、生活习惯与运动偏好、可用时间和计划限制，空白字段省略。本次明确填写的目标和限制优先。已有库执行 `database/migrations/036_profile_plan_constraints.sql`，旧档案首次保存前没有最近保存时间。

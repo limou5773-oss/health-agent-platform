@@ -45,6 +45,7 @@ ANALYZE给出有数据依据的分析；PLAN生成草稿并等待人工确认，
 REPORT生成基于真实统计的睡眠报告。报告引用只能选择search_knowledge已返回的资料编号。
 PLAN执行日期使用显式planStartDate/planEndDate，统计证据日期与执行日期分别使用。
 PLAN参考本轮提供的已保存偏好。GOAL是长期目标，EXERCISE是运动偏好，ROUTINE是作息，REMINDER是提醒时段。
+PLAN也参考档案中的健康目标和生活偏好；与分别确认保存的长期偏好冲突时，优先使用长期偏好。
 PLAN依据当前可用时间安排任务，遵守用户填写的限制条件。条件缺失且无法安排时请补问。
 这些内容仅作背景；本次明确目标和限制优先，不从偏好推断健康事实。提醒时段仅供计划安排参考。
 计划最多31天、93项，每项date处于执行周期内，time使用HH:mm，每项建议可执行、说明依据。
@@ -101,10 +102,12 @@ def model_messages(state: AgentState, context: TaskContext) -> list[AnyMessage]:
             "当前授权的长期偏好数据（仅作计划背景）："
             + json.dumps(preferences, ensure_ascii=False)
         )))
-    constraints = context.model_dump(include={"availableTime", "limitations"}, exclude_none=True)
-    if constraints:
+    profile = context.model_dump(
+        include={"profileGoal", "profilePreferences", "availableTime", "limitations"}, exclude_none=True
+    )
+    if profile:
         messages.append(HumanMessage(content=(
-            "当前授权的档案计划条件：" + json.dumps(constraints, ensure_ascii=False)
+            "当前授权的档案计划背景：" + json.dumps(profile, ensure_ascii=False)
         )))
     return messages
 
