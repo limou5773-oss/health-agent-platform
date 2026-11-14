@@ -9,6 +9,7 @@ import com.health.model.Models.*;
 import com.health.model.TaskAudit;
 import com.health.model.PlanTemplateModels.Template;
 import com.health.service.*;
+import com.health.security.AgentPermissions;
 import jakarta.validation.Validator;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -83,7 +84,8 @@ public class TaskServiceImpl implements TaskService {
   @Transactional
   public Task create(Long uid, Requests.TaskCreate r) {
     mapper.lockUser(uid);
-    consent(uid);
+    Profile profile = accounts.profile(uid);
+    AgentPermissions.require(profile, r.kind(), r.includeDiary());
     Task t = new Task();
     t.id = UUID.randomUUID().toString();
     t.userId = uid;
@@ -94,8 +96,9 @@ public class TaskServiceImpl implements TaskService {
     t.endDate = r.endDate();
     t.planStartDate = r.planStartDate();
     t.planEndDate = r.planEndDate();
-    t.sourceName = r.sourceName();
+    t.sourceName = profile.aiSleep ? r.sourceName() : null;
     t.includeDiary = r.includeDiary();
+    t.aiConsentVersion = profile.aiConsentVersion;
     t.taskToken = newToken();
     mapper.insert(t);
     afterCommit(() -> run(t.id, "CREATE", null));
@@ -132,11 +135,13 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task input(Long uid, String id, Requests.TaskInput r) {
-    consent(uid);
+    mapper.lockUser(uid);
     Task t = owned(mapper.lock(id), uid);
+    Profile profile = accounts.profile(uid);
+    AgentPermissions.requireCurrent(profile, t);
     requireStatus(t, "WAITING_INPUT");
     t.pendingInput = r.input();
-    if (r.sourceName() != null && !r.sourceName().isBlank()) t.sourceName = r.sourceName();
+    if (profile.aiSleep && r.sourceName() != null && !r.sourceName().isBlank()) t.sourceName = r.sourceName();
     t.status = "QUEUED";
     t.question = null;
     t.error = null;
@@ -210,8 +215,9 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public Task retry(Long uid, String id) {
-    consent(uid);
+    mapper.lockUser(uid);
     Task t = owned(mapper.lock(id), uid);
+    AgentPermissions.requireCurrent(accounts.profile(uid), t);
     requireStatus(t, "FAILED");
     if (!t.retryable) throw ApiException.conflict("该错误不能重试，请修正配置或参数后创建任务");
     t.status = "QUEUED";
@@ -355,7 +361,7 @@ public class TaskServiceImpl implements TaskService {
                 Task task = mapper.lock(id);
                 if (task == null || !"QUEUED".equals(task.status)) return null;
                 accounts.identity(task.userId);
-                consent(task.userId);
+                AgentPermissions.requireCurrent(accounts.profile(task.userId), task);
                 task.status = "RUNNING";
                 mapper.update(task);
                 return task;
@@ -412,9 +418,10 @@ public class TaskServiceImpl implements TaskService {
   }
 
   private void applyResult(Task started, JsonNode result) {
+    mapper.lockUser(started.userId);
     Task t = mapper.lock(started.id);
     if (t == null || !"RUNNING".equals(t.status) || !t.taskToken.equals(started.taskToken)) return;
-    consent(t.userId);
+    AgentPermissions.requireCurrent(accounts.profile(t.userId), t);
     if (result == null || !result.isObject()) throw invalidResult("Python未返回结构化结果");
     String status = result.path("status").asText();
     if (!Set.of("COMPLETED", "WAITING_INPUT", "WAITING_CONFIRMATION").contains(status))
@@ -473,7 +480,7 @@ public class TaskServiceImpl implements TaskService {
     Task t = mapper.get(id);
     if (t == null || !"COMPLETED".equals(t.status)) return;
     try {
-      consent(t.userId);
+      AgentPermissions.requireCurrent(accounts.profile(t.userId), t);
       agent
           .post()
           .uri("/internal/runs/{id}/resume", id)
@@ -500,11 +507,6 @@ public class TaskServiceImpl implements TaskService {
     } catch (RestClientException e) {
       throw new ApiException(502, "CHECKPOINT_DELETE_FAILED", "Python检查点删除失败，请恢复分析服务后重试");
     }
-  }
-
-  private void consent(Long uid) {
-    if (!accounts.profile(uid).aiConsent)
-      throw new ApiException(403, "AI_CONSENT_REQUIRED", "请先在个人档案中授权AI分析");
   }
 
   private Task hydrate(Task t) {

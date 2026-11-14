@@ -7,7 +7,12 @@
  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO users(username,password_hash,nickname,role) VALUES(#{username},#{passwordHash},#{nickname},#{role})</insert>
  <insert id="insertProfile">INSERT INTO profiles(user_id) VALUES(#{id})</insert>
  <select id="profile" resultType="com.health.model.Models$Profile">SELECT p.*,u.nickname FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=#{id}</select>
- <update id="updateProfile">UPDATE profiles SET height_cm=#{heightCm},weight_kg=#{weightKg},timezone=#{timezone},goal=#{goal},preferences=#{preferences},ai_consent=#{aiConsent} WHERE user_id=#{userId}</update>
+ <update id="updateProfile">
+  UPDATE profiles SET height_cm=#{heightCm},weight_kg=#{weightKg},timezone=#{timezone},goal=#{goal},
+    preferences=#{preferences},ai_consent=#{aiConsent},ai_sleep=#{aiSleep},ai_activity=#{aiActivity},
+    ai_weight=#{aiWeight},ai_heart_rate=#{aiHeartRate},ai_diary=#{aiDiary},ai_consent_version=#{aiConsentVersion}
+  WHERE user_id=#{userId}
+ </update>
  <update id="nickname">UPDATE users SET nickname=#{nickname} WHERE id=#{id}</update>
  <update id="password">UPDATE users SET password_hash=#{hash} WHERE id=#{id}</update>
  <select id="users" resultType="com.health.model.Models$User">SELECT id,username,nickname,role,enabled,created_at FROM users ORDER BY id DESC</select>

@@ -18,8 +18,8 @@
 - POST /auth/login {username,password} → {accessToken,expiresAt,user:{id,username,nickname,role}}。
 - GET /auth/me → {id,username,nickname,role}。
 - PUT /auth/password {oldPassword,newPassword} → 204。
-- GET /profile → {nickname,heightCm,weightKg,timezone,goal,preferences,aiConsent}，注册创建初始档案，timezone Asia/Shanghai，aiConsent false；未知数值返回null。
-- PUT /profile {nickname,heightCm,weightKg,timezone,goal,preferences,aiConsent} → 同GET。可选身高/体重必须允许null，用户主动授权后方可分析。
+- GET /profile 返回档案和授权字段。注册创建初始档案，timezone 为 Asia/Shanghai，总授权默认关闭，未知数值返回 null。
+- PUT /profile 更新档案和授权字段。身高和体重允许 null。分类授权字段及撤回规则见 [AI 数据授权](ai-data-permissions.md)。
 - GET /sleep?page=1&pageSize=20&startDate=&endDate=&sourceName= → 分页SleepRecord。
 - POST /sleep {startTime,endTime,sourceName,note} → SleepRecord。
 - PUT /sleep/{id} 同POST → SleepRecord。
@@ -174,9 +174,9 @@ Python使用OpenAI兼容外部模型接口，通过OPENAI_API_KEY/OPENAI_BASE_UR
 
 头 X-Service-Key + X-Task-Token。任务编号作为路径，Java根据任务确定用户及当前授权，在统一内部入口校验一次。
 - GET /internal/agent/tasks/{id}/context → {id,goal,kind,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,status,aiConsent,timezone,planId}。
-- GET /internal/agent/tasks/{id}/tools/profile → Profile。
+- GET /internal/agent/tasks/{id}/tools/profile 返回身高、时区、目标和偏好，体重仅在获授权时返回。
 - GET /internal/agent/tasks/{id}/tools/sleep-statistics → SleepStatistics（直接使用任务保存的日期与来源，不允许模型扩大范围）。
-- GET /internal/agent/tasks/{id}/tools/combined-statistics → CombinedStatistics（仅 COMBINED 任务；使用任务保存的日期、用户与睡眠来源，返回同期五项指标的逐日数值和覆盖）。
+- GET /internal/agent/tasks/{id}/tools/combined-statistics → CombinedStatistics（仅 COMBINED 任务；使用任务保存的日期、用户与睡眠来源，返回已授权指标的逐日数值和覆盖）。
 - GET /internal/agent/tasks/{id}/tools/knowledge?query= → Article[]。
 - GET /internal/agent/tasks/{id}/tools/plans → 当前用户[{id,startDate,endDate,status}]，不返回标题、原因或正文；公共计划页面的接口不变。
 - GET /internal/agent/tasks/{id}/tools/diary → DiaryContext（结构见diary-management.md），仅任务显式includeDiary=true时可读，否则403 DIARY_NOT_ENABLED；只返回该用户、任务日期内当前已授权日记及其授权范围计数。

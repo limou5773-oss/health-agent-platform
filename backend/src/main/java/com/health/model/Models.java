@@ -28,6 +28,16 @@ public final class Models {
     public String goal;
     public String preferences;
     public boolean aiConsent;
+    public boolean aiSleep;
+    public boolean aiActivity;
+    public boolean aiWeight;
+    public boolean aiHeartRate;
+    public boolean aiDiary;
+    @JsonIgnore public long aiConsentVersion;
+
+    public boolean canAnalyzeCombined() {
+      return aiSleep || aiActivity || aiWeight || aiHeartRate;
+    }
   }
 
   public static class SleepRecord {
@@ -93,6 +103,7 @@ public final class Models {
     public LocalDate planEndDate;
     public String sourceName;
     public boolean includeDiary;
+    @JsonIgnore public long aiConsentVersion;
     public String answer;
     public String question;
     public String error;

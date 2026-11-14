@@ -15,7 +15,7 @@
   </insert>
   <select id="reviewUsers" resultType="long">
     SELECT s.user_id FROM agent_trigger_settings s
-    JOIN profiles p ON p.user_id=s.user_id AND p.ai_consent=TRUE
+    JOIN profiles p ON p.user_id=s.user_id AND p.ai_consent=TRUE AND p.ai_sleep=TRUE
     JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
     JOIN system_settings g ON g.id=1
     WHERE (s.weekly_enabled AND g.weekly_enabled) OR (s.monthly_enabled AND g.monthly_enabled)

@@ -57,14 +57,24 @@ public class AccountServiceImpl implements AccountService {
   @Transactional
   public Profile profile(Long id, Requests.Profile r) {
     mapper.lockUser(id);
-    Profile p = new Profile();
-    p.userId = id;
+    Profile p = mapper.profile(id);
+    if ((p.aiConsent && Boolean.FALSE.equals(r.aiConsent()))
+        || (p.aiSleep && Boolean.FALSE.equals(r.aiSleep()))
+        || (p.aiActivity && Boolean.FALSE.equals(r.aiActivity()))
+        || (p.aiWeight && Boolean.FALSE.equals(r.aiWeight()))
+        || (p.aiHeartRate && Boolean.FALSE.equals(r.aiHeartRate()))
+        || (p.aiDiary && Boolean.FALSE.equals(r.aiDiary()))) p.aiConsentVersion++;
     p.heightCm = r.heightCm();
     p.weightKg = r.weightKg();
     p.timezone = r.timezone();
     p.goal = r.goal();
     p.preferences = r.preferences();
     p.aiConsent = r.aiConsent();
+    if (r.aiSleep() != null) p.aiSleep = r.aiSleep();
+    if (r.aiActivity() != null) p.aiActivity = r.aiActivity();
+    if (r.aiWeight() != null) p.aiWeight = r.aiWeight();
+    if (r.aiHeartRate() != null) p.aiHeartRate = r.aiHeartRate();
+    if (r.aiDiary() != null) p.aiDiary = r.aiDiary();
     mapper.updateProfile(p);
     mapper.nickname(id, r.nickname());
     return mapper.profile(id);

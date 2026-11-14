@@ -69,7 +69,9 @@ public class TriggerServiceImpl implements TriggerService {
     taskMapper.lockUser(userId);
     Settings settings = settings(userId);
     if (!settings.importEnabled() || !systemSettings.get().importAnalysisEnabled()
-        || !taskMapper.enabled(userId) || !accounts.profile(userId).aiConsent) return;
+        || !taskMapper.enabled(userId)) return;
+    var profile = accounts.profile(userId);
+    if (!profile.aiConsent || !profile.aiSleep) return;
     LocalDate end = settings.sourceName() == null
         ? latestBySource.values().stream().max(Comparator.naturalOrder()).orElseThrow()
         : latestBySource.get(settings.sourceName());
@@ -86,7 +88,7 @@ public class TriggerServiceImpl implements TriggerService {
           taskMapper.lockUser(userId);
           Settings settings = settings(userId);
           var profile = accounts.profile(userId);
-          if (!profile.aiConsent || !taskMapper.enabled(userId)) return;
+          if (!profile.aiConsent || !profile.aiSleep || !taskMapper.enabled(userId)) return;
           var platform = systemSettings.get();
           LocalDate today = LocalDate.now(ZoneId.of(profile.timezone));
           if (settings.weeklyEnabled() && platform.weeklyEnabled()) {

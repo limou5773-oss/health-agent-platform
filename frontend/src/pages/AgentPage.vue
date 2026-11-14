@@ -42,6 +42,13 @@ const selected = computed(() => {
   const id = route.query.task;
   return typeof id === "string" && id ? id : null;
 });
+const canCreate = computed(() => {
+  const allowed = profile.value;
+  if (!allowed?.aiConsent) return false;
+  return form.kind === "COMBINED"
+    ? allowed.aiSleep || allowed.aiActivity || allowed.aiWeight || allowed.aiHeartRate
+    : allowed.aiSleep;
+});
 async function load() {
   loading.value = true;
   error.value = "";
@@ -76,7 +83,8 @@ async function create() {
       "/agent/tasks",
       json("POST", {
         ...rest,
-        ...(sourceName ? { sourceName } : {}),
+        includeDiary: rest.includeDiary && !!profile.value?.aiDiary,
+        ...(sourceName && profile.value?.aiSleep ? { sourceName } : {}),
         ...(form.kind === "PLAN" ? { planStartDate, planEndDate } : {}),
       }),
     );
@@ -155,7 +163,7 @@ onMounted(load);
               required
               :min="form.startDate"
               :max="dateAfter(form.startDate, 365)" /></label
-          ><label
+          ><label v-if="profile?.aiSleep"
             >睡眠数据来源<select v-model="form.sourceName">
               <option value="">全部来源（冲突时补充选择）</option>
               <option v-for="source in sources" :key="source">
@@ -179,20 +187,19 @@ onMounted(load);
           ></template>
         </div>
         <p v-if="form.kind === 'COMBINED'" class="footnote">
-          外部模型可使用所选日期内的睡眠、步数、运动、体重和心率汇总。睡眠来源只筛选睡眠，其他指标发生来源冲突时单独标记。
+          外部模型可使用所选日期内已授权的指标汇总。睡眠来源只筛选睡眠，其他指标发生来源冲突时单独标记。
         </p>
         <label class="checkbox-label">
           <input
             v-model="form.includeDiary"
             type="checkbox"
-            :disabled="busy || !profile?.aiConsent"
+            :disabled="busy || !profile?.aiConsent || !profile.aiDiary"
             aria-describedby="task-diary-hint"
           />
           本次任务允许读取已授权日记（可选）
         </label>
         <p id="task-diary-hint" class="footnote">
-          需同时开启个人档案 AI
-          授权、逐条允许日记读取、并勾选本项。仅限分析日期内已授权日记，日记来源不受睡眠来源筛选限制。最多读取最近
+          需在档案开启日记分析授权、逐条允许日记读取，并勾选本项。仅限分析日期内已授权日记，日记来源不受睡眠来源筛选限制。最多读取最近
           20 条，作为个人自述背景，不作诊断。
         </p>
         <p class="footnote">
@@ -201,7 +208,10 @@ onMounted(load);
         <p v-if="actionError" class="feedback error" role="alert">
           {{ actionError }}
         </p>
-        <button :disabled="busy || !profile?.aiConsent">
+        <p v-if="profile?.aiConsent && !canCreate" class="feedback">
+          请在个人档案中授权当前任务所需的指标。
+        </p>
+        <button :disabled="busy || !canCreate">
           {{ busy ? "正在创建…" : "创建任务" }}<ArrowUpRight :size="16" />
         </button>
       </form>

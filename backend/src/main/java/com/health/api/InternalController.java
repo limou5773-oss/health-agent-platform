@@ -41,13 +41,22 @@ public class InternalController {
   }
 
   @GetMapping("/tools/profile")
-  public Profile profile(HttpServletRequest r) {
-    return (Profile) r.getAttribute(PROFILE);
+  public Map<String, Object> profile(HttpServletRequest r) {
+    Profile profile = (Profile) r.getAttribute(PROFILE);
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("heightCm", profile.heightCm);
+    fields.put("timezone", profile.timezone);
+    fields.put("goal", profile.goal);
+    fields.put("preferences", profile.preferences);
+    if (profile.aiWeight) fields.put("weightKg", profile.weightKg);
+    return fields;
   }
 
   @GetMapping("/tools/sleep-statistics")
   public Statistics statistics(HttpServletRequest r) {
     Task t = (Task) r.getAttribute(TASK);
+    if (!((Profile) r.getAttribute(PROFILE)).aiSleep)
+      throw new ApiException(403, "AI_METRIC_NOT_ALLOWED", "未授权睡眠分析");
     return sleep.statistics(t.userId, t.startDate, t.endDate, t.sourceName);
   }
 
@@ -60,7 +69,7 @@ public class InternalController {
   public CombinedAnalysis combined(HttpServletRequest r) {
     Task task = (Task) r.getAttribute(TASK);
     if (!"COMBINED".equals(task.kind)) throw new ApiException(403, "TOOL_NOT_ENABLED", "本任务未启用综合分析");
-    return combined.statistics(task);
+    return combined.statistics(task, (Profile) r.getAttribute(PROFILE));
   }
 
   @GetMapping("/tools/diary")

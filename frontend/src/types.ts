@@ -12,6 +12,11 @@ export interface Profile {
   goal: string;
   preferences: string;
   aiConsent: boolean;
+  aiSleep: boolean;
+  aiActivity: boolean;
+  aiWeight: boolean;
+  aiHeartRate: boolean;
+  aiDiary: boolean;
 }
 export interface Page<T> {
   items: T[];

@@ -38,7 +38,7 @@ public class InternalInterceptor implements HandlerInterceptor {
     Task task = tasks.internalIdentity(vars.get("id"), request.getHeader("X-Task-Token"));
     User user = accounts.identity(task.userId);
     Profile p = accounts.profile(task.userId);
-    if (!p.aiConsent) throw new ApiException(403, "AI_CONSENT_REQUIRED", "用户未授权AI分析");
+    AgentPermissions.requireCurrent(p, task);
     if ("COMPLETED".equals(task.status) && request.getRequestURI().contains("/tools/"))
       throw new ApiException(403, "TASK_INACTIVE", "任务已完成");
     request.setAttribute(Identity.KEY, user);

@@ -152,6 +152,10 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「健康助手」选择「综合分析」，使用同一日期范围的睡眠、步数、运动、体重与心率统计，并可选已授权日记。已有库执行 `database/migrations/024_combined_agent_analysis.sql`。详见[Agent 综合分析](docs/combined-agent-analysis.md)。
 
+## AI 数据授权
+
+在「个人档案」设置外部模型授权和五类数据权限。已有库执行 `database/migrations/026_ai_data_permissions.sql`。详见[AI 数据授权](docs/ai-data-permissions.md)。
+
 ## 开发约定
 
 同一输入在入口校验一次；内部不重复判空或滥用 `try/catch`。归属、权限、状态、版本、事务与数据库唯一约束保留。功能测试与验收由用户负责，不附带自动化回归框架；开发侧只执行必要的构建检查。

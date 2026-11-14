@@ -55,7 +55,8 @@ public final class Requests {
       @NotBlank @Size(max = 64) String timezone,
       @NotNull @Size(max = 1000) String goal,
       @NotNull @Size(max = 2000) String preferences,
-      @NotNull Boolean aiConsent) {
+      @NotNull Boolean aiConsent, Boolean aiSleep, Boolean aiActivity, Boolean aiWeight,
+      Boolean aiHeartRate, Boolean aiDiary) {
     @AssertTrue(message = "无效IANA时区")
     @JsonIgnore
     public boolean isTimezoneValid() {

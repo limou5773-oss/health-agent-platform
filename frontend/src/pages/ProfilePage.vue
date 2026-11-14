@@ -18,7 +18,19 @@ const form = reactive<
   goal: "",
   preferences: "",
   aiConsent: false,
+  aiSleep: true,
+  aiActivity: false,
+  aiWeight: false,
+  aiHeartRate: false,
+  aiDiary: true,
 });
+const permissionFields = {
+  aiSleep: "睡眠",
+  aiActivity: "步数与运动",
+  aiWeight: "体重",
+  aiHeartRate: "心率",
+  aiDiary: "日记",
+} as const;
 const loading = ref(true),
   error = ref(""),
   actionError = ref(""),
@@ -141,16 +153,22 @@ onMounted(load);
           <div>
             <h3>AI 分析授权</h3>
             <p>
-              开启后，健康助手可将任务所需的统计、档案偏好及必要上下文发送给配置的外部模型。综合分析可使用所选日期内的睡眠、步数、运动、体重和心率统计。制定计划时也会发送你主动保存的长期偏好。
+              开启总授权后，健康助手可向配置的外部模型发送下方允许的数据、必要的档案信息和任务上下文。制定计划时也会发送你主动保存的长期偏好。
             </p>
             <label class="checkbox-label"
               ><input
                 v-model="form.aiConsent"
                 type="checkbox"
-              />我同意使用上述数据进行 AI 健康分析</label
+              />允许使用外部模型进行 AI 分析</label
             >
+            <fieldset :disabled="!form.aiConsent || busy">
+              <legend>允许用于 AI 分析的数据</legend>
+              <label v-for="(label, field) in permissionFields" :key="field" class="checkbox-label">
+                <input v-model="form[field]" type="checkbox" />{{ label }}
+              </label>
+            </fieldset>
             <p class="small muted">
-              关闭并保存后，不再允许新任务或继续工具查询。历史结果可在相应页面查看或删除任务。
+              日记还需逐条授权，并在任务中勾选。撤回任一授权并保存后，现有任务无法继续读取或重试。历史结果可查看或删除。
             </p>
           </div>
         </div>
