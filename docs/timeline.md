@@ -27,6 +27,8 @@
 
 健康记录时间沿用原模块的档案时区约定。计划创建、打卡和状态变更沿用系统记录时间。打卡详情同时提供计划安排日期；撤销打卡后该打卡从时间线消失。计划创建来自现有记录，暂停、恢复、结束的历史从执行 008 迁移后开始记录。同状态提交按幂等处理。
 
+创建事件显示计划最初的标题和日期范围。已修订的计划使用第 1 版快照，尚未修订的计划使用正式计划记录。「查看原计划」打开当前版本。
+
 ## 接口
 
 - GET /api/timeline/events 接受 startDate、endDate（必填，最多366天）、page、pageSize、type（可选，上表枚举）及 sourceName（可选，完整名称精确匹配）。返回 {items,total,page,pageSize}，items 按 eventDate DESC、occurredAt DESC、type ASC、id DESC 排列。

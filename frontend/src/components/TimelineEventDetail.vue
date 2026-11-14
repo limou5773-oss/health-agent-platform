@@ -122,9 +122,9 @@ const fields = computed<[string, string][]>(() => {
       ];
     case "PLAN_CREATED":
       return [
-        ["计划名称", details.planTitle],
-        ["计划开始日期", details.startDate],
-        ["计划结束日期", details.endDate],
+        ["初始计划名称", details.planTitle],
+        ["初始开始日期", details.startDate],
+        ["初始结束日期", details.endDate],
         ["创建时间", recordTime(details.createdAt)],
       ];
     case "PLAN_STATUS":

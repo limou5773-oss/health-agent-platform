@@ -266,16 +266,19 @@
           , _utf8mb4'PLAN_CREATED' COLLATE utf8mb4_0900_bin AS type
           , DATE(e.created_at) AS event_date, e.created_at AS occurred_at
           , _utf8mb4'计划管理' COLLATE utf8mb4_0900_bin AS source_name
-          , CONVERT(e.title USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
+          , CONVERT(COALESCE(r.content_json->>'$.title', e.title) USING utf8mb4) COLLATE utf8mb4_0900_bin AS summary
           <if test="detail">
             , JSON_OBJECT('planId', e.id,
-                  'planTitle', e.title,
-                  'startDate', CAST(e.start_date AS CHAR),
-                  'endDate', CAST(e.end_date AS CHAR),
+                  'planTitle', COALESCE(r.content_json->>'$.title', e.title),
+                  'startDate', COALESCE(r.content_json->>'$.startDate', CAST(e.start_date AS CHAR)),
+                  'endDate', COALESCE(r.content_json->>'$.endDate', CAST(e.end_date AS CHAR)),
                   'createdAt', REPLACE(CAST(e.created_at AS CHAR), ' ', 'T')) AS details_json
           </if>
         </if>
         FROM plans e
+        <if test="project">
+          LEFT JOIN plan_revisions r ON r.plan_id = e.id AND r.version = 1
+        </if>
         WHERE e.user_id = #{userId}
         <choose>
           <when test="byId">AND e.id = #{id}</when>
