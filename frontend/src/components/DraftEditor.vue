@@ -17,6 +17,7 @@ function addItem() {
   form.items.push({
     date: form.startDate,
     time: "",
+    reminderTime: null,
     title: "",
     description: "",
   });
@@ -28,7 +29,7 @@ async function save() {
   try {
     const task = await api<TaskDetail>(
       `/agent/tasks/${encodeURIComponent(props.taskId)}/draft`,
-      json("PUT", form),
+      json("PUT", { ...form, items: form.items.map(item => ({ ...item, reminderTime: item.reminderTime || null })) }),
     );
     dirty.value = false;
     emit("updated", task);
@@ -94,7 +95,8 @@ async function confirm() {
         </label>
       </div>
       <p class="footnote">
-        计划最多 31 天、93 个行动；每项日期必须在计划周期内。
+        计划最多 31 天、93 个行动，每项日期必须在计划周期内。
+        开启按任务提醒时，提醒时间留空则使用执行时间。
       </p>
       <fieldset
         v-for="(item, index) in form.items"
@@ -110,7 +112,8 @@ async function confirm() {
               required
               :min="form.startDate"
               :max="form.endDate" /></label
-          ><label>时间<input v-model="item.time" type="time" required /></label
+          ><label>执行时间<input v-model="item.time" type="time" required /></label
+          ><label>提醒时间（选填）<input v-model="item.reminderTime" type="time" step="1" /></label
           ><label class="span-all"
             >行动名称<input
               v-model="item.title"

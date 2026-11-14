@@ -226,6 +226,7 @@ public class TaskServiceImpl implements TaskService {
       item.time = i.time();
       item.title = i.title();
       item.description = i.description();
+      item.reminderTime = i.reminderTime();
       plans.insertItem(item);
     }
     t.planId = p.id;

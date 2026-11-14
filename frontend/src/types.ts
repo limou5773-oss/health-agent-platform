@@ -129,6 +129,7 @@ export interface Article {
 export interface DraftItem {
   date: string;
   time: string;
+  reminderTime?: string | null;
   title: string;
   description: string;
 }

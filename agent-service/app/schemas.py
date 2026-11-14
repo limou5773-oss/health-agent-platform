@@ -191,6 +191,7 @@ class CheckinSummary(BaseModel):
 class DraftItem(RequestModel):
     date: date
     time: Annotated[str, Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]
+    reminderTime: Annotated[str, Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")] | None = None
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(
         min_length=1,

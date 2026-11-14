@@ -256,7 +256,8 @@ public final class Requests {
       @NotNull LocalDate date,
       @NotNull LocalTime time,
       @NotBlank @Size(max = 200) String title,
-      @NotNull @Size(max = 2000) String description) {}
+      @NotNull @Size(max = 2000) String description,
+      LocalTime reminderTime) {}
 
   public record Confirm(@Min(1) int version, @NotBlank @Size(max = 100) String operationId) {}
 
