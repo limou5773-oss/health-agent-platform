@@ -50,7 +50,12 @@ const listLoading = ref(true);
 const listError = ref("");
 const exporting = ref(false);
 const exportError = ref("");
-type DeletionPreview = { count: number; fingerprint: string; impact: string };
+type DeletionPreview = {
+  count: number;
+  fingerprint: string;
+  impact: string;
+  sources: { sourceName: string; count: number }[];
+};
 const deletion = ref<{ scope: string; preview: DeletionPreview } | null>(null);
 const deleting = ref(false);
 const deletionError = ref("");
@@ -301,6 +306,11 @@ function closeDetail() {
       <h2 id="timeline-deletion-title">确认删除 {{ deletion.preview.count }} 条记录</h2>
       <p>{{ appliedFilters.startDate }} 至 {{ appliedFilters.endDate }} ·
         {{ timelineTypeText[appliedFilters.type as TimelineType] }} · {{ appliedFilters.sourceName || "全部来源" }}</p>
+      <ul v-if="deletion.preview.sources.length" aria-label="待删除记录按来源统计">
+        <li v-for="source in deletion.preview.sources" :key="source.sourceName">
+          {{ source.sourceName }} · {{ source.count }} 条
+        </li>
+      </ul>
       <p v-if="deletion.preview.count">{{ deletion.preview.impact }}</p>
       <p v-else>此范围没有匹配记录。</p>
       <p v-if="deletion.preview.count" class="small muted">已确认的正式计划及打卡记录继续保留。</p>

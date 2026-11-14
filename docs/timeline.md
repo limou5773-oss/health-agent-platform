@@ -4,7 +4,7 @@
 
 在时间线应用筛选后，选择睡眠、步数、运动、饮食、饮水、体重、心率或日记之一，点击「预览删除」。确认区显示已选类型、日期、来源、匹配条数及可能影响的关联内容。列表与预览共用原始记录范围，包含全部匹配页。计划和打卡事件不进入此流程。
 
-`GET /api/timeline/events/deletion-preview` 返回 `count`、`impact` 和 `fingerprint`。确认时用相同筛选条件及 `fingerprint` 请求 `DELETE /api/timeline/events`。用户行锁内重读范围，若记录发生变化则返回 409 `DELETE_SCOPE_CHANGED`，需重新预览。成功返回 `{deleted}`。
+`GET /api/timeline/events/deletion-preview` 返回 `count`、`impact`、`fingerprint` 和 `sources: [{sourceName, count}]`。来源计数涵盖全部匹配页。确认时用相同筛选条件及 `fingerprint` 请求 `DELETE /api/timeline/events`。用户行锁内重读范围，若记录发生变化则返回 409 `DELETE_SCOPE_CHANGED`，需重新预览。成功返回 `{deleted}`。
 
 删除沿用各指标的原有业务方法。涉及睡眠或已授权日记时清理关联分析、报告、任务中的原请求和会话内容及 Agent 检查点。删除步数、运动、饮食、饮水和体重会使覆盖相应日期的本地健康报告失效。删除心率采样后，看板根据剩余记录重新统计，并使覆盖相关日期且包含心率的报告失效。正式计划及打卡继续保留。检查点服务返回失败时，数据库事务回滚，已清除的外部检查点无法随数据库回滚。
 

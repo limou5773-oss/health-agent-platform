@@ -7,6 +7,7 @@ import com.health.api.TimelineRequests.DeleteQuery;
 import com.health.mapper.TaskMapper;
 import com.health.mapper.TimelineMapper;
 import com.health.model.TimelineModels.DeletionPreview;
+import com.health.model.TimelineModels.DeletionSource;
 import com.health.service.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.TreeMap;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,16 +91,22 @@ public class HealthRecordDeletionServiceImpl implements HealthRecordDeletionServ
         + "|" + (query.sourceName == null ? "" : query.sourceName);
     digest.update(scope.getBytes(StandardCharsets.UTF_8));
     List<Long> ids = new ArrayList<>();
+    var sourceCounts = new TreeMap<String, Integer>();
     try (var rows = timeline.exportEvents(userId, query)) {
       for (var row : rows) {
         ids.add(row.id);
+        sourceCounts.merge(row.sourceName, 1, Integer::sum);
         String record = row.id + "|" + row.eventDate + "|" + row.occurredAt + "|" + row.sourceName
             + "|" + row.detailsJson;
         digest.update(record.getBytes(StandardCharsets.UTF_8));
         digest.update((byte) 0);
       }
     }
-    return new Selection(ids, new DeletionPreview(ids.size(), HexFormat.of().formatHex(digest.digest()), impact));
+    List<DeletionSource> sources = sourceCounts.entrySet().stream()
+        .map(entry -> new DeletionSource(entry.getKey(), entry.getValue()))
+        .toList();
+    return new Selection(ids,
+        new DeletionPreview(ids.size(), HexFormat.of().formatHex(digest.digest()), impact, sources));
   }
 
   private record Selection(List<Long> ids, DeletionPreview preview) {}
