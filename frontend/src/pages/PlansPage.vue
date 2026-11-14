@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { CalendarCheck, Check, RotateCcw } from "@lucide/vue";
 import { api, errorMessage, json, statusText } from "../api";
@@ -30,6 +30,10 @@ const selected = computed(() => {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 });
 const visibleItems = computed(() => (plan.value?.items ?? []).filter(item => !selectedDate.value || item.date === selectedDate.value));
+const requestedItem = computed(() => {
+  const id = Number(route.query.item);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+});
 async function load() {
   loading.value = true;
   error.value = "";
@@ -129,6 +133,15 @@ watch(selected, () => {
   reasonItem.value = null;
   void loadDetail();
 }, { immediate: true });
+watch([requestedItem, () => plan.value?.id, loading, detailLoading], async ([itemId]) => {
+  const current = plan.value;
+  if (itemId === null || loading.value || detailLoading.value || !current || current.id !== selected.value) return;
+  const item = current.items?.find(row => row.id === itemId);
+  selectedDate.value = item?.date ?? null;
+  if (!item) return;
+  await nextTick();
+  document.getElementById(`plan-task-${item.id}`)?.focus();
+}, { flush: "post" });
 onMounted(load);
 </script>
 <template>
@@ -233,6 +246,8 @@ onMounted(load);
           <li
             v-for="item in visibleItems"
             :key="item.id"
+            :id="`plan-task-${item.id}`"
+            tabindex="-1"
             :class="{ completed: item.completed }"
           >
             <div class="checkin-date">

@@ -41,7 +41,7 @@
     INSERT INTO notifications(user_id,kind,event_key,title,body,target,data_cutoff)
     SELECT candidate.* FROM (
     SELECT p.user_id,'CHECKIN' AS kind,CONCAT('task:',i.id) AS event_key,'计划打卡提醒' AS title,
-      CONCAT('任务「',i.title,'」等待打卡。') AS body,CONCAT('/plans?id=',p.id) AS target,NULL AS data_cutoff
+      CONCAT('任务「',i.title,'」等待打卡。') AS body,CONCAT('/plans?id=',p.id,'&amp;item=',i.id) AS target,NULL AS data_cutoff
     FROM notification_settings s JOIN profiles f ON f.user_id=s.user_id AND f.timezone=#{zone}
     JOIN users u ON u.id=s.user_id AND u.enabled=TRUE
     JOIN system_settings g ON g.id=1
