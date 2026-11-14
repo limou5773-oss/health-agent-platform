@@ -61,6 +61,8 @@ SleepStatistics={startDate,endDate,sourceName,periodDays,validDays,coverageRate,
 
 作息时刻按醒来归属日期分组，展示各日最早入睡和最晚醒来。仅在同一查询范围及来源筛选下比较相邻、均有记录的日期。两天的本地钟表时间取跨午夜也成立的最短差，例如 23:50 与 00:10 相差 20 分钟。`scheduleVariation` 返回 `comparedDays`（日期对数）、`averageStartChangeMinutes` 和 `averageEndChangeMinutes`。无符合条件的日期对时为 null。早期已保存的任务或报告可能没有这些字段。
 
+Agent 的睡眠统计工具沿用相同的逐日时刻和作息变化字段。新生成的分析及睡眠报告将本轮工具返回值保存在统计快照中。
+
 ## 运动管理
 
 步数、运动、步数目标、CSV预览确认及计划任务关联使用独立的 `/api/activity` 接口，完整字段与口径见[运动管理实施契约](activity-management.md)。JWT、身份隔离、分页和统一错误格式沿用本契约。

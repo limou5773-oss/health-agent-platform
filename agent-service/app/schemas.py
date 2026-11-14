@@ -81,6 +81,14 @@ class DailySleep(BaseModel):
     date: date
     hours: float | None
     recordCount: int
+    firstStartTime: str | None = None
+    lastEndTime: str | None = None
+
+
+class ScheduleVariation(BaseModel):
+    comparedDays: int
+    averageStartChangeMinutes: float
+    averageEndChangeMinutes: float
 
 
 class SleepStatistics(BaseModel):
@@ -94,6 +102,7 @@ class SleepStatistics(BaseModel):
     totalHours: float
     recordCount: int
     dataCutoff: str | None
+    scheduleVariation: ScheduleVariation | None = None
     daily: list[DailySleep]
 
 
