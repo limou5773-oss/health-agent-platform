@@ -13,7 +13,8 @@
   <select id="toolFailures" resultType="com.health.model.RuntimeStats$ToolFailure">
     SELECT CASE WHEN name='睡眠统计来源选择' THEN 'get_sleep_statistics' ELSE name END AS tool, COUNT(*) AS count
     FROM agent_steps WHERE status='FAILED' AND <include refid="createdWindow"/>
-      AND name IN ('睡眠统计来源选择','get_sleep_statistics','get_combined_statistics','get_profile','get_plans','search_knowledge','get_authorized_diary')
+      AND name IN ('睡眠统计来源选择','get_sleep_statistics','get_sleep_records','get_combined_statistics',
+        'get_profile','get_plans','get_checkin_summary','search_knowledge','get_authorized_diary')
     GROUP BY tool ORDER BY count DESC,tool
   </select>
   <sql id="volumeColumns">

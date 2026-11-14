@@ -24,8 +24,11 @@ const error = ref("");
 const taskStates = ["COMPLETED", "FAILED", "CANCELLED", "QUEUED", "RUNNING", "WAITING_INPUT", "WAITING_CONFIRMATION"];
 const toolNames: Record<string, string> = {
   get_sleep_statistics: "睡眠统计",
+  get_sleep_records: "睡眠明细",
+  get_combined_statistics: "综合统计",
   get_profile: "健康档案",
   get_plans: "已有计划",
+  get_checkin_summary: "打卡汇总",
   search_knowledge: "知识检索",
   get_authorized_diary: "授权日记",
 };

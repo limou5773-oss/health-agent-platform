@@ -18,8 +18,11 @@ const loading = ref(true);
 const error = ref("");
 const stepLabels: Record<string, string> = {
   get_sleep_statistics: "查询睡眠统计",
+  get_sleep_records: "查询睡眠明细",
+  get_combined_statistics: "查询综合统计",
   get_profile: "读取授权档案",
   get_plans: "查询已有计划",
+  get_checkin_summary: "查询打卡汇总",
   search_knowledge: "检索知识资料",
   get_authorized_diary: "读取授权日记",
 };
