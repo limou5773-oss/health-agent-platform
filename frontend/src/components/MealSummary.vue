@@ -94,8 +94,10 @@ defineProps<{ statistics: MealStatistics }>();
               >
             </td>
             <td>
-              {{ calorieText(day.knownCaloriesKcal) }} /
-              {{ day.knownCaloriesCount }} 条
+              <template v-if="day.knownCaloriesKcal !== null">
+                {{ calorieText(day.knownCaloriesKcal) }} / {{ day.knownCaloriesCount }} 条
+              </template>
+              <span v-else>{{ day.recordCount === 0 ? "无记录" : "热量均未知" }}</span>
             </td>
             <td>{{ day.unknownCaloriesCount }}</td>
           </tr>

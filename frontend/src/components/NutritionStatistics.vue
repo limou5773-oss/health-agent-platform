@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ApiError, api, errorMessage, recentRange } from "../api";
+import { ApiError, api, dateAfter, errorMessage, recentRange } from "../api";
 import type { MealStatistics, WaterStatistics } from "../types";
 import { recordTime } from "../nutrition";
 import MealSummary from "./MealSummary.vue";
@@ -13,6 +13,7 @@ const props = defineProps<{
 }>();
 const label = computed(() => (props.kind === "meals" ? "饮食" : "饮水"));
 const filters = reactive({ ...recentRange(), sourceName: "" });
+let appliedFilters = { ...filters };
 const meals = ref<MealStatistics | null>(null),
   water = ref<WaterStatistics | null>(null);
 const summary = computed(() => meals.value ?? water.value);
@@ -28,7 +29,7 @@ async function load() {
   selectionRequired.value = false;
   meals.value = null;
   water.value = null;
-  const { sourceName, ...dates } = filters;
+  const { sourceName, ...dates } = appliedFilters;
   try {
     const path = `/nutrition/${props.kind}/statistics?${new URLSearchParams({ ...dates, ...(sourceName ? { sourceName } : {}) })}`;
     if (props.kind === "meals") {
@@ -49,6 +50,10 @@ async function load() {
     if (currentRequest === requestId) loading.value = false;
   }
 }
+function apply() {
+  appliedFilters = { ...filters };
+  void load();
+}
 watch(() => props.refreshKey, load);
 onMounted(load);
 </script>
@@ -60,7 +65,7 @@ onMounted(load);
         <p>日期与来源独立于记录列表和另一类统计，最多选择 366 天。</p>
       </div>
     </div>
-    <form class="filter-bar" @submit.prevent="load">
+    <form class="filter-bar" @submit.prevent="apply">
       <label
         >统计开始日期<input
           v-model="filters.startDate"
@@ -75,6 +80,7 @@ onMounted(load);
           type="date"
           required
           :min="filters.startDate"
+          :max="dateAfter(filters.startDate, 365)"
           :disabled="loading"
       /></label>
       <label
