@@ -263,6 +263,7 @@ public class TaskServiceImpl implements TaskService {
     t.error = null;
     t.retryable = false;
     mapper.update(t);
+    insertStep(id, new Requests.Step("提交手动重试", "COMPLETED", null, null));
     afterCommit(() -> run(id, "RETRY"));
     return hydrate(t);
   }
@@ -360,8 +361,12 @@ public class TaskServiceImpl implements TaskService {
         || !current.taskToken.equals(t.taskToken)) {
       throw ApiException.conflict("任务已结束或状态已变化，不能写入步骤");
     }
+    return insertStep(t.id, r);
+  }
+
+  private Long insertStep(String taskId, Requests.Step r) {
     Step s = new Step();
-    s.taskId = t.id;
+    s.taskId = taskId;
     s.name = r.name();
     s.status = r.status();
     s.inputSummary = r.inputSummary();
@@ -492,6 +497,7 @@ public class TaskServiceImpl implements TaskService {
             current.retryable = failure.retryable();
             current.error = failure.message();
             mapper.update(current);
+            insertStep(id, new Requests.Step("任务执行失败", "FAILED", null, failure.message()));
           });
     }
   }

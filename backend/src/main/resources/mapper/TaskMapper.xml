@@ -41,7 +41,7 @@
   FROM agent_tasks WHERE id=#{id}
  </select>
  <select id="auditSteps" resultType="com.health.model.TaskAudit$Step">
-  SELECT id,CASE WHEN name IN ('模型任务决策','结构化任务结果','睡眠统计来源选择',
+  SELECT id,CASE WHEN name IN ('模型任务决策','结构化任务结果','睡眠统计来源选择','任务执行失败','提交手动重试',
     'get_sleep_statistics','get_sleep_records','get_combined_statistics','get_profile',
     'get_plans','get_checkin_summary','search_knowledge','get_authorized_diary')
     THEN name ELSE '其他执行步骤' END AS name,status,created_at
