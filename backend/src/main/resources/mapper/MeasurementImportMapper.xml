@@ -15,8 +15,8 @@
   </sql>
   <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
     INSERT INTO measurement_import_batches
-      (user_id,metric,status,total_rows,duplicate_rows,first_measurement,last_measurement)
-    VALUES (#{userId},#{metric},#{status},#{totalRows},#{duplicateRows},#{firstMeasurement},#{lastMeasurement})
+      (user_id,metric,status,import_format,skipped_rows,total_rows,duplicate_rows,first_measurement,last_measurement)
+    VALUES (#{userId},#{metric},#{status},#{importFormat},#{skippedRows},#{totalRows},#{duplicateRows},#{firstMeasurement},#{lastMeasurement})
   </insert>
   <insert id="insertRows">
     INSERT INTO measurement_import_rows(batch_id,row_number,measured_at,measurement_value,source_name,note)

@@ -18,6 +18,8 @@ const reasonText: Record<string, string> = {
   TOO_MANY_ROWS: "CSV 行数超限",
   INVALID_TIMEZONE: "时区无效",
   INVALID_APPLE_FILE: "苹果健康文件无效",
+  INVALID_APPLE_MEASUREMENT: "苹果健康测量字段、单位或时间不符",
+  APPLE_METRIC_MISSING: "苹果健康文件无所选指标",
   INVALID_APPLE_XML: "苹果健康 XML 结构无效",
   APPLE_ZIP_ENTRY_LIMIT: "ZIP 条目数超限",
   DUPLICATE_APPLE_XML: "ZIP 包含多个导出文件",

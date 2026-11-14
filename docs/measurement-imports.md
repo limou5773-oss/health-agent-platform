@@ -15,4 +15,6 @@
 | POST | `/{id}/confirm` | 确认指定批次，返回实际写入结果 |
 | GET | 基路径 | 最近 50 个同指标批次 |
 
-已有库执行 `database/migrations/023_measurement_imports.sql`。新库使用最新 schema。批次与预览行通过 `batch_id` 逻辑关联。
+上传时可额外指定 `format=APPLE_HEALTH`，读取苹果健康 `export.xml` 或导出 ZIP。体重读取 BodyMass（kg、lb），心率读取 HeartRate（count/min），统一保存至三位小数。测量时刻取原始 startDate，转换到档案时区，并在备注保留原时刻和值。夏令时重叠时刻须改用 UTC 档案时区。预览显示跳过的其他指标条数。所选指标存在格式、单位或冲突错误时，整批提示问题位置。原始文件单次上限 100 MB，ZIP 展开总量上限 500 MB，所选指标上限 10000 条。
+
+已有库在 023 之后执行 `database/migrations/030_apple_measurement_import.sql`。新库使用最新 schema。批次与预览行通过 `batch_id` 逻辑关联。

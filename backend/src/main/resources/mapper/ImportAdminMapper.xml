@@ -6,7 +6,7 @@
       <when test="kind.name() == 'SLEEP'">import_batches</when>
       <when test="kind.name() == 'STEPS'">step_import_batches</when>
       <otherwise>
-        (SELECT id,user_id,status,total_rows,total_rows AS valid_rows,0 AS invalid_rows,
+        (SELECT id,user_id,status,import_format,total_rows,total_rows AS valid_rows,0 AS invalid_rows,
           duplicate_rows,inserted_rows,created_at FROM measurement_import_batches WHERE metric=#{kind}) measurement
       </otherwise>
     </choose>
@@ -14,7 +14,7 @@
   <sql id="rowTable"><choose><when test="kind.name() == 'SLEEP'">import_rows</when><otherwise>step_import_rows</otherwise></choose></sql>
   <sql id="columns">
     #{kind} AS kind,id,user_id,
-    <choose><when test="kind.name() == 'SLEEP'">import_format</when><otherwise>'CSV'</otherwise></choose> AS format,
+    <choose><when test="kind.name() == 'STEPS'">'CSV'</when><otherwise>import_format</otherwise></choose> AS format,
     status,total_rows,valid_rows,invalid_rows,duplicate_rows,
     <choose><when test="kind.name() == 'SLEEP'">unsupported_rows</when><otherwise>0</otherwise></choose> AS unsupported_rows,
     inserted_rows,created_at

@@ -21,17 +21,20 @@ public class MeasurementImportController {
   }
 
   @PostMapping(value = "/preview", consumes = "multipart/form-data")
-  public Preview upload(HttpServletRequest request, @PathVariable String module, @RequestPart MultipartFile file) {
+  public Preview upload(HttpServletRequest request, @PathVariable String module, @RequestPart MultipartFile file,
+      @RequestParam(defaultValue = "CSV") Format format) {
     Long userId = Identity.user(request).id;
     Metric metric = metric(module);
     try {
-      return service.preview(userId, metric, file);
+      return format == Format.APPLE_HEALTH ? service.previewApple(userId, metric, file) : service.preview(userId, metric, file);
     } catch (ApiException e) {
       if (e.status == 400 || "MEASUREMENT_CONFLICT".equals(e.code))
         importAdmin.rejected(metric.importKind, userId, e.code);
       throw e;
     }
   }
+
+  public enum Format { CSV, APPLE_HEALTH }
 
   @GetMapping("/{id}")
   public Preview preview(HttpServletRequest request, @PathVariable String module, @PathVariable Long id) {

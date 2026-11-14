@@ -95,7 +95,7 @@
         FROM step_import_batches WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'MEASUREMENT_IMPORTS'">
-        SELECT id, metric, status, total_rows, duplicate_rows, inserted_rows, first_measurement, last_measurement, created_at, confirmed_at
+        SELECT id, metric, status, import_format, skipped_rows, total_rows, duplicate_rows, inserted_rows, first_measurement, last_measurement, created_at, confirmed_at
         FROM measurement_import_batches WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'NOTIFICATIONS'">

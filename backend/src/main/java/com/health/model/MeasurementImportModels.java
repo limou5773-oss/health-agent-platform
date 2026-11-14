@@ -24,6 +24,8 @@ public final class MeasurementImportModels {
     @JsonIgnore public Long userId;
     public Metric metric;
     public String status;
+    public String importFormat;
+    public int skippedRows;
     public int totalRows;
     public int duplicateRows;
     public int insertedRows;
