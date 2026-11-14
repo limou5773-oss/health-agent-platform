@@ -68,6 +68,8 @@ export interface SleepStatistics {
   totalHours: number;
   recordCount: number;
   dataCutoff: string | null;
+  completion?: { scheduled: number; completed: number };
+  completionRate?: number | null;
   scheduleVariation?: {
     comparedDays: number;
     averageStartChangeMinutes: number;

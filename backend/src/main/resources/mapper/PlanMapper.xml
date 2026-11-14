@@ -117,7 +117,9 @@
  <update id="invalidateHealthReports">
   UPDATE reports SET source_deleted=TRUE,source_change=#{change},title='源记录已变更，报告已失效',
     content=NULL,statistics_json=NULL,references_json=NULL
-  WHERE user_id=#{userId} AND report_type &lt;> 'SLEEP' AND source_deleted=FALSE
+  WHERE user_id=#{userId} AND source_deleted=FALSE
+    AND (report_type &lt;> 'SLEEP'
+      OR (#{change} = 'CHECKIN_REVOKED' AND JSON_CONTAINS_PATH(statistics_json, 'one', '$.completion')))
     AND ((start_date &lt;= #{end} AND end_date &gt;= #{start})
       OR (comparison_start_date &lt;= #{end} AND comparison_end_date &gt;= #{start}))
  </update>

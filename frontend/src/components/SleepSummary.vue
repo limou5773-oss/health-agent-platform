@@ -51,6 +51,15 @@ const number = (value: number) =>
         <p>共 {{ statistics.recordCount }} 条记录</p>
       </div>
     </div>
+    <section v-if="statistics.completion">
+      <h3>计划完成情况</h3>
+      <p v-if="statistics.completion.scheduled === 0">无任务</p>
+      <p v-else>
+        已完成 {{ statistics.completion.completed }} / {{ statistics.completion.scheduled }} 项
+        （{{ statistics.completionRate }}%）
+      </p>
+      <p class="small muted">按报告周期内任务的安排日期和生成时的打卡状态统计。</p>
+    </section>
     <section class="panel chart-panel">
       <div class="section-heading">
         <div>

@@ -21,7 +21,6 @@ import com.health.service.PlanService;
 import com.health.service.SleepService;
 import com.health.service.WeightService;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -104,7 +103,7 @@ public class HealthReportServiceImpl implements HealthReportService {
             sources.getOrDefault("HEART_RATE", List.of()), heartRates.recordCount()));
     if (completion.scheduled() == 0 && metrics.stream().noneMatch(m -> m.validDays() > 0))
       throw new ApiException(422, "REPORT_NO_DATA", "所选周期没有健康记录或应完成的计划任务");
-    Snapshot snapshot = new Snapshot(ChronoUnit.DAYS.between(start, end) + 1, metrics, completion, rate(completion));
+    Snapshot snapshot = new Snapshot(ChronoUnit.DAYS.between(start, end) + 1, metrics, completion, completion.rate());
 
     Report report = new Report();
     report.userId = userId;
@@ -172,7 +171,7 @@ public class HealthReportServiceImpl implements HealthReportService {
     var sources = mapper.reportSources(userId, start, end, filter).stream()
         .filter(row -> row.metric().equals(metric.name())).map(Source::sourceName).toList();
     var completion = mapper.reportCompletion(userId, start, end);
-    return new FocusedPeriod(statistics, sources, completion, rate(completion));
+    return new FocusedPeriod(statistics, sources, completion, completion.rate());
   }
 
   private Report save(Report report) {
@@ -181,10 +180,6 @@ public class HealthReportServiceImpl implements HealthReportService {
     return plans.report(report.userId, report.id);
   }
 
-  private static BigDecimal rate(Completion completion) {
-    return completion.scheduled() == 0 ? null : BigDecimal.valueOf(completion.completed() * 100)
-        .divide(BigDecimal.valueOf(completion.scheduled()), 2, RoundingMode.HALF_UP);
-  }
 
   private static Metric metric(
       String key, String basis, long days, Number value, Map<String, List<String>> sources) {

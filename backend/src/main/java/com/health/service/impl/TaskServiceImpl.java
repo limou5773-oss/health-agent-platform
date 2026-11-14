@@ -506,7 +506,13 @@ public class TaskServiceImpl implements TaskService {
         report.reportVersion = plans.nextReportVersion(t.userId, report.reportType, t.startDate, t.endDate);
         report.sourceName = t.sourceName;
         report.includeDiary = t.includeDiary;
-        report.statisticsJson = t.statisticsJson;
+        if (!(result.get("statistics") instanceof ObjectNode statistics))
+          throw invalidResult("报告缺少睡眠统计");
+        var completion = plans.reportCompletion(t.userId, t.startDate, t.endDate);
+        ObjectNode snapshot = statistics.deepCopy();
+        snapshot.set("completion", json.valueToTree(completion));
+        snapshot.set("completionRate", json.valueToTree(completion.rate()));
+        report.statisticsJson = snapshot.toString();
         report.referencesJson = node.get("references").toString();
         plans.insertReport(report);
         notifications.reportReady(t.userId, report.id);
