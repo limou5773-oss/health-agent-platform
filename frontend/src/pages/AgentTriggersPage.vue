@@ -20,6 +20,7 @@ type Run = {
   createdAt: string;
   taskId: string | null;
   taskStatus: string | null;
+  reportId: number | null;
 };
 const settings = ref<Settings | null>(null);
 const sources = ref<string[]>([]);
@@ -125,6 +126,9 @@ onMounted(() => { void loadSettings(); void loadRuns(); });
                 {{ statusText[run.taskStatus] }} · 查看任务
               </RouterLink>
               <span v-else>任务已删除</span>
+              <div v-if="run.reportId">
+                <RouterLink :to="{ path: '/reports', query: { id: run.reportId } }">查看报告</RouterLink>
+              </div>
             </td>
           </tr>
         </tbody>

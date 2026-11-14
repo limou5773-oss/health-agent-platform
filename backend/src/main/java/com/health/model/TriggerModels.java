@@ -12,5 +12,5 @@ public final class TriggerModels {
       int importDays, String sourceName, boolean notifyInApp) {}
 
   public record Run(Kind kind, String eventKey, LocalDate startDate, LocalDate endDate,
-      String sourceName, LocalDateTime createdAt, String taskId, String taskStatus) {}
+      String sourceName, LocalDateTime createdAt, String taskId, String taskStatus, Long reportId) {}
 }
