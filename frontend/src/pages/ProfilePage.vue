@@ -241,7 +241,11 @@ onMounted(load);
     <section class="panel password-panel">
       <LockKeyhole :size="23" />
       <h2>账号安全</h2>
-      <p class="muted small">定期更新密码，妥善保管登录信息。</p>
+      <dl v-if="session.user" class="meta-list">
+        <div><dt>登录账号</dt><dd>{{ session.user.username }}</dd></div>
+        <div><dt>账号角色</dt><dd>{{ session.user.role === "ADMIN" ? "管理员" : "普通用户" }}</dd></div>
+        <div><dt>账号状态</dt><dd>可用</dd></div>
+      </dl>
       <form @submit.prevent="changePassword">
         <label
           >当前密码<input

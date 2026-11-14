@@ -50,7 +50,7 @@ async function request(path: string, options: RequestInit = {}, timeoutMs = 3000
         message: `请求失败（${response.status}）`,
       }));
     if (response.status === 401 && session.token)
-      logout("登录已失效，请重新登录。");
+      logout(payload.code === "ACCOUNT_UNAVAILABLE" ? payload.message : "登录已失效，请重新登录。");
     throw new ApiError(response.status, payload.code, payload.message);
   }
   return response;
