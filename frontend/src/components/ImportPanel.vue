@@ -258,8 +258,12 @@ onMounted(load);
       <div v-if="preview" class="import-preview">
         <div class="section-heading">
           <div>
-            <h3>导入预览 · 批次 #{{ preview.id }}</h3>
+            <h3>睡眠导入预览 · 批次 #{{ preview.id }}</h3>
             <p>{{ wearableLabel(preview) }} · 核对下方来源与时间后确认。</p>
+            <p v-if="preview.firstStartTime && preview.lastEndTime">
+              有效记录时间（档案时区） {{ preview.firstStartTime.replace("T", " ") }}
+              至 {{ preview.lastEndTime.replace("T", " ") }}
+            </p>
             <p>
               文件共 {{ preview.totalRows }} 条记录 · 有效
               {{ preview.validRows }} · 无效 {{ preview.invalidRows }} · 重复

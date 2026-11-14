@@ -106,6 +106,8 @@ export interface ImportBatch extends WearableSource {
 }
 export interface ImportPreview extends ImportBatch {
   rows: ImportRow[];
+  firstStartTime: string | null;
+  lastEndTime: string | null;
 }
 export interface Article {
   id: number;

@@ -75,6 +75,8 @@ public final class Models {
     public int duplicateRows;
     public int insertedRows;
     public LocalDateTime createdAt;
+    public LocalDateTime firstStartTime;
+    public LocalDateTime lastEndTime;
     public List<ImportRow> rows;
   }
 

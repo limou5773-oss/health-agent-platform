@@ -273,11 +273,13 @@ public class SleepServiceImpl implements SleepService {
     Set<String> seen = new HashSet<>();
     for (ImportRow row : batch.rows) {
       if (row.valid) {
-        row.dedupKey =
-            dedup(
-                LocalDateTime.parse(row.startTime),
-                LocalDateTime.parse(row.endTime),
-                row.sourceName);
+        LocalDateTime start = LocalDateTime.parse(row.startTime);
+        LocalDateTime end = LocalDateTime.parse(row.endTime);
+        if (batch.firstStartTime == null || start.isBefore(batch.firstStartTime))
+          batch.firstStartTime = start;
+        if (batch.lastEndTime == null || end.isAfter(batch.lastEndTime))
+          batch.lastEndTime = end;
+        row.dedupKey = dedup(start, end, row.sourceName);
         if (!seen.add(row.dedupKey) || mapper.duplicate(uid, row.dedupKey) != null) {
           row.error = "重复记录，确认时跳过";
           batch.duplicateRows++;
