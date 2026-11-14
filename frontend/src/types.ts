@@ -252,6 +252,7 @@ interface ReportMetadata {
     title: string;
     sourceName: string;
     sourceUrl: string;
+    updatedAt?: string | null;
   }[];
 }
 export interface FocusedSnapshot {

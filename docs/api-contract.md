@@ -173,7 +173,7 @@ POST /internal/runs/{taskId}/resume {taskToken,action:"INPUT"|"CONFIRM"|"RETRY",
 DELETE /internal/runs/{taskId} → 204，清除检查点。
 GET /health → {status:"ok",modelConfigured:boolean}，无模型配置不假装分析可用。
 
-调用返回 AgentResult={status,answer,question,statistics,draft,report}。status COMPLETED/WAITING_INPUT/WAITING_CONFIRMATION；无用字段null。report={title,content,references:[{id,title,sourceName,sourceUrl}]}。Java分别持久化业务产物。Python出错用真实HTTP错误，Java任务执行边界记FAILED；模型错误不得返回预设健康报告。
+调用返回 AgentResult={status,answer,question,statistics,draft,report}。status COMPLETED/WAITING_INPUT/WAITING_CONFIRMATION；无用字段null。report={title,content,references:[{id,title,sourceName,sourceUrl,updatedAt}]}。`updatedAt` 取自知识检索返回值，作为报告中的引用版本标识。Java分别持久化业务产物。Python出错用真实HTTP错误，Java任务执行边界记FAILED；模型错误不得返回预设健康报告。
 
 Python使用OpenAI兼容外部模型接口，通过OPENAI_API_KEY/OPENAI_BASE_URL/OPENAI_MODEL配置；max_retries=0。Java负责账号JWT；Python只接收服务认证，不向浏览器公开工具。模型读取数据必须经真实工具调用，不能用硬编码结果替代。LangGraph使用本地SQLite检查点，服务单进程，等待补充/确认用interrupt与Command；恢复后不能重复写业务。确认后Java先事务落库并标记COMPLETED，再异步通知Python闭合图，闭合失败不改已保存计划的成功状态，记录明确错误摘要。
 

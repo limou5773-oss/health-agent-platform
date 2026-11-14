@@ -148,7 +148,9 @@ def build_graph(saver: AsyncSqliteSaver):
                     diary_ids = list(dict.fromkeys([*diary_ids, *(entry["id"] for entry in observation["entries"])]))
                 elif name == "search_knowledge":
                     for article in observation:
-                        references[str(article["id"])] = {key: article[key] for key in ("id", "title", "sourceName", "sourceUrl")}
+                        references[str(article["id"])] = {
+                            key: article[key] for key in ("id", "title", "sourceName", "sourceUrl", "updatedAt")
+                        }
                 await gateway.step(name, "执行模型选择的已授权只读工具", summary)
             messages.append(ToolMessage(
                 content=json.dumps(observation, ensure_ascii=False),

@@ -217,7 +217,10 @@ onUnmounted(() => {
                   >{{ reference.title }}</a
                 ><strong v-else>{{ reference.title }}</strong
                 ><span class="muted small"> · {{ reference.sourceName }}</span>
-                <RouterLink class="small report-screen-only" :to="{ path: '/knowledge', query: { id: reference.id } }">查看库内资料</RouterLink>
+                <span v-if="reference.updatedAt" class="muted small">
+                  · 引用版本更新于 {{ reference.updatedAt.replace("T", " ") }}
+                </span>
+                <RouterLink class="small report-screen-only" :to="{ path: '/knowledge', query: { id: reference.id } }">查看当前库内资料</RouterLink>
               </li>
             </ul>
           </section>

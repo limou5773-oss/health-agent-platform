@@ -178,6 +178,7 @@ class ArticleReference(BaseModel):
     title: str
     sourceName: str
     sourceUrl: str | None
+    updatedAt: str | None = None
 
 
 class Article(ArticleReference):
