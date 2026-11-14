@@ -121,6 +121,7 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 - POST /agent/tasks/{id}/confirm {version,operationId} → {planId,taskId,status:"COMPLETED"}。锁任务行，校验有效草稿版本，同一任务最多一份正式计划，重复确认返回同份计划，旧版本409。
 - POST /agent/tasks/{id}/cancel → TaskDetail，取消后工具拒绝继续，已有正式结果不撤销。
 - POST /agent/tasks/{id}/retry → 202 TaskDetail，只允许FAILED并由用户手动重试，不能重试权限/参数错误（标记retryable）；使用同一个任务/检查点；不新增自动重试。
+- 同一模型轮次的工具按顺序分别提交检查点。后续工具失败时，手动重试沿用前面已提交的工具结果，从失败工具继续。工具失败摘要记录错误码、上游 HTTP 状态或异常类型。Java 不可用导致步骤无法写入时，失败原因由任务状态记录。
 - DELETE /agent/tasks/{id} → 204，删除会话/任务及Python检查点，不泄露历史个人数据。
 
 TaskDetail={id,kind,goal,status,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,answer,question,error,retryable,statistics,draft,planId,reportId,steps,createdAt}。

@@ -93,7 +93,8 @@ def model_for(name: str, timeout: int) -> ChatOpenAI:
 
 
 def graph_config(task_id: str) -> dict:
-    return {"configurable": {"thread_id": task_id}, "recursion_limit": 48}
+    # Twelve model rounds can each schedule eight separate tool steps.
+    return {"configurable": {"thread_id": task_id}, "recursion_limit": 120}
 
 
 def task_spec(context: TaskContext) -> dict:

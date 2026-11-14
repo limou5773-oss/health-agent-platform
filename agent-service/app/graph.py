@@ -10,7 +10,7 @@ from typing import Annotated, TypedDict
 import httpx
 from pydantic import ValidationError
 
-from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
@@ -100,6 +100,13 @@ def model_messages(state: AgentState, context: TaskContext) -> list[AnyMessage]:
     return messages
 
 
+def pending_tool_batch(state: AgentState) -> tuple[AIMessage, int]:
+    for completed, message in enumerate(reversed(state["messages"])):
+        if isinstance(message, AIMessage):
+            return message, completed
+    raise RuntimeError("工具节点缺少模型调用消息")
+
+
 def build_graph(saver: AsyncSqliteSaver):
     async def call_model(state: AgentState, runtime: Runtime[RunContext]) -> dict:
         if state["model_calls"] >= 12:
@@ -126,47 +133,54 @@ def build_graph(saver: AsyncSqliteSaver):
         return {"messages": [response], "model_calls": state["model_calls"] + 1}
 
     async def call_tools(state: AgentState, runtime: Runtime[RunContext]) -> dict:
+        prompt, completed = pending_tool_batch(state)
+        call = prompt.tool_calls[completed]
+        name = call["name"]
         gateway = runtime.context.gateway
-        messages = []
+        needs_source = False
+        try:
+            observation, summary = await gateway.execute_tool(name, call["args"])
+        except SourceSelectionRequired as exc:
+            observation = {"code": exc.code, "message": exc.message}
+            await gateway.step("睡眠统计来源选择", "查询任务日期内的睡眠统计", exc.message, "FAILED")
+            needs_source = True
+        except (AgentError, httpx.HTTPError, ValidationError) as exc:
+            if isinstance(exc, AgentError):
+                reason = exc.code
+            elif isinstance(exc, httpx.HTTPStatusError):
+                reason = f"Java工具返回 HTTP {exc.response.status_code}"
+            else:
+                reason = type(exc).__name__
+            try:
+                await gateway.step(name, "执行已授权只读工具", reason, "FAILED")
+            except httpx.HTTPError as log_error:
+                # Java may be unavailable for both query and logging.
+                raise exc from log_error
+            raise
+        else:
+            await gateway.step(name, "执行模型选择的已授权只读工具", summary)
         statistics = state["statistics"]
         diary_ids = state.get("diary_ids", [])
         references = dict(state["references"])
-        source_required = False
-        for call in state["messages"][-1].tool_calls:
-            name = call["name"]
-            # Only this known recoverable business response becomes a human pause.
-            # All permission, connection, parameter and server failures propagate.
-            try:
-                observation, summary = await gateway.execute_tool(name, call["args"])
-            except SourceSelectionRequired as exc:
-                observation = {"code": exc.code, "message": exc.message}
-                await gateway.step("睡眠统计来源选择", "查询任务日期内的睡眠统计", exc.message, "FAILED")
-                source_required = True
-            except (AgentError, httpx.HTTPError, ValidationError):
-                await gateway.step(name, "执行已授权只读工具", "工具执行失败", "FAILED")
-                raise
-            else:
-                if name in {"get_sleep_statistics", "get_combined_statistics"}:
-                    statistics = observation
-                elif name == "get_authorized_diary":
-                    diary_ids = list(dict.fromkeys([*diary_ids, *(entry["id"] for entry in observation["entries"])]))
-                elif name == "search_knowledge":
-                    for article in observation:
-                        references[str(article["id"])] = {
-                            key: article[key] for key in ("id", "title", "sourceName", "sourceUrl", "updatedAt")
-                        }
-                await gateway.step(name, "执行模型选择的已授权只读工具", summary)
-            messages.append(ToolMessage(
-                content=json.dumps(observation, ensure_ascii=False),
-                tool_call_id=call["id"], name=name,
-            ))
+        source_required = state["source_required"] or needs_source
+        if not needs_source and name in {"get_sleep_statistics", "get_combined_statistics"}:
+            statistics = observation
+        elif name == "get_authorized_diary":
+            diary_ids = list(dict.fromkeys([*diary_ids, *(entry["id"] for entry in observation["entries"])]))
+        elif name == "search_knowledge":
+            for article in observation:
+                references[str(article["id"])] = {
+                    key: article[key] for key in ("id", "title", "sourceName", "sourceUrl", "updatedAt")
+                }
         result = None
         if source_required:
             result = AgentResult(
                 status="WAITING_INPUT", question="该日期范围包含多个来源，请选择一个来源后继续。",
             ).model_dump(mode="json")
         return {
-            "messages": messages, "statistics": statistics, "diary_ids": diary_ids, "references": references,
+            "messages": [ToolMessage(content=json.dumps(observation, ensure_ascii=False),
+                                     tool_call_id=call["id"], name=name)],
+            "statistics": statistics, "diary_ids": diary_ids, "references": references,
             "source_required": source_required, "result": result,
         }
 
@@ -253,6 +267,9 @@ def build_graph(saver: AsyncSqliteSaver):
         return "tools" if state["messages"][-1].tool_calls else "result"
 
     def after_tools(state: AgentState) -> str:
+        prompt, completed = pending_tool_batch(state)
+        if completed < len(prompt.tool_calls):
+            return "tools"
         return "input" if state["source_required"] else "model"
 
     def after_result(state: AgentState) -> str:
@@ -266,7 +283,7 @@ def build_graph(saver: AsyncSqliteSaver):
     builder.add_node("confirmation", wait_for_confirmation)
     builder.add_edge(START, "model")
     builder.add_conditional_edges("model", after_model, ["tools", "result"])
-    builder.add_conditional_edges("tools", after_tools, ["input", "model"])
+    builder.add_conditional_edges("tools", after_tools, ["tools", "input", "model"])
     builder.add_conditional_edges("result", after_result, ["input", "confirmation", END])
     builder.add_edge("input", "model")
     builder.add_edge("confirmation", END)
