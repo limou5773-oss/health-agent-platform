@@ -7,7 +7,7 @@ import StateNotice from "./StateNotice.vue";
 import WeightTrend from "./WeightTrend.vue";
 
 const props = defineProps<{ sources: string[]; refreshKey: number }>();
-defineEmits<{ detail: [id: number] }>();
+defineEmits<{ detail: [id: number]; day: [date: string, sourceName: string] }>();
 const filters = reactive({ ...recentRange(), sourceName: "" });
 const statistics = ref<WeightStatistics | null>(null);
 const loading = ref(false),
@@ -180,7 +180,13 @@ onMounted(load);
             <tbody>
               <tr v-for="day in statistics.daily" :key="day.date">
                 <td>{{ day.date }}</td>
-                <td>{{ day.recordCount }}</td>
+                <td>
+                  <button v-if="day.recordCount" type="button" class="text-button"
+                    @click="$emit('day', day.date, statistics.sourceName ?? '')">
+                    查看当天 {{ day.recordCount }} 条测量
+                  </button>
+                  <span v-else>0</span>
+                </td>
                 <template v-if="day.representative">
                   <td>{{ weightText(day.representative.weightKg) }}</td>
                   <td>

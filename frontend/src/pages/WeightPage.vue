@@ -15,6 +15,7 @@ const sourceLoading = ref(false),
 const revision = ref(0),
   detailId = ref<number | null>(null);
 const detailSection = ref<HTMLElement | null>(null);
+const weightRecords = ref<InstanceType<typeof WeightRecordsPanel> | null>(null);
 
 async function loadSources() {
   sourceLoading.value = true;
@@ -70,6 +71,7 @@ onMounted(loadSources);
   </div>
   <MeasurementImportPanel module="weight" @imported="changed" />
   <WeightRecordsPanel
+    ref="weightRecords"
     :sources="sources"
     :refresh-key="revision"
     @changed="changed"
@@ -79,6 +81,7 @@ onMounted(loadSources);
     :sources="sources"
     :refresh-key="revision"
     @detail="showDetail"
+    @day="(date, source) => weightRecords?.showDay(date, source)"
   />
   <WeightGoalPanel
     :sources="sources"

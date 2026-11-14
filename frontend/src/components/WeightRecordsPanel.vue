@@ -9,7 +9,9 @@ import WeightEditor from "./WeightEditor.vue";
 
 const props = defineProps<{ sources: string[]; refreshKey: number }>();
 const emit = defineEmits<{ changed: []; detail: [id: number] }>();
+const section = ref<HTMLElement | null>(null);
 const filters = reactive({ ...recentRange(), sourceName: "" });
+let appliedFilters = { ...filters };
 const records = ref<Page<WeightRecord> | null>(null),
   page = ref(1);
 const loading = ref(false),
@@ -26,7 +28,7 @@ async function load() {
   loading.value = true;
   records.value = null;
   error.value = "";
-  const { sourceName, startDate, endDate } = filters;
+  const { sourceName, startDate, endDate } = appliedFilters;
   try {
     const result = await api<Page<WeightRecord>>(
       `/weight/records?${new URLSearchParams({
@@ -79,9 +81,17 @@ async function remove(record: WeightRecord) {
   }
 }
 function filter() {
+  appliedFilters = { ...filters };
   page.value = 1;
   void load();
 }
+function showDay(date: string, sourceName: string) {
+  Object.assign(filters, { startDate: date, endDate: date, sourceName });
+  filter();
+  section.value?.focus({ preventScroll: true });
+  section.value?.scrollIntoView({ block: "start" });
+}
+defineExpose({ showDay });
 function changePage(next: number) {
   page.value = next;
   void load();
@@ -92,6 +102,8 @@ onMounted(load);
 <template>
   <section
     id="weight-records"
+    ref="section"
+    tabindex="-1"
     class="panel weight-records"
     aria-labelledby="weight-records-title"
   >
