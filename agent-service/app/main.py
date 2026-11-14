@@ -239,9 +239,16 @@ async def resume_run(task_id: TaskId, payload: ResumeRequest, request: Request) 
                 raise AgentError(409, "RUN_NOT_WAITING_INPUT", "检查点不处于待补充状态")
             command = Command(resume={"action": "INPUT", "input": payload.input})
         else:
-            model = model_for(context.modelName, context.modelTimeoutSeconds)
+            # The graph may have produced a result before Java received its response.
+            saved_result = snapshot.values.get("result")
+            if saved_result and (
+                (saved_result["status"] == "COMPLETED" and not snapshot.next)
+                or (saved_result["status"] == "WAITING_CONFIRMATION" and snapshot.interrupts)
+            ):
+                return saved_result
             if snapshot.interrupts or (snapshot.values and not snapshot.next):
                 raise AgentError(409, "RUN_NOT_FAILED", "该检查点不能手动重试")
+            model = model_for(context.modelName, context.modelTimeoutSeconds)
             # Configuration/connection failure can occur before the first checkpoint.
             # Explicit RETRY reconstructs that same task from Java's authoritative scope.
             command = None if snapshot.values else initial_state(spec)
