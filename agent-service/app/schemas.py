@@ -110,6 +110,7 @@ class SleepStatistics(BaseModel):
     startDate: date
     endDate: date
     sourceName: str | None
+    sources: list[str] | None = None
     periodDays: int
     validDays: int
     coverageRate: float

@@ -144,6 +144,7 @@ public class SleepServiceImpl implements SleepService {
         start,
         end,
         source,
+        records.stream().map(record -> record.sourceName).distinct().sorted().toList(),
         period,
         valid,
         round(valid * 100.0 / period),

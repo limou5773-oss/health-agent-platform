@@ -66,10 +66,14 @@ const number = (value: number) =>
           <h2>睡眠时长趋势</h2>
           <p>按醒来日期归属；缺失日期留空，不计为零。</p>
         </div>
-        <span class="legend"
-          ><i></i>{{ statistics.sourceName || "当前来源" }}</span
-        >
+        <span class="legend"><i></i>每日睡眠时长</span>
       </div>
+      <p v-if="statistics.sources?.length" class="small muted">
+        数据来源 {{ statistics.sources.join("、") }}
+      </p>
+      <p v-else-if="statistics.sourceName" class="small muted">
+        来源筛选 {{ statistics.sourceName }}
+      </p>
       <div v-if="!statistics.validDays" class="notice empty">
         <strong>这个时间段还没有睡眠记录</strong>
         <p>录入或导入数据后，趋势将在这里呈现。</p>

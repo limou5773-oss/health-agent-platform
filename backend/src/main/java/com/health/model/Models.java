@@ -226,6 +226,7 @@ public final class Models {
       LocalDate startDate,
       LocalDate endDate,
       String sourceName,
+      List<String> sources,
       long periodDays,
       long validDays,
       double coverageRate,

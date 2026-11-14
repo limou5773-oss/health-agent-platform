@@ -61,6 +61,7 @@ export interface SleepStatistics {
   startDate: string;
   endDate: string;
   sourceName: string | null;
+  sources?: string[] | null;
   periodDays: number;
   validDays: number;
   coverageRate: number;
