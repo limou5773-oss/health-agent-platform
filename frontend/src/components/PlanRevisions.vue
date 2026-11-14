@@ -18,6 +18,7 @@ const loading = ref(true);
 const error = ref("");
 const actionError = ref("");
 const busy = ref(false);
+const instruction = ref("");
 const section = ref<HTMLElement | null>(null);
 
 const current = computed<Content>(() => {
@@ -96,6 +97,21 @@ function proposeMove(itemId: number, date: string, reason: string, version: numb
 }
 
 defineExpose({ proposeMove });
+
+async function suggest(expectedVersion: number) {
+  busy.value = true;
+  actionError.value = "";
+  try {
+    await api(`${endpoint}/suggestions`, json("POST", { expectedVersion, instruction: instruction.value }), 105_000);
+    instruction.value = "";
+    selectedVersion.value = null;
+    await load();
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  } finally {
+    busy.value = false;
+  }
+}
 
 async function act(action: "save" | "confirm" | "discard") {
   if (!revisions.value) return;
@@ -177,6 +193,14 @@ onMounted(load);
         </fieldset>
       </form>
       <template v-else>
+        <form @submit.prevent="suggest(revisions.latestVersion)">
+          <label>用一句话修订
+            <textarea v-model="instruction" required maxlength="2000" rows="2" :disabled="busy"
+              placeholder="例如，把周五的散步改到晚上七点，提前十五分钟提醒" />
+          </label>
+          <p class="small muted">会发送本份计划和调整要求给外部模型。生成后可比较草稿并另行确认。</p>
+          <button class="secondary" :disabled="busy || !instruction.trim()">生成修订草稿</button>
+        </form>
         <div class="actions">
           <button v-if="revisions.draft" class="secondary" :disabled="busy"
             @click="edit(revisions.draft.content, revisions.draft.note)">编辑草稿</button>

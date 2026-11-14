@@ -6,6 +6,7 @@ import com.health.service.HealthReportService;
 import com.health.service.PlanService;
 import com.health.service.PlanRevisionService;
 import com.health.service.PlanReviewService;
+import com.health.service.PlanRevisionAgentService;
 import com.health.model.PlanReviewModels.Review;
 import com.health.model.PlanRevisionModels.Revision;
 import com.health.model.PlanRevisionModels.Revisions;
@@ -22,13 +23,15 @@ public class PlanController {
   private final HealthReportService healthReports;
   private final PlanRevisionService revisions;
   private final PlanReviewService reviews;
+  private final PlanRevisionAgentService revisionAgent;
 
   public PlanController(PlanService service, HealthReportService healthReports,
-      PlanRevisionService revisions, PlanReviewService reviews) {
+      PlanRevisionService revisions, PlanReviewService reviews, PlanRevisionAgentService revisionAgent) {
     this.service = service;
     this.healthReports = healthReports;
     this.revisions = revisions;
     this.reviews = reviews;
+    this.revisionAgent = revisionAgent;
   }
 
   @GetMapping("/plans")
@@ -75,6 +78,13 @@ public class PlanController {
   @PostMapping("/plans/{id}/revisions/{version}/confirm")
   public Plan confirmRevision(HttpServletRequest r, @PathVariable Long id, @PathVariable int version) {
     return revisions.confirm(Identity.user(r).id, id, version);
+  }
+
+  @PostMapping("/plans/{id}/revisions/suggestions")
+  @ResponseStatus(HttpStatus.CREATED)
+  public Revision suggestRevision(HttpServletRequest r, @PathVariable Long id,
+      @Valid @RequestBody PlanRevisionRequests.Suggest request) {
+    return revisionAgent.suggest(Identity.user(r).id, id, request);
   }
 
   @DeleteMapping("/plans/{id}/revisions/{version}")

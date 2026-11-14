@@ -50,6 +50,27 @@ public class PlanRevisionServiceImpl implements PlanRevisionService {
   @Transactional
   public Revision save(Long userId, Long planId, Save request) {
     Plan plan = lockPlan(userId, planId);
+    return save(plan, request);
+  }
+
+  @Override
+  @Transactional
+  public Revision saveSuggestion(Long userId, Long planId, Save request, long consentVersion,
+      int activeVersion, boolean basedOnDraft) {
+    Plan plan = lockPlan(userId, planId);
+    var profile = accounts.profile(userId);
+    if (!profile.aiConsent || profile.aiConsentVersion != consentVersion)
+      throw new ApiException(403, "AI_CONSENT_CHANGED", "AI授权已变化，请重新发起修订");
+    if (plan.version != activeVersion) throw stale();
+    if (basedOnDraft) {
+      Revision base = mapper.revision(planId, request.expectedVersion());
+      if (base == null || !"DRAFT".equals(base.status)) throw stale();
+    }
+    return save(plan, request);
+  }
+
+  private Revision save(Plan plan, Save request) {
+    Long planId = plan.id;
     int latest = Math.max(plan.version, mapper.latestRevision(planId));
     if (latest != request.expectedVersion()) throw stale();
     Map<Long, PlanItem> items = currentItems(planId);

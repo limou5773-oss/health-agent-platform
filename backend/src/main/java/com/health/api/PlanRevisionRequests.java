@@ -32,4 +32,6 @@ public final class PlanRevisionRequests {
 
   public record Save(@Min(1) int expectedVersion, @NotBlank @Size(max = 1000) String note,
       @NotNull @Valid Content content) {}
+
+  public record Suggest(@Min(1) int expectedVersion, @NotBlank @Size(max = 2000) String instruction) {}
 }

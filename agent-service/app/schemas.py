@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -231,6 +231,28 @@ class AgentResult(BaseModel):
 
 class EmptyArguments(RequestModel):
     pass
+
+
+class RevisionItem(RequestModel):
+    id: int | None = Field(gt=0)
+    date: date
+    time: time
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(max_length=2000)
+    reminderTime: time | None
+
+
+class RevisionContent(RequestModel):
+    title: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=4000)
+    startDate: date
+    endDate: date
+    items: list[RevisionItem] = Field(min_length=1, max_length=93)
+
+
+class RevisionSuggestion(RequestModel):
+    note: str = Field(min_length=1, max_length=1000)
+    content: RevisionContent
 
 
 class KnowledgeArguments(RequestModel):
