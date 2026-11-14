@@ -58,6 +58,7 @@ public class AccountDeletionServiceImpl implements AccountDeletionService {
     data.deleteHeartRateSamples(userId);
     data.deleteWeightRecords(userId);
     data.deleteDiaryEntries(userId);
+    data.deleteCheckupReports(userId);
     data.deleteActivityGoals(userId);
     data.deleteWeightGoals(userId);
     data.deleteImportBatches(userId);

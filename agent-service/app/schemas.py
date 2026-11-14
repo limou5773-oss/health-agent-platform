@@ -267,3 +267,17 @@ class MealPhotoCandidate(RequestModel):
 
 class MealPhotoPreview(RequestModel):
     candidates: list[MealPhotoCandidate] = Field(max_length=8)
+
+
+class CheckupItem(RequestModel):
+    name: str = Field(min_length=1, max_length=120)
+    value: str = Field(min_length=1, max_length=80)
+    unit: str = Field(max_length=50)
+    referenceRange: str = Field(max_length=200)
+    location: str = Field(min_length=1, max_length=180)
+    excerpt: str = Field(min_length=1, max_length=400)
+
+
+class CheckupPreview(RequestModel):
+    reportDate: date | None
+    items: list[CheckupItem] = Field(max_length=50)

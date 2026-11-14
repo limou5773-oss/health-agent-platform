@@ -340,3 +340,9 @@ CREATE TABLE diary_entries (
  KEY ix_diary_user_permission_time(user_id,agent_allowed,recorded_at,id),
  CHECK(stress_level IS NULL OR stress_level BETWEEN 0 AND 10)
 );
+
+CREATE TABLE checkup_reports (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
+ report_date DATE NOT NULL, title VARCHAR(120) NOT NULL, items_json JSON NOT NULL,
+ KEY ix_checkup_user_date(user_id,report_date,id)
+);

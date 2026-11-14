@@ -43,6 +43,9 @@
         SELECT id, recorded_at, mood, stress_level, body_feeling, events, tags, note, source_name, agent_allowed, created_at, updated_at
         FROM diary_entries WHERE user_id=#{userId} ORDER BY id
       </when>
+      <when test="section.name() == 'CHECKUPS'">
+        SELECT id, report_date, title, items_json FROM checkup_reports WHERE user_id=#{userId} ORDER BY id
+      </when>
       <when test="section.name() == 'ACTIVITY_GOAL'">
         SELECT daily_steps
         FROM activity_goals WHERE user_id=#{userId} ORDER BY user_id

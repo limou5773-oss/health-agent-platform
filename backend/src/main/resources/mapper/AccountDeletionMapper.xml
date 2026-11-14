@@ -80,6 +80,9 @@
   <delete id="deleteDiaryEntries">
     DELETE FROM diary_entries WHERE user_id=#{userId}
   </delete>
+  <delete id="deleteCheckupReports">
+    DELETE FROM checkup_reports WHERE user_id=#{userId}
+  </delete>
   <delete id="deleteActivityGoals">
     DELETE FROM activity_goals WHERE user_id=#{userId}
   </delete>

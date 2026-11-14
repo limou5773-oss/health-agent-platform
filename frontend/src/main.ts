@@ -93,6 +93,11 @@ const router = createRouter({
       meta: { title: "健康报告", caption: "生成综合周报和月报，查看历史报告。" },
     },
     {
+      path: "/checkups",
+      component: () => import("./pages/CheckupPage.vue"),
+      meta: { title: "体检报告整理", caption: "核对并保存报告原文中的指标与参考范围。" },
+    },
+    {
       path: "/notifications",
       component: () => import("./pages/NotificationsPage.vue"),
       meta: { title: "消息中心", caption: "查看站内消息，设置提醒频率。" },

@@ -30,6 +30,7 @@ public interface AccountDeletionMapper {
   void deleteHeartRateSamples(Long userId);
   void deleteWeightRecords(Long userId);
   void deleteDiaryEntries(Long userId);
+  void deleteCheckupReports(Long userId);
   void deleteActivityGoals(Long userId);
   void deleteWeightGoals(Long userId);
   void deleteImportBatches(Long userId);
