@@ -3,6 +3,7 @@ package com.health.api;
 import com.health.model.Models.*;
 import com.health.model.DiaryModels.DiaryContext;
 import com.health.model.CombinedAnalysis;
+import com.health.model.HealthReportModels.CheckinSummary;
 import com.health.security.Identity;
 import com.health.service.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,6 +83,14 @@ public class InternalController {
   @GetMapping("/tools/plans")
   public List<AgentPlan> plans(HttpServletRequest r) {
     return plans.agentPlans(Identity.user(r).id);
+  }
+
+  @GetMapping("/tools/checkin-summary")
+  public CheckinSummary checkinSummary(HttpServletRequest r) {
+    Task t = (Task) r.getAttribute(TASK);
+    var completion = plans.completion(t.userId, t.startDate, t.endDate);
+    return new CheckinSummary(t.startDate, t.endDate, completion.scheduled(),
+        completion.completed(), completion.rate());
   }
 
   @PostMapping("/steps")

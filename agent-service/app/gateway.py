@@ -4,7 +4,10 @@ from typing import Any
 import httpx
 from pydantic import TypeAdapter
 
-from app.schemas import Article, CombinedStatistics, DiaryContext, EmptyArguments, KnowledgeArguments, PlanMetadata, SleepStatistics, TaskContext
+from app.schemas import (
+    Article, CheckinSummary, CombinedStatistics, DiaryContext, EmptyArguments,
+    KnowledgeArguments, PlanMetadata, SleepStatistics, TaskContext,
+)
 
 
 class AgentError(Exception):
@@ -87,6 +90,9 @@ class JavaGateway:
         if name == "get_plans":
             plans = TypeAdapter(list[PlanMetadata]).validate_python(await self.request("GET", "tools/plans"))
             return [plan.model_dump(mode="json") for plan in plans], f"读取到{len(plans)}份已有计划"
+        if name == "get_checkin_summary":
+            summary = CheckinSummary.model_validate(await self.request("GET", "tools/checkin-summary"))
+            return summary.model_dump(mode="json"), f"查询{summary.startDate}至{summary.endDate}的计划打卡汇总"
         raise AgentError(502, "MODEL_TOOL_INVALID", f"模型请求了不支持的工具：{name[:80]}")
 
 
@@ -101,6 +107,7 @@ TOOLS = [
     tool_schema("get_sleep_statistics", "按任务保存的日期与来源查询睡眠时长和作息统计；缺失日为null，不能自行编造或扩大日期范围。", EmptyArguments),
     tool_schema("search_knowledge", "按关键词检索已发布健康知识，引用仅使用真实返回的资料编号。", KnowledgeArguments),
     tool_schema("get_plans", "查询当前任务用户已有计划的编号、日期周期和状态元数据，不包含标题、原因或正文。", EmptyArguments),
+    tool_schema("get_checkin_summary", "查询任务分析日期范围内的应完成任务数、已完成数和完成率，不读取任务正文。", EmptyArguments),
 ]
 
 DIARY_TOOL = tool_schema(

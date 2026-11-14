@@ -2,6 +2,7 @@ package com.health.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 
 public final class HealthReportModels {
@@ -20,6 +21,8 @@ public final class HealthReportModels {
           .divide(BigDecimal.valueOf(scheduled), 2, RoundingMode.HALF_UP);
     }
   }
+  public record CheckinSummary(LocalDate startDate, LocalDate endDate, long scheduled,
+                               long completed, BigDecimal completionRate) {}
   public record Snapshot(long periodDays, List<Metric> metrics, Completion completion,
                          BigDecimal completionRate) {}
 

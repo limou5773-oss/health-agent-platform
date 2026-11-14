@@ -1,6 +1,7 @@
 package com.health.service;
 
 import com.health.model.Models.*;
+import com.health.model.HealthReportModels.Completion;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -8,6 +9,8 @@ public interface PlanService {
   List<Plan> list(Long uid);
 
   List<AgentPlan> agentPlans(Long uid);
+
+  Completion completion(Long uid, LocalDate start, LocalDate end);
 
   Plan get(Long uid, Long id);
 

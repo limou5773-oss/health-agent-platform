@@ -188,6 +188,7 @@ Python使用OpenAI兼容外部模型接口，通过OPENAI_API_KEY/OPENAI_BASE_UR
 - GET /internal/agent/tasks/{id}/tools/combined-statistics → CombinedStatistics（仅 COMBINED 任务；使用任务保存的日期、用户与睡眠来源，返回已授权指标的逐日数值和覆盖）。
 - GET /internal/agent/tasks/{id}/tools/knowledge?query= → Article[]。
 - GET /internal/agent/tasks/{id}/tools/plans → 当前用户[{id,startDate,endDate,status}]，不返回标题、原因或正文；公共计划页面的接口不变。
+- GET /internal/agent/tasks/{id}/tools/checkin-summary → {startDate,endDate,scheduled,completed,completionRate}。只查询任务绑定的用户和分析周期，按有效计划任务的安排日期核对打卡。无应完成任务时完成率为 null；工具不接收用户编号、日期或其他参数。
 - GET /internal/agent/tasks/{id}/tools/diary → DiaryContext（结构见diary-management.md），仅任务显式includeDiary=true时可读，否则403 DIARY_NOT_ENABLED；只返回该用户、任务日期内当前已授权日记及其授权范围计数。
 - POST /internal/agent/tasks/{id}/steps {name,status,inputSummary,outputSummary} → 201 {id}。
 

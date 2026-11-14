@@ -159,6 +159,14 @@ class PlanMetadata(BaseModel):
     status: str
 
 
+class CheckinSummary(BaseModel):
+    startDate: date
+    endDate: date
+    scheduled: int
+    completed: int
+    completionRate: float | None
+
+
 class DraftItem(RequestModel):
     date: date
     time: Annotated[str, Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]

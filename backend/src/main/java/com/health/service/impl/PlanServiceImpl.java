@@ -7,6 +7,7 @@ import com.health.api.*;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.Models.*;
+import com.health.model.HealthReportModels.Completion;
 import com.health.service.AccountService;
 import com.health.service.PlanService;
 import java.math.BigDecimal;
@@ -37,6 +38,10 @@ public class PlanServiceImpl implements PlanService {
 
   public List<AgentPlan> agentPlans(Long uid) {
     return mapper.agentPlans(uid);
+  }
+
+  public Completion completion(Long uid, LocalDate start, LocalDate end) {
+    return mapper.reportCompletion(uid, start, end);
   }
 
   @Transactional(readOnly = true)
