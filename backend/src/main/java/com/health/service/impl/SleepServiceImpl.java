@@ -88,7 +88,20 @@ public class SleepServiceImpl implements SleepService {
     return mapper.sources(uid);
   }
 
+  public SleepGoal goal(Long uid) {
+    return new SleepGoal(mapper.goal(uid));
+  }
+
+  @Transactional
+  public SleepGoal saveGoal(Long uid, Integer minutes) {
+    Identity.requireExisting(mapper.lockUser(uid));
+    mapper.saveGoal(uid, minutes);
+    return new SleepGoal(minutes);
+  }
+
+  @Transactional(readOnly = true)
   public Statistics statistics(Long uid, LocalDate start, LocalDate end, String source) {
+    Integer goalMinutes = mapper.goal(uid);
     List<SleepRecord> records = mapper.range(uid, start, end, source);
     Map<LocalDate, List<SleepRecord>> grouped =
         records.stream().collect(Collectors.groupingBy(s -> s.sleepDate));
@@ -104,7 +117,7 @@ public class SleepServiceImpl implements SleepService {
           }
     List<Daily> daily = new ArrayList<>();
     double total = 0;
-    long valid = 0;
+    long valid = 0, goalDays = 0;
     int comparedDays = 0;
     long startChangeSeconds = 0, endChangeSeconds = 0;
     for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
@@ -127,6 +140,7 @@ public class SleepServiceImpl implements SleepService {
         }
       }
       seconds += ChronoUnit.SECONDS.between(from, to);
+      if (goalMinutes != null && seconds >= goalMinutes * 60L) goalDays++;
       double hours = seconds / 3600.0;
       total += hours;
       valid++;
@@ -155,6 +169,8 @@ public class SleepServiceImpl implements SleepService {
         comparedDays == 0 ? null : new ScheduleVariation(comparedDays,
             round(startChangeSeconds / (60.0 * comparedDays)),
             round(endChangeSeconds / (60.0 * comparedDays))),
+        goalMinutes,
+        goalMinutes == null ? null : goalDays,
         daily);
   }
 

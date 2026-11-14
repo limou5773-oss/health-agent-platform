@@ -2,6 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.health.mapper.SleepMapper">
  <select id="lockUser" resultType="long">SELECT id FROM users WHERE id=#{userId} FOR UPDATE</select>
+ <select id="goal" resultType="int">SELECT sleep_goal_minutes FROM profiles WHERE user_id=#{userId}</select>
+ <update id="saveGoal">UPDATE profiles SET sleep_goal_minutes=#{minutes,jdbcType=SMALLINT} WHERE user_id=#{userId}</update>
  <sql id="filter">user_id=#{userId}<if test="q.startDate != null"> AND sleep_date &gt;= #{q.startDate}</if><if test="q.endDate != null"> AND sleep_date &lt;= #{q.endDate}</if><if test="q.sourceName != null and q.sourceName != ''"> AND source_name=#{q.sourceName}</if></sql>
  <select id="list" resultType="com.health.model.Models$SleepRecord">SELECT * FROM sleep_records WHERE <include refid="filter"/> ORDER BY end_time DESC,id DESC LIMIT #{q.pageSize} OFFSET #{offset}</select>
  <select id="count" resultType="long">SELECT COUNT(*) FROM sleep_records WHERE <include refid="filter"/></select>

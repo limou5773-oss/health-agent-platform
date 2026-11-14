@@ -1,5 +1,6 @@
 package com.health.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.health.model.ImportAdminModels.Kind;
 import com.health.service.ImportAdminService;
 import com.health.model.Models.*;
@@ -8,6 +9,10 @@ import com.health.service.SleepService;
 import com.health.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -59,6 +64,19 @@ public class SleepController {
   public Statistics stats(HttpServletRequest r, @Valid @ModelAttribute Requests.StatisticsQuery q) {
     return service.statistics(Identity.user(r).id, q.startDate, q.endDate, q.sourceName);
   }
+
+  @GetMapping("/sleep/goal")
+  public SleepGoal goal(HttpServletRequest r) {
+    return service.goal(Identity.user(r).id);
+  }
+
+  @PutMapping("/sleep/goal")
+  public SleepGoal goal(HttpServletRequest r, @Valid @RequestBody GoalRequest body) {
+    return service.saveGoal(Identity.user(r).id, body.minutes() == null ? null : body.minutes().intValueExact());
+  }
+
+  public record GoalRequest(@JsonProperty(required = true)
+      @Digits(integer = 4, fraction = 0) @DecimalMin("1") @DecimalMax("1440") BigDecimal minutes) {}
 
   @GetMapping("/sleep/export")
   public ResponseEntity<byte[]> export(

@@ -74,6 +74,8 @@ export interface SleepStatistics {
   dataCutoff: string | null;
   completion?: { scheduled: number; completed: number };
   completionRate?: number | null;
+  dailyGoalMinutes?: number | null;
+  goalDays?: number | null;
   scheduleVariation?: {
     comparedDays: number;
     averageStartChangeMinutes: number;

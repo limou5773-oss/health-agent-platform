@@ -27,6 +27,7 @@
 - PUT /sleep/{id} 同POST → SleepRecord。
 - DELETE /sleep/{id} → 204。删除使相关分析/报告失效，不能继续显示已删除健康内容。
 - GET /sleep/statistics?startDate=必填&endDate=必填&sourceName=可选 → SleepStatistics。
+- GET /sleep/goal 和 PUT /sleep/goal 使用 `{minutes}`。保存时提供 1 至 1440 的整数，或显式传 null 清除。睡眠统计返回 `dailyGoalMinutes` 和 `goalDays`，未设目标时两项均为 null。达标天数只统计当前筛选下有记录的日期。
 - GET /sleep/sources → string[]（当前用户已录入的来源名称）。
 - GET /sleep/export?startDate=&endDate=&sourceName= → UTF-8 CSV，导出本人符合已应用日期及来源筛选的所有记录，包含各页。文本列保留 CSV 公式转义。
 - POST /imports/preview multipart file + format（CSV / APPLE_HEALTH，默认CSV）+ timezone（CSV使用，IANA，默认档案时区）+ sourceApp + deviceBrand + deviceType + deviceModel → ImportBatch及rows。CSV10MB、最多10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。

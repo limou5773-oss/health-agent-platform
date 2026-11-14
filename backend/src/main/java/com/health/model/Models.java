@@ -229,6 +229,8 @@ public final class Models {
   public record ScheduleVariation(int comparedDays, double averageStartChangeMinutes,
       double averageEndChangeMinutes) {}
 
+  public record SleepGoal(Integer minutes) {}
+
   public record Statistics(
       LocalDate startDate,
       LocalDate endDate,
@@ -242,6 +244,8 @@ public final class Models {
       int recordCount,
       LocalDateTime dataCutoff,
       ScheduleVariation scheduleVariation,
+      Integer dailyGoalMinutes,
+      Long goalDays,
       List<Daily> daily) {}
 
   public record Page<T>(List<T> items, long total, int page, int pageSize) {}

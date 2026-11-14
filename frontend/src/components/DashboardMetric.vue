@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { api, errorMessage } from "../api";
 import StateNotice from "./StateNotice.vue";
+import SleepGoalForm from "./SleepGoalForm.vue";
 import type { HeartRateStatistics, MealStatistics, SleepStatistics, StepStatistics, WaterStatistics, WeightStatistics, WorkoutStatistics } from "../types";
 
 type Point = {
@@ -16,6 +17,7 @@ type Summary = {
   label: string;
   cutoff?: string | null;
   note?: string;
+  goalNote?: string;
   scheduleVariation?: SleepStatistics["scheduleVariation"];
 };
 type Coverage = { validDays: number; periodDays: number };
@@ -27,6 +29,9 @@ const metrics = {
     label: "日均睡眠", cutoff: data.dataCutoff,
     scheduleVariation: data.scheduleVariation,
     note: data.validDays ? `累计 ${data.totalHours} 小时，共 ${data.recordCount} 条记录，按醒来日期归属。` : undefined,
+    goalNote: data.dailyGoalMinutes == null ? undefined : data.validDays
+      ? `每日目标 ${data.dailyGoalMinutes} 分钟，${data.goalDays} / ${data.validDays} 个有记录的日期达标。`
+      : `每日目标 ${data.dailyGoalMinutes} 分钟，所选范围暂无记录可判断达标。`,
   }) },
   steps: { label: "步数", unit: "步", path: "/activity/steps", to: "/activity", map: (data: StepStatistics): Summary => ({
     points: data.daily.map(day => ({ date: day.date, value: day.steps })), value: data.averageSteps, label: "日均步数",
@@ -126,6 +131,7 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
       <h2>{{ metric.label }}</h2>
       <RouterLink class="text-link" :to="metric.to">查看记录</RouterLink>
     </div>
+    <SleepGoalForm v-if="props.metric === 'sleep'" @saved="revision++" />
     <label>数据来源
       <select v-model="source" :disabled="sourceLoading || !!sourceError">
         <option value="">全部来源</option>
@@ -139,6 +145,7 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
       <p class="small muted">{{ startDate }} 至 {{ endDate }} · 有记录 {{ summary.validDays }} / {{ summary.periodDays }} 天</p>
       <p v-if="summary.cutoff" class="small muted">数据截至 {{ summary.cutoff.replace("T", " ") }}</p>
       <p v-if="summary.note" class="small muted">{{ summary.note }}</p>
+      <p v-if="summary.goalNote" class="small muted">{{ summary.goalNote }}</p>
       <p v-if="!summary.validDays" class="muted">这段时间没有记录，可前往记录页补录或导入。</p>
       <p v-else-if="summary.points.every(point => point.value === null)" class="muted">有记录，暂无可绘制的数值。</p>
       <template v-else>

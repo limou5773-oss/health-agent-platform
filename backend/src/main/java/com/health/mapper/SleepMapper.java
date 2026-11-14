@@ -9,6 +9,10 @@ import org.apache.ibatis.annotations.Param;
 public interface SleepMapper {
   Long lockUser(Long userId);
 
+  Integer goal(Long userId);
+
+  void saveGoal(@Param("userId") Long userId, @Param("minutes") Integer minutes);
+
   List<SleepRecord> list(
       @Param("userId") Long userId, @Param("q") SleepQuery q, @Param("offset") int offset);
 

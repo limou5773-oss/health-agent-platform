@@ -17,6 +17,10 @@ public interface SleepService {
 
   List<String> sources(Long userId);
 
+  SleepGoal goal(Long userId);
+
+  SleepGoal saveGoal(Long userId, Integer minutes);
+
   Statistics statistics(Long userId, LocalDate start, LocalDate end, String source);
 
   byte[] export(Long userId, Requests.SleepQuery q);
