@@ -83,6 +83,9 @@
   <delete id="deleteCheckupReports">
     DELETE FROM checkup_reports WHERE user_id=#{userId}
   </delete>
+  <delete id="deleteFamilyGrants">
+    DELETE FROM family_grants WHERE owner_id=#{userId} OR member_id=#{userId}
+  </delete>
   <delete id="deleteActivityGoals">
     DELETE FROM activity_goals WHERE user_id=#{userId}
   </delete>

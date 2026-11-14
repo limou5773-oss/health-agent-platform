@@ -122,6 +122,12 @@
         SELECT id, kind, error_code, created_at
         FROM rejected_imports WHERE user_id=#{userId} ORDER BY id
       </when>
+      <when test="section.name() == 'FAMILY_GRANTS'">
+        SELECT g.id, o.username AS owner_name, m.username AS member_name, g.metrics_json,
+          g.report_ids_json, g.accepted, g.expires_at
+        FROM family_grants g JOIN users o ON o.id=g.owner_id JOIN users m ON m.id=g.member_id
+        WHERE g.owner_id=#{userId} OR g.member_id=#{userId} ORDER BY g.id
+      </when>
     </choose>
   </select>
 </mapper>

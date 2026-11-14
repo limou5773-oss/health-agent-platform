@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.mapper.FamilyMapper">
+  <sql id="visible">
+    SELECT g.*,o.username AS owner_name,m.username AS member_name,
+      g.member_id=#{userId} AS incoming,g.expires_at &lt;= UTC_TIMESTAMP() AS expired
+    FROM family_grants g JOIN users o ON o.id=g.owner_id JOIN users m ON m.id=g.member_id
+  </sql>
+  <select id="list" resultType="com.health.model.FamilyModels$Grant">
+    <include refid="visible"/>
+    WHERE g.owner_id=#{userId} OR g.member_id=#{userId} ORDER BY g.id DESC
+  </select>
+  <select id="readable" resultType="com.health.model.FamilyModels$Grant">
+    <include refid="visible"/>
+    WHERE g.id=#{id} AND g.member_id=#{userId} AND g.accepted=TRUE
+      AND g.expires_at &gt; UTC_TIMESTAMP() AND o.enabled=TRUE AND m.enabled=TRUE
+  </select>
+  <insert id="invite">
+    INSERT INTO family_grants(owner_id,member_id,metrics_json,report_ids_json,expires_at)
+    VALUES(#{grant.ownerId},#{grant.memberId},#{grant.metricsJson},#{grant.reportIdsJson},
+      DATE_ADD(UTC_TIMESTAMP(), INTERVAL #{days} DAY))
+  </insert>
+  <delete id="removePair">
+    DELETE FROM family_grants WHERE owner_id=#{ownerId} AND member_id=#{memberId}
+  </delete>
+  <update id="accept">
+    UPDATE family_grants g JOIN users o ON o.id=g.owner_id AND o.enabled=TRUE
+    SET g.accepted=TRUE WHERE g.id=#{id} AND g.member_id=#{userId}
+      AND g.accepted=FALSE AND g.expires_at &gt; UTC_TIMESTAMP()
+  </update>
+  <delete id="revoke">
+    DELETE FROM family_grants WHERE id=#{id} AND (owner_id=#{userId} OR member_id=#{userId})
+  </delete>
+</mapper>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HealthSnapshot } from "../types";
 import ReportCoverageBar from "./ReportCoverageBar.vue";
-defineProps<{ snapshot: HealthSnapshot; startDate: string; endDate: string }>();
+withDefaults(defineProps<{ snapshot: HealthSnapshot; startDate: string; endDate: string; linkRecords?: boolean }>(), { linkRecords: true });
 
 const metrics = {
   SLEEP: ["日均睡眠时长", "小时"],
@@ -29,7 +29,7 @@ const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
         <ReportCoverageBar :valid-days="metric.validDays" :period-days="snapshot.periodDays" />
         <span v-if="metric.sources.length" class="small">来源 {{ metric.sources.join("、") }}</span>
         <span v-if="metric.key === 'HEART_RATE'" class="small">采样 {{ metric.recordCount }} 条</span>
-        <RouterLink v-for="source in metric.sources" :key="source" class="text-link small report-screen-only"
+        <RouterLink v-for="source in (linkRecords ? metric.sources : [])" :key="source" class="text-link small report-screen-only"
           :to="{ path: '/timeline', query: { startDate, endDate, type: metric.key, sourceName: source } }">
           {{ metric.key === "WORKOUT" ? "查看周期内开始的运动" : "查看原始记录" }} · {{ source }}
         </RouterLink>

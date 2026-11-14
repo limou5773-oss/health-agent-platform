@@ -9,6 +9,12 @@ CREATE TABLE users (
  role ENUM('USER','ADMIN') NOT NULL DEFAULT 'USER', enabled BOOLEAN NOT NULL DEFAULT TRUE,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
 );
+CREATE TABLE family_grants (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, owner_id BIGINT NOT NULL, member_id BIGINT NOT NULL,
+ metrics_json JSON NOT NULL, report_ids_json JSON NOT NULL, accepted BOOLEAN NOT NULL DEFAULT FALSE,
+ expires_at DATETIME NOT NULL, UNIQUE KEY uk_family_pair(owner_id,member_id),
+ KEY ix_family_member(member_id,id)
+);
 CREATE TABLE profiles (
  user_id BIGINT PRIMARY KEY, height_cm DECIMAL(5,2), weight_kg DECIMAL(6,2),
  timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Shanghai', goal VARCHAR(1000) NOT NULL DEFAULT '',

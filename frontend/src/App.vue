@@ -42,6 +42,7 @@ const links = [
   { to: "/agent", label: "健康助手", icon: Sparkles },
   { to: "/plans", label: "我的计划", icon: CalendarCheck },
   { to: "/reports", label: "健康报告", icon: FileText },
+  { to: "/family", label: "家庭健康空间", icon: UserRound },
   { to: "/checkups", label: "体检报告整理", icon: FileText },
   { to: "/notifications", label: "消息中心", icon: Bell },
   { to: "/knowledge", label: "知识资料", icon: BookOpen },

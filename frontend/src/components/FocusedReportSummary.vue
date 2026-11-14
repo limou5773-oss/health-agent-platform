@@ -4,7 +4,7 @@ import { reportMetrics } from "../report-metrics";
 import type { FocusedSnapshot } from "../types";
 import ReportCoverageBar from "./ReportCoverageBar.vue";
 
-const props = defineProps<{ snapshot: FocusedSnapshot }>();
+const props = withDefaults(defineProps<{ snapshot: FocusedSnapshot; linkRecords?: boolean }>(), { linkRecords: true });
 const periods = computed(() => [
   { label: "报告周期", ...props.snapshot.current },
   ...(props.snapshot.comparison ? [{ label: "对照周期", ...props.snapshot.comparison }] : []),
@@ -25,7 +25,7 @@ const periods = computed(() => [
       <ReportCoverageBar :valid-days="period.statistics.validDays" :period-days="period.statistics.periodDays" />
       <p v-if="snapshot.metric === 'HEART_RATE'" class="small muted">采样 {{ period.statistics.recordCount }} 条</p>
       <p v-if="period.sources.length" class="small muted">记录来源 {{ period.sources.join("、") }}</p>
-      <RouterLink v-if="period.sources.length" class="text-link small report-screen-only" :to="{ path: '/timeline', query: {
+      <RouterLink v-if="linkRecords && period.sources.length" class="text-link small report-screen-only" :to="{ path: '/timeline', query: {
         startDate: period.statistics.startDate, endDate: period.statistics.endDate,
         type: snapshot.metric, sourceName: snapshot.sourceName ?? undefined,
       } }">{{ snapshot.metric === "WORKOUT" ? "查看周期内开始的运动" : "查看周期原始记录" }}</RouterLink>

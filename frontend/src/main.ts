@@ -98,6 +98,11 @@ const router = createRouter({
       meta: { title: "体检报告整理", caption: "核对并保存报告原文中的指标与参考范围。" },
     },
     {
+      path: "/family",
+      component: () => import("./pages/FamilyPage.vue"),
+      meta: { title: "家庭健康空间", caption: "管理家庭邀请和只读数据授权。" },
+    },
+    {
       path: "/notifications",
       component: () => import("./pages/NotificationsPage.vue"),
       meta: { title: "消息中心", caption: "查看站内消息，设置提醒频率。" },
