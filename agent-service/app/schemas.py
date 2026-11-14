@@ -75,6 +75,8 @@ class TaskContext(TaskSpec):
     timezone: str
     planId: int | None = None
     savedPreferences: list[SavedPreference] = Field(default_factory=list)
+    availableTime: str | None = None
+    limitations: str | None = None
     previousAnalysis: PreviousAnalysis | None = None
     modelName: str = ""
     modelTimeoutSeconds: int = Field(default=90, ge=5, le=90)

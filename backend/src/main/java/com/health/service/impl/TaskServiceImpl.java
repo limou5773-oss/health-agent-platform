@@ -345,6 +345,8 @@ public class TaskServiceImpl implements TaskService {
     result.put("modelTimeoutSeconds", runtime.modelTimeoutSeconds());
     if ("PLAN".equals(t.kind) && "RUNNING".equals(t.status)) {
       result.put("savedPreferences", preferences.list(t.userId));
+      if (!p.availableTime.isEmpty()) result.put("availableTime", p.availableTime);
+      if (!p.limitations.isEmpty()) result.put("limitations", p.limitations);
     }
     return result;
   }

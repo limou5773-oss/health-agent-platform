@@ -4,7 +4,8 @@
   <select id="rows" resultType="map" fetchSize="-2147483648" resultSetType="FORWARD_ONLY">
     <choose>
       <when test="section.name() == 'PROFILE'">
-        SELECT u.id, u.username, u.nickname, u.created_at, p.height_cm, p.weight_kg, p.timezone, p.goal, p.preferences, p.ai_consent, p.ai_sleep, p.ai_activity, p.ai_weight, p.ai_heart_rate, p.ai_diary
+        SELECT u.id, u.username, u.nickname, u.created_at, p.height_cm, p.weight_kg, p.timezone, p.goal, p.preferences,
+          p.available_time, p.limitations, p.updated_at, p.ai_consent, p.ai_sleep, p.ai_activity, p.ai_weight, p.ai_heart_rate, p.ai_diary
         FROM profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=#{userId} ORDER BY u.id
       </when>
       <when test="section.name() == 'PREFERENCES'">

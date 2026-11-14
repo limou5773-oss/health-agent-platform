@@ -6,7 +6,7 @@ import type { Profile } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import PreferenceMemory from "../components/PreferenceMemory.vue";
 const form = reactive<
-  Omit<Profile, "heightCm" | "weightKg"> & {
+  Omit<Profile, "heightCm" | "weightKg" | "updatedAt"> & {
     heightCm: number | "" | null;
     weightKg: number | "" | null;
   }
@@ -17,6 +17,8 @@ const form = reactive<
   timezone: "",
   goal: "",
   preferences: "",
+  availableTime: "",
+  limitations: "",
   aiConsent: false,
   aiSleep: true,
   aiActivity: false,
@@ -24,6 +26,7 @@ const form = reactive<
   aiHeartRate: false,
   aiDiary: true,
 });
+const updatedAt = ref<string | null>(null);
 const permissionFields = {
   aiSleep: "睡眠",
   aiActivity: "步数与运动",
@@ -82,7 +85,9 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    Object.assign(form, await api<Profile>("/profile"));
+    const { updatedAt: savedAt, ...profile } = await api<Profile>("/profile");
+    Object.assign(form, profile);
+    updatedAt.value = savedAt;
   } catch (cause) {
     error.value = errorMessage(cause);
   } finally {
@@ -94,7 +99,7 @@ async function save() {
   actionError.value = "";
   message.value = "";
   try {
-    const profile = await api<Profile>(
+    const { updatedAt: savedAt, ...profile } = await api<Profile>(
       "/profile",
       json("PUT", {
         ...form,
@@ -103,6 +108,7 @@ async function save() {
       }),
     );
     Object.assign(form, profile);
+    updatedAt.value = savedAt;
     if (session.user) session.user.nickname = profile.nickname;
     message.value = "档案与授权设置已保存。";
   } catch (cause) {
@@ -136,6 +142,7 @@ onMounted(load);
         <div>
           <h2>我的档案</h2>
           <p>身高和体重可以留空，不会使用默认健康数值。</p>
+          <p v-if="updatedAt" class="small muted">最近保存 {{ updatedAt.replace("T", " ").slice(0, 19) }}</p>
         </div>
       </div>
       <form @submit.prevent="save">
@@ -185,13 +192,23 @@ onMounted(load);
               placeholder="例如作息限制、运动偏好等"
             />
           </label>
+          <label class="span-all">
+            可用时间（选填）
+            <textarea v-model="form.availableTime" rows="2" maxlength="500"
+              placeholder="例如工作日 19:00 至 20:00，周末上午" />
+          </label>
+          <label class="span-all">
+            计划限制（选填）
+            <textarea v-model="form.limitations" rows="2" maxlength="500"
+              placeholder="例如晚班日只安排白天的任务" />
+          </label>
         </div>
         <div class="consent-setting">
           <ShieldCheck :size="23" />
           <div>
             <h3>AI 分析授权</h3>
             <p>
-              开启总授权后，健康助手可向配置的外部模型发送下方允许的数据、必要的档案信息和任务上下文。制定计划时也会发送你主动保存的长期偏好。
+              开启总授权后，健康助手可向配置的外部模型发送下方允许的数据、必要的档案信息和任务上下文。制定计划时也会使用已保存的可用时间、计划限制和长期偏好。
             </p>
             <label class="checkbox-label"
               ><input

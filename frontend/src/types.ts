@@ -11,6 +11,9 @@ export interface Profile {
   timezone: string;
   goal: string;
   preferences: string;
+  availableTime: string;
+  limitations: string;
+  updatedAt: string | null;
   aiConsent: boolean;
   aiSleep: boolean;
   aiActivity: boolean;

@@ -70,6 +70,8 @@ public class AccountServiceImpl implements AccountService {
     p.timezone = r.timezone();
     p.goal = r.goal();
     p.preferences = r.preferences();
+    if (r.availableTime() != null) p.availableTime = r.availableTime().strip();
+    if (r.limitations() != null) p.limitations = r.limitations().strip();
     p.aiConsent = r.aiConsent();
     if (r.aiSleep() != null) p.aiSleep = r.aiSleep();
     if (r.aiActivity() != null) p.aiActivity = r.aiActivity();

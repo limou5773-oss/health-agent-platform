@@ -27,6 +27,9 @@ public final class Models {
     public String timezone;
     public String goal;
     public String preferences;
+    public String availableTime;
+    public String limitations;
+    public LocalDateTime updatedAt;
     public boolean aiConsent;
     public boolean aiSleep;
     public boolean aiActivity;

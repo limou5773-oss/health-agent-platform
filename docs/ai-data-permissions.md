@@ -9,3 +9,5 @@
 已有数据库先应用前序迁移，再执行 `database/migrations/026_ai_data_permissions.sql`。迁移保留原总授权，睡眠和日记使用原有规则，活动、体重和心率需单独开启。升级前尚未完成的 AI 任务如需继续调用模型，须重新创建。已生成的计划草稿仍可在本地编辑并确认。新账号总授权默认关闭。
 
 `GET /api/profile` 返回 `aiConsent`、`aiSleep`、`aiActivity`、`aiWeight`、`aiHeartRate` 和 `aiDiary`。通过 `PUT /api/profile` 保存。旧客户端省略各数据权限时保留原设置。授权版本由服务端维护。
+
+档案中的可用时间和计划限制只在已授权的计划任务运行时作为安排依据，空白字段省略。已有库执行 `database/migrations/036_profile_plan_constraints.sql`，旧档案首次保存前没有最近保存时间。
