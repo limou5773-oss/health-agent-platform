@@ -4,7 +4,7 @@ import { dateAfter } from "../api";
 import { reportMetrics } from "../report-metrics";
 import type { CombinedStatistics } from "../types";
 
-const props = defineProps<{ statistics: CombinedStatistics }>();
+const props = defineProps<{ statistics: CombinedStatistics; canResolve: boolean }>();
 const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 });
 const dates = computed(() => Array.from({ length: props.statistics.periodDays },
   (_, index) => dateAfter(props.statistics.startDate, index)));
@@ -20,7 +20,9 @@ const series = computed(() => props.statistics.metrics.map(metric => ({
     <ul class="selection-list">
       <li v-for="metric in series" :key="metric.key">
         <strong>{{ reportMetrics[metric.key][0] }}（{{ metric.unit }}）</strong>
-        <p v-if="metric.issue" class="small">{{ metric.issue }}。可在新建综合分析时指定该指标的来源。</p>
+        <p v-if="metric.issue" class="small">
+          {{ metric.issue }}。{{ canResolve ? "可在上方选择来源并继续。" : "可选定来源后新建综合分析。" }}
+        </p>
         <p v-else class="small">
           覆盖 {{ metric.validDays }} / {{ statistics.periodDays }} 天
           <span v-if="metric.recordCount !== null"> · {{ metric.recordCount }} 条记录</span>

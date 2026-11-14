@@ -225,7 +225,9 @@ public final class Requests {
   }
 
   public record TaskInput(
-      @NotBlank @Size(max = 4000) String input, @Size(max = 100) String sourceName) {}
+      @NotBlank @Size(max = 4000) String input, @Size(max = 100) String sourceName,
+      @Size(max = 100) String stepSource, @Size(max = 100) String workoutSource,
+      @Size(max = 100) String weightSource, @Size(max = 100) String heartRateSource) {}
 
   public record Draft(
       @Min(1) int version,

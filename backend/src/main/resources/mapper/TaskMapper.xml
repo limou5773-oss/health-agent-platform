@@ -14,6 +14,7 @@
     #{includeDiary},#{taskToken},#{draftJson},#{templateId},#{templateVersion},#{aiConsentVersion},#{parentTaskId})
  </insert>
  <update id="update">UPDATE agent_tasks SET status=#{status},goal=#{goal},source_name=#{sourceName},answer=#{answer},question=#{question},error=#{error},retryable=#{retryable},statistics_json=#{statisticsJson},draft_json=#{draftJson},task_token=#{taskToken},pending_input=#{pendingInput},plan_id=#{planId},report_id=#{reportId},confirmed_version=#{confirmedVersion},operation_id=#{operationId},
+  step_source=#{stepSource},workout_source=#{workoutSource},weight_source=#{weightSource},heart_rate_source=#{heartRateSource},
   confirmed_at=#{confirmedAt},feedback=#{feedback},feedback_at=IF(#{feedback} IS NULL,NULL,feedback_at),
   updated_at=CURRENT_TIMESTAMP(6) WHERE id=#{id}</update>
  <delete id="delete">DELETE FROM agent_tasks WHERE id=#{id}</delete>

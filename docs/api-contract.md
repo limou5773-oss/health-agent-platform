@@ -113,6 +113,7 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 - POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。
 - COMBINED 任务创建及详情支持 `stepSource`、`workoutSource`、`weightSource`、`heartRateSource`。各字段可选，最长 100 字符。仅保存已授权指标的筛选值，追问沿用父任务的来源。
+- 等待补充的非追问 COMBINED 任务可通过 `POST /agent/tasks/{id}/input` 更新这些筛选值。空值保留当前选择，用户和分析日期沿用原任务，恢复后重新执行统计。
 - GET /agent/tasks → 当前用户TaskDetail概要数组（最多50条，按创建倒序）。
 - GET /agent/tasks/{id} → TaskDetail。
 - POST /agent/tasks/{id}/input {input,sourceName?} → 202 TaskDetail，待补充时继续同一任务；来源冲突时由用户明确选择sourceName，Java更新任务来源后恢复，模型不能擅自选择来源。

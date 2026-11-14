@@ -171,6 +171,12 @@ public class TaskServiceImpl implements TaskService {
     t.pendingInput = r.input();
     if (t.parentTaskId == null && profile.aiSleep && r.sourceName() != null && !r.sourceName().isBlank())
       t.sourceName = r.sourceName();
+    if (t.parentTaskId == null && "COMBINED".equals(t.kind)) {
+      if (profile.aiActivity && r.stepSource() != null && !r.stepSource().isBlank()) t.stepSource = r.stepSource();
+      if (profile.aiActivity && r.workoutSource() != null && !r.workoutSource().isBlank()) t.workoutSource = r.workoutSource();
+      if (profile.aiWeight && r.weightSource() != null && !r.weightSource().isBlank()) t.weightSource = r.weightSource();
+      if (profile.aiHeartRate && r.heartRateSource() != null && !r.heartRateSource().isBlank()) t.heartRateSource = r.heartRateSource();
+    }
     t.status = "QUEUED";
     t.question = null;
     t.error = null;

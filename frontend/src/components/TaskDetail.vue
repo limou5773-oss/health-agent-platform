@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RefreshCw, Trash2 } from "@lucide/vue";
 import { api, errorMessage, json, kindText, statusText } from "../api";
 import type { TaskDetail } from "../types";
@@ -7,6 +7,7 @@ import StateNotice from "./StateNotice.vue";
 import DraftEditor from "./DraftEditor.vue";
 import SleepSummary from "./SleepSummary.vue";
 import CombinedAnalysisSummary from "./CombinedAnalysisSummary.vue";
+import { reportMetrics } from "../report-metrics";
 const props = defineProps<{ id: string; sources: string[] }>();
 const emit = defineEmits<{ changed: []; deleted: []; followedUp: [id: string] }>();
 const task = ref<TaskDetail | null>(null),
@@ -16,6 +17,21 @@ const task = ref<TaskDetail | null>(null),
   busy = ref(false),
   input = ref(""),
   sourceName = ref("");
+const sourceFields = {
+  SLEEP: "sourceName", STEPS: "stepSource", WORKOUT: "workoutSource",
+  WEIGHT: "weightSource", HEART_RATE: "heartRateSource",
+} as const;
+const selectedSources = ref<Partial<Record<keyof typeof sourceFields, string>>>({});
+const conflicts = computed(() => {
+  const current = task.value;
+  if (current?.status !== "WAITING_INPUT" || current.parentTaskId ||
+      !current.statistics || !("metrics" in current.statistics)) return [];
+  return current.statistics.metrics.filter(metric => metric.issue && metric.sources.length);
+});
+const sourceChanges = computed(() => Object.fromEntries(conflicts.value
+  .filter(({ key }) => selectedSources.value[key])
+  .map(({ key }) => [sourceFields[key], selectedSources.value[key]])));
+const hasSourceChanges = computed(() => Object.keys(sourceChanges.value).length > 0);
 let timer: number | undefined;
 let active = true;
 const feedbackBusy = ref(false);
@@ -79,13 +95,18 @@ async function action(name: "input" | "retry" | "cancel") {
         "POST",
         name === "input"
           ? {
-              input: input.value,
+              input: hasSourceChanges.value && !input.value.trim()
+                ? "请按本次选择的来源重新查询并继续分析。"
+                : input.value,
               ...(sourceName.value ? { sourceName: sourceName.value } : {}),
+              ...sourceChanges.value,
             }
           : undefined,
       ),
     );
     input.value = "";
+    sourceName.value = "";
+    selectedSources.value = {};
     emit("changed");
     await load();
   } catch (cause) {
@@ -246,25 +267,34 @@ onUnmounted(() => {
         <label
           >补充说明<textarea
             v-model="input"
-            required
+            :required="!hasSourceChanges"
             rows="3"
             maxlength="4000"
             placeholder="填写需要补充的信息"
           /></label
-        ><label v-if="!task.parentTaskId"
+        ><label v-if="!task.parentTaskId && task.kind !== 'COMBINED'"
           >指定数据来源（需要时选择）<select v-model="sourceName">
             <option value="">保持当前来源</option>
             <option v-for="source in sources" :key="source">
               {{ source }}
             </option>
           </select></label
-        ><button :disabled="busy">补充并继续</button>
+        >
+        <label v-for="metric in conflicts" :key="metric.key">
+          {{ reportMetrics[metric.key][0] }}来源
+          <select v-model="selectedSources[metric.key]" :disabled="busy">
+            <option value="">保持当前来源</option>
+            <option v-for="source in metric.sources" :key="source" :value="source">{{ source }}</option>
+          </select>
+        </label>
+        <button :disabled="busy">补充并继续</button>
       </form>
       <section v-if="task.answer" class="answer-section">
         <h3>分析结果</h3>
         <div class="prose">{{ task.answer }}</div>
       </section>
-      <CombinedAnalysisSummary v-if="task.statistics && 'metrics' in task.statistics" :statistics="task.statistics" />
+      <CombinedAnalysisSummary v-if="task.statistics && 'metrics' in task.statistics"
+        :statistics="task.statistics" :can-resolve="conflicts.length > 0" />
       <SleepSummary
         v-else-if="task.statistics"
         :statistics="task.statistics"
