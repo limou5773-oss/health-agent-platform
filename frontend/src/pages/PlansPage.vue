@@ -13,6 +13,9 @@ import PlanCheckinCalendar from "../components/PlanCheckinCalendar.vue";
 import HealthGoals from "../components/HealthGoals.vue";
 const route = useRoute();
 const selectedDate = ref<string | null>(null);
+const reasonItem = ref<number | null>(null);
+const reason = ref("");
+const reasonError = ref("");
 const revisionEditor = ref<InstanceType<typeof PlanRevisions> | null>(null);
 const plans = ref<Plan[]>([]),
   plan = ref<Plan | null>(null),
@@ -92,6 +95,7 @@ async function checkin(item: NonNullable<Plan["items"]>[number]) {
         item.completed ? undefined : { date: item.date },
       ),
     );
+    if (reasonItem.value === item.id) reasonItem.value = null;
     if (selected.value === planId) await loadDetail(true);
   } catch (cause) {
     if (selected.value === planId) actionError.value = errorMessage(cause);
@@ -99,8 +103,30 @@ async function checkin(item: NonNullable<Plan["items"]>[number]) {
     busy.value = false;
   }
 }
+function editReason(item: NonNullable<Plan["items"]>[number]) {
+  reasonItem.value = item.id;
+  reason.value = item.missedReason;
+  reasonError.value = "";
+}
+async function saveReason(itemId: number) {
+  const planId = selected.value;
+  busy.value = true;
+  reasonError.value = "";
+  try {
+    await api(`/plan-items/${itemId}/missed-reason`, json("PUT", { reason: reason.value }));
+    if (selected.value === planId) {
+      reasonItem.value = null;
+      await loadDetail(true);
+    }
+  } catch (cause) {
+    if (selected.value === planId) reasonError.value = errorMessage(cause);
+  } finally {
+    busy.value = false;
+  }
+}
 watch(selected, () => {
   selectedDate.value = null;
+  reasonItem.value = null;
   void loadDetail();
 }, { immediate: true });
 onMounted(load);
@@ -223,6 +249,21 @@ onMounted(load);
                 打卡时间 {{ item.checkedAt.replace("T", " ") }}
               </p>
               <p v-if="!item.completed && item.missedReason" class="small muted">未完成原因 {{ item.missedReason }}</p>
+              <template v-if="!item.completed && plan.progress && item.date < plan.progress.today">
+                <form v-if="reasonItem === item.id" @submit.prevent="saveReason(item.id)">
+                  <label>未完成原因
+                    <input v-model="reason" :disabled="busy" maxlength="500" placeholder="留空可清除原因" />
+                  </label>
+                  <p v-if="reasonError" class="feedback error" role="alert">{{ reasonError }}</p>
+                  <div class="actions">
+                    <button class="secondary" :disabled="busy">保存原因</button>
+                    <button type="button" class="text-button" :disabled="busy" @click="reasonItem = null">取消</button>
+                  </div>
+                </form>
+                <button v-else type="button" class="text-button" :disabled="busy" @click="editReason(item)">
+                  {{ item.missedReason ? "修改未完成原因" : "填写未完成原因" }}
+                </button>
+              </template>
             </div>
             <button
               :class="item.completed ? 'secondary' : ''"
