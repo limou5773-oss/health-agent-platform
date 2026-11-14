@@ -207,7 +207,9 @@ onMounted(load);
             </div>
             <div class="checkin-body">
               <h3>{{ item.title }}</h3>
-              <p class="prose">{{ item.description }}</p>
+              <p v-if="item.description" class="prose">
+                <strong>执行说明</strong><br />{{ item.description }}
+              </p>
               <p v-if="item.reminderTime" class="small muted">提醒时间 {{ item.reminderTime.slice(0, 5) }}</p>
               <p v-if="item.completed && item.checkedAt" class="small muted">
                 打卡时间 {{ item.checkedAt.replace("T", " ") }}

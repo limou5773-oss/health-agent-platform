@@ -130,7 +130,7 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 
 TaskDetail={id,kind,goal,status,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,answer,question,error,retryable,statistics,draft,planId,reportId,steps,createdAt}。
 status QUEUED/RUNNING/WAITING_INPUT/WAITING_CONFIRMATION/COMPLETED/FAILED/CANCELLED。
-draft={version,title,reason,startDate,endDate,items:[{date,time,title,description}]}。草稿日期范围最多31天，items最多93条，均须在草稿周期内。
+draft={version,title,reason,startDate,endDate,items:[{date,time,title,description}]}。草稿日期范围最多31天，items最多93条，均须在草稿周期内。Agent 生成或修订任务时，`description` 说明具体做法和可自行核对的完成条件。用户可在确认前编辑这段说明，确认后在每日任务查看。
 steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/COMPLETED/FAILED。摘要不保存密钥、完整健康文件或内部思维链。
 
 ## 计划与报告

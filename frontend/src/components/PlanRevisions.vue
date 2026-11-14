@@ -191,7 +191,7 @@ onMounted(load);
               <label>执行日期<input v-model="item.date" type="date" :min="editor.startDate" :max="editor.endDate" required /></label>
               <label>执行时间<input v-model="item.time" type="time" step="1" required /></label>
               <label>提醒时间<input v-model="item.reminderTime" type="time" step="1" /></label>
-              <label class="span-all">任务内容<textarea v-model="item.description" maxlength="2000" /></label>
+              <label class="span-all">具体做法与完成条件<textarea v-model="item.description" maxlength="2000" /></label>
             </div>
             <button type="button" class="secondary" @click="editor.items.splice(index, 1)">移除任务</button>
           </fieldset>

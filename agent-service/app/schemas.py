@@ -192,7 +192,11 @@ class DraftItem(RequestModel):
     date: date
     time: Annotated[str, Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]
     title: str = Field(min_length=1, max_length=200)
-    description: str = Field(min_length=1, max_length=2000)
+    description: str = Field(
+        min_length=1,
+        max_length=2000,
+        description="说明任务的具体做法，以及用户可自行核对的完成条件。",
+    )
 
 
 class PlanDraft(RequestModel):

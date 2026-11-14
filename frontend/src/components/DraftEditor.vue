@@ -117,7 +117,7 @@ async function confirm() {
               required
               maxlength="200" /></label
           ><label class="span-all"
-            >具体做法<textarea
+            >具体做法与完成条件<textarea
               v-model="item.description"
               rows="2"
               required
