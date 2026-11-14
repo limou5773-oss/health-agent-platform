@@ -10,6 +10,7 @@ public interface MeasurementImportMapper {
   Batch batch(@Param("userId") Long userId, @Param("metric") Metric metric, @Param("id") Long id);
   List<Batch> history(@Param("userId") Long userId, @Param("metric") Metric metric);
   List<String> sources(Long batchId);
+  List<Row> previewRows(Long batchId);
   Long conflictRow(Batch batch);
   int existingRows(Batch batch);
   void updateBatch(Batch batch);

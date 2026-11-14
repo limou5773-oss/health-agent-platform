@@ -166,13 +166,13 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
     rejectConflict(batch);
     batch.duplicateRows = batch.totalRows - rows.size() + mapper.existingRows(batch);
     mapper.updateBatch(batch);
-    return new Preview(mapper.batch(userId, metric, batch.id), mapper.sources(batch.id));
+    return preview(userId, metric, batch.id);
   }
 
   @Transactional(readOnly = true)
   public Preview preview(Long userId, Metric metric, Long id) {
     Batch batch = batch(userId, metric, id);
-    return new Preview(batch, mapper.sources(id));
+    return new Preview(batch, mapper.sources(id), mapper.previewRows(id));
   }
 
   @Transactional

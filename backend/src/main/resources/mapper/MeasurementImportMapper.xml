@@ -33,6 +33,10 @@
   <select id="sources" resultType="string">
     SELECT DISTINCT source_name FROM measurement_import_rows WHERE batch_id=#{batchId} ORDER BY source_name
   </select>
+  <select id="previewRows" resultType="com.health.model.MeasurementImportModels$Row">
+    SELECT row_number,measured_at,measurement_value AS `value`,source_name,note
+    FROM measurement_import_rows WHERE batch_id=#{batchId} ORDER BY row_number LIMIT 20
+  </select>
   <select id="conflictRow" resultType="long">
     SELECT MIN(r.row_number) <include refid="matchMeasurement"/>
     AND <include refid="targetValue"/> &lt;&gt; r.measurement_value

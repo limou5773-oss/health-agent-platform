@@ -17,6 +17,11 @@ interface Batch {
   createdAt: string;
   confirmedAt: string | null;
 }
+interface Preview {
+  batch: Batch;
+  sources: string[];
+  rows: { rowNumber: number; measuredAt: string; value: number; sourceName: string; note: string }[];
+}
 
 const props = defineProps<{ module: "weight" | "heart-rate" }>();
 const emit = defineEmits<{ imported: [] }>();
@@ -26,7 +31,7 @@ const unit = computed(() => props.module === "weight" ? "千克" : "次/分");
 const file = ref<File>();
 const format = ref<Batch["importFormat"]>("CSV");
 const input = ref<HTMLInputElement>();
-const preview = ref<{ batch: Batch; sources: string[] }>();
+const preview = ref<Preview>();
 const batches = ref<Batch[]>([]);
 const busy = ref(false);
 const message = ref("");
@@ -74,7 +79,7 @@ async function openPreview(url: string, options?: RequestInit) {
   message.value = "";
   error.value = "";
   try {
-    preview.value = await api<{ batch: Batch; sources: string[] }>(url, options);
+    preview.value = await api<Preview>(url, options);
     if (options) {
       input.value!.value = "";
       file.value = undefined;
@@ -152,6 +157,24 @@ onMounted(loadHistory);
       <p>测量时间 {{ time(preview.batch.firstMeasurement) }} 至 {{ time(preview.batch.lastMeasurement) }}</p>
       <p>来源 {{ preview.sources.join("、") }} · 可导入 {{ preview.batch.totalRows - preview.batch.duplicateRows }} 条 · 重复 {{ preview.batch.duplicateRows }} 条</p>
       <p v-if="preview.batch.importFormat === 'APPLE_HEALTH'">已跳过 {{ preview.batch.skippedRows }} 条其他指标记录。</p>
+      <details open>
+        <summary>测量明细（文件内去重后，最多显示 20 条）</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th scope="col">{{ preview.batch.importFormat === "CSV" ? "CSV 位置（含表头）" : "记录序号" }}</th>
+              <th scope="col">测量时间（档案时区）</th><th scope="col">{{ metric }}（{{ unit }}）</th>
+              <th scope="col">来源</th><th scope="col">备注</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="row in preview.rows" :key="row.rowNumber">
+                <td>{{ row.rowNumber }}</td><td>{{ time(row.measuredAt) }}</td><td>{{ row.value }}</td>
+                <td>{{ row.sourceName }}</td><td>{{ row.note || "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
       <button type="button" :disabled="busy" @click="confirm(preview.batch.id)">确认导入</button>
     </div>
     <details>

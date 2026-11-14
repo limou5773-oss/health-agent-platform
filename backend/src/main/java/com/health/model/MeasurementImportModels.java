@@ -36,5 +36,5 @@ public final class MeasurementImportModels {
   }
 
   public record Row(long rowNumber, LocalDateTime measuredAt, BigDecimal value, String sourceName, String note) {}
-  public record Preview(Batch batch, List<String> sources) {}
+  public record Preview(Batch batch, List<String> sources, List<Row> rows) {}
 }
