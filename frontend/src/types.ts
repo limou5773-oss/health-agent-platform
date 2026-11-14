@@ -380,6 +380,7 @@ export interface Workout {
   planId: number | null;
   planItemTitle: string | null;
   planItemCompleted: boolean | null;
+  planItemActive: boolean;
   createdAt: string;
 }
 export interface WorkoutStatistics {

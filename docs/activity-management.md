@@ -33,7 +33,7 @@
 - GET /plan-items?date=yyyy-MM-dd → [{id,planId,title,planTitle,date,completed}]，仅返回本人同日进行中计划的可关联项目。
 
 StepRecord={id,startTime,endTime,activityDate,steps,mode,sourceName,note,corrected,createdAt}。保存更正时沿用原来源进行区间冲突核对，并标记 `corrected=true`。
-Workout={id,exerciseType,startTime,endTime,activityDate,durationMinutes,sourceName,note,planItemId,planId,planItemTitle,planItemCompleted,createdAt}。未关联时planItemCompleted及关联字段为null。
+Workout={id,exerciseType,startTime,endTime,activityDate,durationMinutes,sourceName,note,planItemId,planId,planItemTitle,planItemCompleted,planItemActive,createdAt}。未关联时，任务编号、标题及打卡结果为 null，planItemActive 为 false。计划暂停、结束或任务被修订替换时，保留历史关联和打卡状态，页面停止提供该任务的打卡入口。
 
 ## 实施顺序与验收分工
 

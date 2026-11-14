@@ -35,6 +35,7 @@ public final class ActivityModels {
     public Long planId;
     public String planItemTitle;
     public Boolean planItemCompleted;
+    public boolean planItemActive;
     public LocalDateTime createdAt;
   }
 

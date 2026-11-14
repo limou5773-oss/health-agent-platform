@@ -56,8 +56,10 @@
   </sql>
   <sql id="workoutSelect">
     SELECT w.*,i.plan_id,i.title AS plan_item_title,
-      CASE WHEN i.id IS NULL THEN NULL ELSE c.id IS NOT NULL END AS plan_item_completed
+      CASE WHEN i.id IS NULL THEN NULL ELSE c.id IS NOT NULL END AS plan_item_completed,
+      CASE WHEN p.status='ACTIVE' AND i.retired=FALSE THEN TRUE ELSE FALSE END AS plan_item_active
     FROM workout_records w LEFT JOIN plan_items i ON i.id=w.plan_item_id
+    LEFT JOIN plans p ON p.id=i.plan_id AND p.user_id=w.user_id
     LEFT JOIN checkins c ON c.item_id=i.id AND c.date=i.date
   </sql>
   <select id="workouts" resultType="com.health.model.ActivityModels$Workout">

@@ -227,13 +227,14 @@ onMounted(load);
                     >
                   </p>
                   <button
-                    v-if="record.planItemCompleted === false"
+                    v-if="record.planItemCompleted === false && record.planItemActive"
                     class="text-button"
                     :disabled="busy"
                     @click="checkin(record)"
                   >
                     确认打卡
-                  </button></template
+                  </button>
+                  <p v-else-if="record.planItemCompleted === false" class="small muted">计划或任务当前不可打卡。</p></template
                 >
                 <span v-else class="muted">未关联</span>
               </td>
