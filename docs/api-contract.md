@@ -185,6 +185,7 @@ Python使用OpenAI兼容外部模型接口，通过OPENAI_API_KEY/OPENAI_BASE_UR
 - GET /internal/agent/tasks/{id}/context → {id,goal,kind,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,status,aiConsent,timezone,planId}。
 - GET /internal/agent/tasks/{id}/tools/profile 返回身高、时区、目标和偏好，体重仅在获授权时返回。
 - GET /internal/agent/tasks/{id}/tools/sleep-statistics → SleepStatistics（直接使用任务保存的日期与来源，不允许模型扩大范围）。
+- GET /internal/agent/tasks/{id}/tools/sleep-records → {totalCount,records:[{id,startTime,endTime,sleepDate,durationMinutes,sourceName,corrected}]}。仅已授权睡眠的分析、计划和睡眠报告任务可读。使用任务保存的用户、醒来日期范围和来源，按醒来时间倒序最多返回20条；不返回备注。完整周期统计仍由睡眠统计工具提供。
 - GET /internal/agent/tasks/{id}/tools/combined-statistics → CombinedStatistics（仅 COMBINED 任务；使用任务保存的日期、用户与睡眠来源，返回已授权指标的逐日数值和覆盖）。
 - GET /internal/agent/tasks/{id}/tools/knowledge?query= → Article[]。
 - GET /internal/agent/tasks/{id}/tools/plans → 当前用户[{id,startDate,endDate,status}]，不返回标题、原因或正文；公共计划页面的接口不变。

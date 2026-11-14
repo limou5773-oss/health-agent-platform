@@ -61,6 +61,23 @@ public class InternalController {
     return sleep.statistics(t.userId, t.startDate, t.endDate, t.sourceName);
   }
 
+  @GetMapping("/tools/sleep-records")
+  public AgentSleepRecords sleepRecords(HttpServletRequest r) {
+    Task t = (Task) r.getAttribute(TASK);
+    if ("COMBINED".equals(t.kind))
+      throw new ApiException(403, "TOOL_NOT_ENABLED", "综合分析任务只读取已授权的逐日统计");
+    var query = new Requests.SleepQuery();
+    query.pageSize = 20;
+    query.startDate = t.startDate;
+    query.endDate = t.endDate;
+    query.sourceName = t.sourceName;
+    Page<SleepRecord> page = sleep.list(t.userId, query);
+    return new AgentSleepRecords(page.total(), page.items().stream()
+        .map(record -> new AgentSleepRecord(record.id, record.startTime, record.endTime,
+            record.sleepDate, record.durationMinutes, record.sourceName, record.corrected))
+        .toList());
+  }
+
   @GetMapping("/tools/knowledge")
   public List<Article> knowledge(@RequestParam(required = false) @Size(max = 200) String query) {
     return knowledge.list(query, false);

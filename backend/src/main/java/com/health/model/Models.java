@@ -58,6 +58,11 @@ public final class Models {
     @JsonIgnore public String dedupKey;
   }
 
+  public record AgentSleepRecord(Long id, LocalDateTime startTime, LocalDateTime endTime,
+      LocalDate sleepDate, double durationMinutes, String sourceName, boolean corrected) {}
+
+  public record AgentSleepRecords(long totalCount, List<AgentSleepRecord> records) {}
+
   public static class ImportBatch {
     public Long id;
     @JsonIgnore public Long userId;

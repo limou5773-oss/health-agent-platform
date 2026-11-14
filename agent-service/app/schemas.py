@@ -77,6 +77,21 @@ class TaskContext(TaskSpec):
     modelTimeoutSeconds: int = Field(default=90, ge=5, le=90)
 
 
+class SleepRecordEvidence(BaseModel):
+    id: int
+    startTime: str
+    endTime: str
+    sleepDate: date
+    durationMinutes: float
+    sourceName: str
+    corrected: bool
+
+
+class SleepRecordPage(BaseModel):
+    totalCount: int
+    records: list[SleepRecordEvidence]
+
+
 class DailySleep(BaseModel):
     date: date
     hours: float | None

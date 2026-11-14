@@ -6,7 +6,7 @@ from pydantic import TypeAdapter
 
 from app.schemas import (
     Article, CheckinSummary, CombinedStatistics, DiaryContext, EmptyArguments,
-    KnowledgeArguments, PlanMetadata, SleepStatistics, TaskContext,
+    KnowledgeArguments, PlanMetadata, SleepRecordPage, SleepStatistics, TaskContext,
 )
 
 
@@ -79,6 +79,9 @@ class JavaGateway:
         if name == "get_sleep_statistics":
             statistics = SleepStatistics.model_validate(await self.request("GET", "tools/sleep-statistics"))
             return statistics.model_dump(mode="json"), f"有效{statistics.validDays}/{statistics.periodDays}天，共{statistics.recordCount}条记录"
+        if name == "get_sleep_records":
+            page = SleepRecordPage.model_validate(await self.request("GET", "tools/sleep-records"))
+            return page.model_dump(mode="json"), f"读取任务范围内最近{len(page.records)}/{page.totalCount}条睡眠记录"
         if name == "get_authorized_diary":
             diary = DiaryContext.model_validate(await self.request("GET", "tools/diary"))
             return diary.model_dump(mode="json"), (
@@ -105,6 +108,7 @@ def tool_schema(name: str, description: str, arguments: type) -> dict:
 TOOLS = [
     tool_schema("get_profile", "读取当前任务用户授权的健康档案和偏好，无需提供用户身份。", EmptyArguments),
     tool_schema("get_sleep_statistics", "按任务保存的日期与来源查询睡眠时长和作息统计；缺失日为null，不能自行编造或扩大日期范围。", EmptyArguments),
+    tool_schema("get_sleep_records", "按任务保存的日期与来源查询最近20条睡眠记录的时间、时长、归属日期和来源，不读取备注。", EmptyArguments),
     tool_schema("search_knowledge", "按关键词检索已发布健康知识，引用仅使用真实返回的资料编号。", KnowledgeArguments),
     tool_schema("get_plans", "查询当前任务用户已有计划的编号、日期周期和状态元数据，不包含标题、原因或正文。", EmptyArguments),
     tool_schema("get_checkin_summary", "查询任务分析日期范围内的应完成任务数、已完成数和完成率，不读取任务正文。", EmptyArguments),
