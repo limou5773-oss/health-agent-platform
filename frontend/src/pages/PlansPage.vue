@@ -10,6 +10,7 @@ import PlanReview from "../components/PlanReview.vue";
 import PlanOutcome from "../components/PlanOutcome.vue";
 import PlanCoordination from "../components/PlanCoordination.vue";
 import PlanCheckinCalendar from "../components/PlanCheckinCalendar.vue";
+import HealthGoals from "../components/HealthGoals.vue";
 const route = useRoute();
 const selectedDate = ref<string | null>(null);
 const revisionEditor = ref<InstanceType<typeof PlanRevisions> | null>(null);
@@ -73,6 +74,12 @@ async function status(value: Plan["status"]) {
 async function refreshPlan() {
   await Promise.all([load(), loadDetail()]);
 }
+function goalLinked(updated: Plan) {
+  if (plan.value?.id === updated.id) plan.value.goalId = updated.goalId;
+}
+function goalDeleted(id: number) {
+  if (plan.value?.goalId === id) plan.value.goalId = null;
+}
 async function checkin(item: NonNullable<Plan["items"]>[number]) {
   const planId = selected.value;
   busy.value = true;
@@ -99,6 +106,7 @@ watch(selected, () => {
 onMounted(load);
 </script>
 <template>
+  <HealthGoals :plan="plan" @linked="goalLinked" @deleted="goalDeleted" />
   <StateNotice
     :loading="loading"
     :error="error"

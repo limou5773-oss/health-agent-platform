@@ -1,6 +1,7 @@
 package com.health.mapper;
 
 import com.health.model.Models.*;
+import com.health.model.HealthGoal;
 import com.health.api.HealthReportRequests.Generate;
 import com.health.model.HealthReportModels.Completion;
 import com.health.model.HealthReportModels.Source;
@@ -13,6 +14,20 @@ import org.apache.ibatis.annotations.Param;
 
 public interface PlanMapper {
   List<Plan> list(Long userId);
+
+  List<HealthGoal> goals(Long userId);
+
+  HealthGoal goal(@Param("userId") Long userId, @Param("id") Long id);
+
+  void insertGoal(@Param("userId") Long userId, @Param("goal") HealthGoal goal);
+
+  void updateGoal(@Param("userId") Long userId, @Param("goal") HealthGoal goal);
+
+  int deleteGoal(@Param("userId") Long userId, @Param("id") Long id);
+
+  void unlinkGoal(@Param("userId") Long userId, @Param("goalId") Long goalId);
+
+  void linkGoal(@Param("userId") Long userId, @Param("id") Long id, @Param("goalId") Long goalId);
 
   List<AgentPlan> agentPlans(Long userId);
 

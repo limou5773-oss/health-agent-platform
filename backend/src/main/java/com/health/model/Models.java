@@ -154,6 +154,7 @@ public final class Models {
 
   public static class Plan {
     public Long id;
+    public Long goalId;
     @JsonIgnore public Long userId;
     @JsonIgnore public String taskId;
     public String title;

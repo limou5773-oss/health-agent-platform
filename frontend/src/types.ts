@@ -210,6 +210,7 @@ export interface TaskDetail extends CombinedTaskSources {
 }
 export interface Plan {
   id: number;
+  goalId: number | null;
   version: number;
   title: string;
   reason: string;

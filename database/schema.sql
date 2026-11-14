@@ -151,13 +151,25 @@ CREATE TABLE agent_steps (
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_step_task(task_id)
 );
+CREATE TABLE health_goals (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL,
+ title VARCHAR(200) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
+ metric ENUM('SLEEP','STEPS','WORKOUT','MEAL','WATER','WEIGHT','HEART_RATE') NOT NULL,
+ direction ENUM('AT_LEAST','AT_MOST') NOT NULL, target_value DECIMAL(12,3) NOT NULL,
+ preferences VARCHAR(500) NOT NULL,
+ KEY ix_health_goals_user(user_id,end_date),
+ CHECK(end_date >= start_date AND DATEDIFF(end_date,start_date) < 366),
+ CHECK(target_value >= 0)
+);
 CREATE TABLE plans (
  id BIGINT PRIMARY KEY AUTO_INCREMENT, user_id BIGINT NOT NULL, task_id CHAR(36) UNIQUE,
+ goal_id BIGINT,
  title VARCHAR(200) NOT NULL, reason TEXT NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
  status ENUM('ACTIVE','PAUSED','ENDED') NOT NULL DEFAULT 'ACTIVE',
  version INT NOT NULL DEFAULT 1,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  KEY ix_plan_user(user_id),
+ KEY ix_plan_goal(user_id,goal_id),
  CHECK(end_date >= start_date)
 );
 CREATE TABLE plan_revisions (
@@ -165,6 +177,7 @@ CREATE TABLE plan_revisions (
  status ENUM('DRAFT','CONFIRMED','DISCARDED') NOT NULL,
  note VARCHAR(1000) NOT NULL, content_json JSON,
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ confirmed_at DATETIME(6),
  PRIMARY KEY(plan_id,version)
 );
 CREATE TABLE plan_status_changes (

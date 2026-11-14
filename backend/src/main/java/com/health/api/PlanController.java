@@ -1,6 +1,7 @@
 package com.health.api;
 
 import com.health.model.Models.*;
+import com.health.model.HealthGoal;
 import com.health.security.Identity;
 import com.health.service.HealthReportService;
 import com.health.service.PlanService;
@@ -42,6 +43,35 @@ public class PlanController {
   @GetMapping("/plans")
   public List<Plan> list(HttpServletRequest r) {
     return service.list(Identity.user(r).id);
+  }
+
+  @GetMapping("/health-goals")
+  public List<HealthGoal> goals(HttpServletRequest r) {
+    return service.goals(Identity.user(r).id);
+  }
+
+  @PostMapping("/health-goals")
+  @ResponseStatus(HttpStatus.CREATED)
+  public HealthGoal createGoal(HttpServletRequest r, @Valid @RequestBody HealthGoalRequests.Save body) {
+    return service.saveGoal(Identity.user(r).id, null, body);
+  }
+
+  @PutMapping("/health-goals/{id}")
+  public HealthGoal updateGoal(HttpServletRequest r, @PathVariable Long id,
+      @Valid @RequestBody HealthGoalRequests.Save body) {
+    return service.saveGoal(Identity.user(r).id, id, body);
+  }
+
+  @DeleteMapping("/health-goals/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteGoal(HttpServletRequest r, @PathVariable Long id) {
+    service.deleteGoal(Identity.user(r).id, id);
+  }
+
+  @PutMapping("/plans/{id}/goal")
+  public Plan linkGoal(HttpServletRequest r, @PathVariable Long id,
+      @Valid @RequestBody HealthGoalRequests.Link body) {
+    return service.linkGoal(Identity.user(r).id, id, body.goalId());
   }
 
   @GetMapping("/plans/{id}")

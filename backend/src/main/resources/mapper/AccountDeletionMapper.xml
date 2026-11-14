@@ -104,6 +104,9 @@
   <delete id="deletePlans">
     DELETE FROM plans WHERE user_id=#{userId}
   </delete>
+  <delete id="deleteHealthGoals">
+    DELETE FROM health_goals WHERE user_id=#{userId}
+  </delete>
   <delete id="deleteReports">
     DELETE FROM reports WHERE user_id=#{userId}
   </delete>

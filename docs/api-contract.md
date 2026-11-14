@@ -14,6 +14,9 @@
 
 除POST /auth/register、POST /auth/login和GET /health，其余均带Authorization: Bearer JWT。
 
+- GET /health-goals 查询本人目标。POST /health-goals 和 PUT /health-goals/{id} 接收 `{title,startDate,endDate,metric,direction,targetValue,preferences}`。日期周期为 1 至 366 天，metric 沿用个人基线枚举，direction 为 AT_LEAST 或 AT_MOST，目标值按该指标显示单位保存。DELETE /health-goals/{id} 删除目标并解除本人计划的关联，返回 204。
+- PUT /plans/{id}/goal 接收 `{goalId}`，显式传 null 解除关联，返回更新后的正式计划。计划列表和详情返回可空 `goalId`。计划修订记录返回可空 `confirmedAt`。
+
 - POST /auth/register {username,password,nickname} → 201 {id,username,nickname,role}。username 3..32，password 8..72字节（BCrypt限制），nickname 1..40；role USER由服务端决定。
 - POST /auth/login {username,password} → {accessToken,expiresAt,user:{id,username,nickname,role}}。
 - GET /auth/me → {id,username,nickname,role}。

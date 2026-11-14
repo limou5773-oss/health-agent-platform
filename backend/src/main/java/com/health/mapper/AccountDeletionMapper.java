@@ -38,6 +38,7 @@ public interface AccountDeletionMapper {
   void deleteStepImportBatches(Long userId);
   void deleteMeasurementImportBatches(Long userId);
   void deletePlans(Long userId);
+  void deleteHealthGoals(Long userId);
   void deleteReports(Long userId);
   void deleteProfiles(Long userId);
   void deleteUsers(Long userId);

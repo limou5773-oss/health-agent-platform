@@ -6,7 +6,7 @@ import StateNotice from "./StateNotice.vue";
 
 type Item = DraftItem & { id: number | null; reminderTime: string | null };
 type Content = Pick<Plan, "title" | "reason" | "startDate" | "endDate"> & { items: Item[] };
-type Revision = { version: number; note: string; createdAt: string; content: Content };
+type Revision = { version: number; note: string; createdAt: string; confirmedAt: string | null; content: Content };
 type Revisions = { activeVersion: number; latestVersion: number; draft: Revision | null; history: Revision[] };
 const props = defineProps<{ plan: Plan }>();
 const emit = defineEmits<{ refresh: [] }>();
@@ -237,6 +237,9 @@ onMounted(load);
         </label>
         <div v-if="comparison" class="revision-comparison">
           <h4>第 {{ comparison.version }} 版 · {{ comparison.note }}</h4>
+          <p v-if="selectedVersion !== null" class="small muted">
+            {{ comparison.confirmedAt ? `生效时间 ${comparison.confirmedAt.replace("T", " ")}` : "旧版本未记录生效时间" }}
+          </p>
           <dl>
             <dt>当前计划</dt>
             <dd>{{ current.title }} · {{ current.startDate }} 至 {{ current.endDate }}<br />{{ current.reason }}</dd>

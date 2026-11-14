@@ -67,12 +67,16 @@
         SELECT s.id, s.task_id, s.name, s.status, s.input_summary, s.output_summary, s.created_at
         FROM agent_steps s JOIN agent_tasks t ON t.id=s.task_id WHERE t.user_id=#{userId} ORDER BY s.id
       </when>
+      <when test="section.name() == 'HEALTH_GOALS'">
+        SELECT id, title, start_date, end_date, metric, direction, target_value, preferences
+        FROM health_goals WHERE user_id=#{userId} ORDER BY id
+      </when>
       <when test="section.name() == 'PLANS'">
-        SELECT id, task_id, title, reason, start_date, end_date, status, version, created_at
+        SELECT id, task_id, goal_id, title, reason, start_date, end_date, status, version, created_at
         FROM plans WHERE user_id=#{userId} ORDER BY id
       </when>
       <when test="section.name() == 'PLAN_REVISIONS'">
-        SELECT r.plan_id, r.version, r.status, r.note, r.content_json, r.created_at
+        SELECT r.plan_id, r.version, r.status, r.note, r.content_json, r.created_at, r.confirmed_at
         FROM plan_revisions r JOIN plans p ON p.id=r.plan_id WHERE p.user_id=#{userId} ORDER BY r.plan_id,r.version
       </when>
       <when test="section.name() == 'PLAN_STATUS_CHANGES'">

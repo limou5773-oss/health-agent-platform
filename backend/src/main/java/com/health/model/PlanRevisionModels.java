@@ -14,6 +14,7 @@ public final class PlanRevisionModels {
     public String status;
     public String note;
     public LocalDateTime createdAt;
+    public LocalDateTime confirmedAt;
     @JsonIgnore public String contentJson;
     public Content content;
   }

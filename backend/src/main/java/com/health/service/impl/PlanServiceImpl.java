@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.*;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
+import com.health.model.HealthGoal;
 import com.health.model.Models.*;
 import com.health.service.AccountService;
 import com.health.service.PlanService;
@@ -37,6 +38,47 @@ public class PlanServiceImpl implements PlanService {
 
   public List<Plan> list(Long uid) {
     return mapper.list(uid);
+  }
+
+  public List<HealthGoal> goals(Long uid) {
+    return mapper.goals(uid);
+  }
+
+  @Transactional
+  public HealthGoal saveGoal(Long uid, Long id, HealthGoalRequests.Save request) {
+    Identity.requireExisting(tasks.lockUser(uid));
+    HealthGoal goal = new HealthGoal();
+    goal.id = id;
+    goal.title = request.title();
+    goal.startDate = request.startDate();
+    goal.endDate = request.endDate();
+    goal.metric = request.metric();
+    goal.direction = request.direction();
+    goal.targetValue = request.targetValue();
+    goal.preferences = request.preferences();
+    if (id == null) {
+      mapper.insertGoal(uid, goal);
+    } else {
+      if (mapper.goal(uid, id) == null) throw ApiException.missing();
+      mapper.updateGoal(uid, goal);
+    }
+    return goal;
+  }
+
+  @Transactional
+  public void deleteGoal(Long uid, Long id) {
+    Identity.requireExisting(tasks.lockUser(uid));
+    if (mapper.deleteGoal(uid, id) == 0) throw ApiException.missing();
+    mapper.unlinkGoal(uid, id);
+  }
+
+  @Transactional
+  public Plan linkGoal(Long uid, Long id, Long goalId) {
+    Identity.requireExisting(tasks.lockUser(uid));
+    if (mapper.lock(uid, id) == null || (goalId != null && mapper.goal(uid, goalId) == null))
+      throw ApiException.missing();
+    mapper.linkGoal(uid, id, goalId);
+    return get(uid, id);
   }
 
   public List<AgentPlan> agentPlans(Long uid) {

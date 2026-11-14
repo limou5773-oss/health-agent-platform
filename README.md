@@ -114,6 +114,8 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 在「我的计划」编辑修订草稿，对照当前版本后单独确认。历史版本可查看，已打卡任务保留。已有库执行 `database/migrations/011_plan_revisions.sql`。详见[计划修订说明](docs/plan-revisions.md)。
 
+「我的计划」可设置指标目标并关联正式计划。已有库继续执行 `database/migrations/038_health_goals.sql`，同时启用修订生效时间记录。
+
 ## 站内提醒与消息中心
 
 在「消息中心」开启所需类别，设置打卡提醒频率，查看、跳转和标记消息。已有库执行 `database/migrations/012_notifications.sql`。详见[站内提醒说明](docs/notifications.md)。
