@@ -6,7 +6,7 @@ Patterns: https://docs.langchain.com/oss/python/langgraph/quickstart
 
 from dataclasses import dataclass
 import json
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 import httpx
 from pydantic import ValidationError
 
@@ -61,6 +61,7 @@ class AgentState(TypedDict):
     references: dict[str, dict]
     result: dict | None
     source_required: bool
+    consumed_input_id: NotRequired[str | None]
 
 
 @dataclass(frozen=True)
@@ -253,6 +254,7 @@ def build_graph(saver: AsyncSqliteSaver):
                 f"用户补充：{response['input']}\n当前任务范围：{json.dumps(spec, ensure_ascii=False)}"
             ))],
             "statistics": None, "model_calls": 0, "result": None, "source_required": False,
+            "consumed_input_id": response.get("inputId"),
         }
 
     def wait_for_confirmation(state: AgentState) -> dict:

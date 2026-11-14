@@ -44,12 +44,15 @@ class ResumeRequest(RequestModel):
     taskToken: str = Field(min_length=1, repr=False)
     action: Literal["INPUT", "CONFIRM", "RETRY"]
     input: str | None = Field(default=None, min_length=1, max_length=4000)
+    inputId: str | None = Field(default=None, min_length=1, max_length=100)
     planId: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def action_payload(self) -> Self:
         if self.action == "INPUT" and self.input is None:
             raise ValueError("INPUT必须提供input")
+        if self.inputId is not None and self.input is None:
+            raise ValueError("inputId必须与input同时提供")
         if self.action == "CONFIRM" and self.planId is None:
             raise ValueError("CONFIRM必须提供已保存的planId")
         return self

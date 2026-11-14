@@ -128,7 +128,7 @@ public class TaskServiceImpl implements TaskService {
     t.aiConsentVersion = profile.aiConsentVersion;
     t.taskToken = newToken();
     mapper.insert(t);
-    afterCommit(() -> run(t.id, "CREATE", null));
+    afterCommit(() -> run(t.id, "CREATE"));
     return hydrate(mapper.get(t.id));
   }
 
@@ -169,6 +169,7 @@ public class TaskServiceImpl implements TaskService {
     AgentPermissions.requireCurrent(profile, t);
     requireStatus(t, "WAITING_INPUT");
     t.pendingInput = r.input();
+    t.operationId = UUID.randomUUID().toString();
     if (t.parentTaskId == null && profile.aiSleep && r.sourceName() != null && !r.sourceName().isBlank())
       t.sourceName = r.sourceName();
     if (t.parentTaskId == null && "COMBINED".equals(t.kind)) {
@@ -181,7 +182,7 @@ public class TaskServiceImpl implements TaskService {
     t.question = null;
     t.error = null;
     mapper.update(t);
-    afterCommit(() -> run(id, "INPUT", r.input()));
+    afterCommit(() -> run(id, "INPUT"));
     return hydrate(t);
   }
 
@@ -260,7 +261,7 @@ public class TaskServiceImpl implements TaskService {
     t.error = null;
     t.retryable = false;
     mapper.update(t);
-    afterCommit(() -> run(id, "RETRY", null));
+    afterCommit(() -> run(id, "RETRY"));
     return hydrate(t);
   }
 
@@ -406,7 +407,7 @@ public class TaskServiceImpl implements TaskService {
     mapper.recoverInterrupted();
   }
 
-  private void run(String id, String action, String input) {
+  private void run(String id, String action) {
     Task t = null;
     long startedAt = 0;
     try {
@@ -439,7 +440,10 @@ public class TaskServiceImpl implements TaskService {
         result = agent.post().uri("/internal/runs").body(body).retrieve().body(JsonNode.class);
       } else {
         body.put("action", action);
-        if (input != null) body.put("input", input);
+        if (t.pendingInput != null) {
+          body.put("input", t.pendingInput);
+          body.put("inputId", t.operationId);
+        }
         result =
             agent
                 .post()
@@ -534,6 +538,7 @@ public class TaskServiceImpl implements TaskService {
       } else if (t.answer == null || t.answer.isBlank()) throw invalidResult("分析结果为空");
     }
     t.pendingInput = null;
+    t.operationId = null;
     t.error = null;
     t.retryable = false;
     mapper.update(t);

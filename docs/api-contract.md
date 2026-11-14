@@ -124,6 +124,7 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 - 可手动重试的失败包括服务连接失败、请求超时、模型限流及上游暂不可用。参数、权限、缺配置、返回结构或检查点错误保留失败原因，修正后新建任务。Java 根据 Python 的 HTTP 状态和错误码判断；代理直接返回的非规范超时、限流和网关错误按 HTTP 状态处理。
 - 同一模型轮次的工具按顺序分别提交检查点。后续工具失败时，手动重试沿用前面已提交的工具结果，从失败工具继续。工具失败摘要记录错误码、上游 HTTP 状态或异常类型。Java 不可用导致步骤无法写入时，失败原因由任务状态记录。
 - Java 因连接中断或超时未收到结果时，手动重试可以取回同一任务检查点中已完成的分析、报告或待确认草稿。Java 仍核对当前任务状态并事务保存，正式计划仍需用户确认。
+- 等待补充的提问也可从检查点取回。Java 为每次提交的补充保存操作编号和原文。手动重试时，若该补充还未进入检查点，则恢复原提交；若检查点已处理该编号并再次等待补充，则返回新的提问。升级前已提交且未记录操作编号的补充无法区分这两种情况，系统会提示重新创建任务。
 - DELETE /agent/tasks/{id} → 204，删除会话/任务及Python检查点，不泄露历史个人数据。
 
 TaskDetail={id,kind,goal,status,startDate,endDate,planStartDate,planEndDate,sourceName,includeDiary,answer,question,error,retryable,statistics,draft,planId,reportId,steps,createdAt}。
