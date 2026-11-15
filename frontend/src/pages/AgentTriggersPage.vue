@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { api, errorMessage, json, statusText } from "../api";
+import type { PlatformRules } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 
 type Settings = {
@@ -23,6 +24,7 @@ type Run = {
   reportId: number | null;
 };
 const settings = ref<Settings | null>(null);
+const rules = ref<PlatformRules | null>(null);
 const sources = ref<string[]>([]);
 const runs = ref<Run[]>([]);
 const loading = ref(true);
@@ -37,9 +39,10 @@ async function loadSettings() {
   loading.value = true;
   error.value = "";
   try {
-    [settings.value, sources.value] = await Promise.all([
+    [settings.value, sources.value, rules.value] = await Promise.all([
       api<Settings>("/agent/triggers/settings"),
       api<string[]>("/sleep/sources"),
+      api<PlatformRules>("/system-settings/rules"),
     ]);
   } catch (cause) {
     error.value = errorMessage(cause);
@@ -82,14 +85,20 @@ onMounted(() => { void loadSettings(); void loadRuns(); });
     <h2>触发设置</h2>
     <p class="muted">主动任务需要在个人档案中开启 AI 分析授权。</p>
     <StateNotice :loading="loading" :error="error" @retry="loadSettings" />
-    <form v-if="settings && !loading && !error" @submit.prevent="save">
+    <form v-if="settings && rules && !loading && !error" @submit.prevent="save">
       <fieldset :disabled="saving" class="trigger-fields">
         <div class="form-grid">
-          <label class="checkbox-label"><input v-model="settings.weeklyEnabled" type="checkbox" />每周睡眠复盘</label>
+          <label class="checkbox-label"><input v-model="settings.weeklyEnabled" type="checkbox" />每周睡眠复盘
+            <span v-if="!rules.weeklyEnabled" class="small muted">平台已暂停</span>
+          </label>
           <p class="field-hint">按档案时区，每周回顾上周一至周日的睡眠并生成报告。</p>
-          <label class="checkbox-label"><input v-model="settings.monthlyEnabled" type="checkbox" />每月睡眠复盘</label>
+          <label class="checkbox-label"><input v-model="settings.monthlyEnabled" type="checkbox" />每月睡眠复盘
+            <span v-if="!rules.monthlyEnabled" class="small muted">平台已暂停</span>
+          </label>
           <p class="field-hint">按档案时区，每月回顾上一个完整自然月的睡眠。</p>
-          <label class="checkbox-label"><input v-model="settings.importEnabled" type="checkbox" />睡眠导入后分析</label>
+          <label class="checkbox-label"><input v-model="settings.importEnabled" type="checkbox" />睡眠导入后分析
+            <span v-if="!rules.importAnalysisEnabled" class="small muted">平台已暂停</span>
+          </label>
           <label>分析天数（含最新导入日期）
             <input v-model.number="settings.importDays" type="number" min="1" max="31" required />
           </label>

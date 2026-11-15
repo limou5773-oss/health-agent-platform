@@ -9,6 +9,7 @@
 ## 接口与升级
 
 - `GET /api/admin/system-settings` 查询配置，`PUT /api/admin/system-settings` 保存配置。
+- `GET /api/system-settings/rules` 向登录用户返回八项平台开关。消息中心和主动任务设置显示哪些规则已被平台暂停，个人设置可继续保存。接口只返回开关。
 - `POST /api/admin/system-settings/model-check` 接收 `{modelName,modelTimeoutSeconds}`，成功返回 `{connected:true}`，失败返回错误码和提示。
 - 现有主动任务设置新增 `monthlyEnabled`，触发历史增加 `MONTHLY_REVIEW`。
 

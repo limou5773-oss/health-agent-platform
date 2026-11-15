@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from "vue";
 import { api, errorMessage, json } from "../api";
 import StateNotice from "../components/StateNotice.vue";
-import type { Page } from "../types";
+import type { Page, PlatformRules } from "../types";
 
 const labels = {
   CHECKIN: "打卡提醒",
@@ -32,6 +32,13 @@ type Settings = {
   importFailedEnabled: boolean;
 };
 const settings = ref<Settings | null>(null);
+const rules = ref<PlatformRules | null>(null);
+const reminderLabels = {
+  planDueEnabled: "计划到期",
+  reportEnabled: "报告生成",
+  dataChangeEnabled: "体重记录变化",
+  importFailedEnabled: "导入失败",
+} as const;
 const list = ref<Page<Message> | null>(null);
 const unread = ref(0);
 const unreadOnly = ref(false);
@@ -74,7 +81,10 @@ async function loadSettings() {
   settingsLoading.value = true;
   settingsError.value = "";
   try {
-    settings.value = await api<Settings>("/notifications/settings");
+    [settings.value, rules.value] = await Promise.all([
+      api<Settings>("/notifications/settings"),
+      api<PlatformRules>("/system-settings/rules"),
+    ]);
   } catch (cause) {
     settingsError.value = errorMessage(cause);
   } finally {
@@ -153,9 +163,11 @@ onMounted(loadSettings);
   <section class="panel" aria-labelledby="notification-settings-title">
     <h2 id="notification-settings-title">提醒设置</h2>
     <StateNotice v-if="!settings" :loading="settingsLoading" :error="settingsError" @retry="loadSettings" />
-    <form v-if="settings" @submit.prevent="save">
+    <form v-if="settings && rules" @submit.prevent="save">
       <div class="form-grid">
-        <label class="checkbox-label"><input v-model="settings.checkinEnabled" type="checkbox" />打卡提醒</label>
+        <label class="checkbox-label"><input v-model="settings.checkinEnabled" type="checkbox" />打卡提醒
+          <span v-if="!rules.checkinEnabled" class="small muted">平台已暂停</span>
+        </label>
         <label v-if="settings.checkinEnabled">提醒频率
           <select v-model="settings.checkinFrequency">
             <option value="PER_TASK">按任务时间</option>
@@ -165,10 +177,10 @@ onMounted(loadSettings);
         <label v-if="settings.checkinEnabled && settings.checkinFrequency === 'DAILY'">每日提醒时间
           <input v-model="settings.dailyTime" type="time" required step="1" />
         </label>
-        <label class="checkbox-label"><input v-model="settings.planDueEnabled" type="checkbox" />计划到期</label>
-        <label class="checkbox-label"><input v-model="settings.reportEnabled" type="checkbox" />报告生成</label>
-        <label class="checkbox-label"><input v-model="settings.dataChangeEnabled" type="checkbox" />体重记录变化</label>
-        <label class="checkbox-label"><input v-model="settings.importFailedEnabled" type="checkbox" />导入失败</label>
+        <label v-for="(label, key) in reminderLabels" :key="key" class="checkbox-label">
+          <input v-model="settings[key]" type="checkbox" />{{ label }}
+          <span v-if="!rules[key]" class="small muted">平台已暂停</span>
+        </label>
       </div>
       <p class="muted small">定时提醒按个人档案的时区计算。关闭后，历史消息仍可查看。</p>
       <p v-if="settingsError" class="feedback error" role="alert">{{ settingsError }}</p>

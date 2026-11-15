@@ -21,6 +21,16 @@ export interface Profile {
   aiHeartRate: boolean;
   aiDiary: boolean;
 }
+export interface PlatformRules {
+  checkinEnabled: boolean;
+  planDueEnabled: boolean;
+  reportEnabled: boolean;
+  dataChangeEnabled: boolean;
+  importFailedEnabled: boolean;
+  weeklyEnabled: boolean;
+  monthlyEnabled: boolean;
+  importAnalysisEnabled: boolean;
+}
 export interface Page<T> {
   items: T[];
   total: number;
