@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { FileText } from "@lucide/vue";
 import { api, errorMessage, safeLink } from "../api";
 import type { Report } from "../types";
@@ -10,6 +10,7 @@ import HealthReportForm from "../components/HealthReportForm.vue";
 import HealthReportSummary from "../components/HealthReportSummary.vue";
 import FocusedReportSummary from "../components/FocusedReportSummary.vue";
 const route = useRoute();
+const router = useRouter();
 const reports = ref<Report[]>([]),
   report = ref<Report | null>(null),
   loading = ref(true),
@@ -30,6 +31,21 @@ const selected = computed(() => {
   const id = Number(route.query.id);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 });
+const versions = computed(() => {
+  const current = report.value;
+  if (!current) return [];
+  return reports.value.filter(entry =>
+    entry.reportType === current.reportType &&
+    entry.startDate === current.startDate && entry.endDate === current.endDate &&
+    entry.metric === current.metric &&
+    entry.comparisonStartDate === current.comparisonStartDate &&
+    entry.comparisonEndDate === current.comparisonEndDate,
+  ).sort((a, b) => b.reportVersion - a.reportVersion);
+});
+function selectVersion(event: Event) {
+  const id = (event.target as HTMLSelectElement).value;
+  void router.push({ query: { id } });
+}
 async function load() {
   loading.value = true;
   error.value = "";
@@ -156,6 +172,14 @@ onUnmounted(() => {
           {{ report.reportType === "SLEEP" ? "睡眠回顾 · " : "" }}第 {{ report.reportVersion }} 版
         </p>
         <h2>{{ report.title }}</h2>
+        <label v-if="versions.length > 1" class="report-screen-only">
+          同周期报告版本
+          <select :value="report.id" @change="selectVersion">
+            <option v-for="version in versions" :key="version.id" :value="version.id">
+              第 {{ version.reportVersion }} 版 · {{ version.createdAt.replace("T", " ").slice(0, 19) }}{{ version.sourceDeleted ? " · 已失效" : "" }}
+            </option>
+          </select>
+        </label>
         <div v-if="!report.sourceDeleted" class="actions report-screen-only">
           <button type="button" class="secondary" :disabled="exporting" @click="exportPdf(report.id)">
             {{ exporting ? "正在准备…" : "导出 PDF" }}

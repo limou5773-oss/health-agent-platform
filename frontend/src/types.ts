@@ -254,6 +254,7 @@ interface ReportMetadata {
   id: number;
   taskId: string | null;
   reportVersion: number;
+  metric?: import("./report-metrics").ReportMetric | null;
   comparisonStartDate?: string | null;
   comparisonEndDate?: string | null;
   title: string;
