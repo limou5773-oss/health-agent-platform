@@ -32,6 +32,7 @@
 ## 接口
 
 - GET /api/timeline/events 接受 startDate、endDate（必填，最多366天）、page、pageSize、type（可选，上表枚举）及 sourceName（可选，完整名称精确匹配）。返回 {items,total,page,pageSize}，items 按 eventDate DESC、occurredAt DESC、type ASC、id DESC 排列。
+- 列表和导出可加 `workoutOverlap=true`，按运动起止时间是否与所选日期范围相交筛选运动记录，归档日期仍为原开始日期。导出同时记录该筛选条件，批量删除只支持按开始日期筛选运动。
 - GET /api/timeline/events/{type}/{id} 返回单条原始详情，限定当前用户。缺少记录时返回404。
 - TimelineEvent={type,id,eventDate,occurredAt,sourceName,summary}。列表只含摘要；详情额外含 details 对象。sourceName 的展示与查询使用原文字。
 - details 按事件提供下表字段。日期及时间为字符串，数值为JSON数值，可空字段保留null。

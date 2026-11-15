@@ -101,7 +101,8 @@ watch(() => props.plan, () => { result.value = undefined; });
                 <RouterLink :to="{ path: '/timeline', query: {
                   startDate: period.startDate, endDate: period.endDate, type: result.comparison.metric,
                   sourceName: result.comparison.sourceName ?? undefined,
-                } }">{{ result.comparison.metric === "WORKOUT" ? "时段内开始的运动" : "查看原始记录" }}</RouterLink>
+                  workoutOverlap: result.comparison.metric === 'WORKOUT' ? 'true' : undefined,
+                } }">查看原始记录</RouterLink>
               </td>
             </tr>
           </tbody>

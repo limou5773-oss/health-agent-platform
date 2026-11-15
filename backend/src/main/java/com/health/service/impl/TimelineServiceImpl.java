@@ -52,6 +52,7 @@ public class TimelineServiceImpl implements TimelineService {
       generator.writeStringField("endDate", q.endDate.toString());
       generator.writeStringField("type", q.getType() == null ? null : q.getType().name());
       generator.writeStringField("sourceName", q.sourceName);
+      if (q.isWorkoutOverlap()) generator.writeBooleanField("workoutOverlap", true);
       generator.writeArrayFieldStart("records");
       for (Event event : events) writer.writeValue(generator, readDetails(event));
       generator.writeEndArray();

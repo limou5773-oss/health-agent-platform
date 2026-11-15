@@ -29,14 +29,16 @@ const appliedFilters = computed(() => ({
   type: typeof route.query.type === "string" ? route.query.type : "",
   sourceName:
     typeof route.query.sourceName === "string" ? route.query.sourceName : "",
+  workoutOverlap: route.query.type === "WORKOUT" && route.query.workoutOverlap === "true",
 }));
 const filters = reactive({ ...appliedFilters.value });
 const filterParams = computed(() => {
-  const { type, sourceName, ...dates } = appliedFilters.value;
+  const { type, sourceName, workoutOverlap, ...dates } = appliedFilters.value;
   return new URLSearchParams({
     ...dates,
     ...(type ? { type } : {}),
     ...(sourceName ? { sourceName } : {}),
+    ...(workoutOverlap ? { workoutOverlap: "true" } : {}),
   });
 });
 const listPath = computed(() => {
@@ -61,7 +63,8 @@ const deleting = ref(false);
 const deletionError = ref("");
 const deletedCount = ref<number | null>(null);
 const canDelete = computed(() =>
-  ["SLEEP", "STEPS", "WORKOUT", "MEAL", "WATER", "WEIGHT", "HEART_RATE", "DIARY"].includes(appliedFilters.value.type),
+  !appliedFilters.value.workoutOverlap &&
+    ["SLEEP", "STEPS", "WORKOUT", "MEAL", "WATER", "WEIGHT", "HEART_RATE", "DIARY"].includes(appliedFilters.value.type),
 );
 const listRevision = ref(0);
 const groups = computed(() => {
@@ -176,6 +179,7 @@ async function applyFilters() {
     endDate: filters.endDate,
     type: filters.type || undefined,
     sourceName: filters.sourceName || undefined,
+    workoutOverlap: filters.type === "WORKOUT" && filters.workoutOverlap ? "true" : undefined,
   };
   await router.push({ query });
   if (listPath.value === previousPath) listRevision.value++;
@@ -292,6 +296,10 @@ function closeDetail() {
           placeholder="全部来源"
         />
       </label>
+      <label v-if="filters.type === 'WORKOUT'">
+        <input v-model="filters.workoutOverlap" type="checkbox" />
+        包含与日期范围相交的运动
+      </label>
       <button class="secondary" :disabled="listLoading">筛选事件</button>
       <button type="button" class="secondary" :disabled="listLoading || !!listError || exporting" @click="exportRecords">
         {{ exporting ? "正在导出…" : "导出已筛选记录" }}
@@ -299,6 +307,9 @@ function closeDetail() {
       <button v-if="canDelete" type="button" class="secondary"
         :disabled="listLoading || !!listError || deleting" @click="previewDeletion">预览删除</button>
     </form>
+    <p v-if="appliedFilters.workoutOverlap" class="small muted">
+      样本包括观察期开始前已开始、在观察期内仍在进行的运动，按原始开始日期显示。
+    </p>
     <p v-if="exportError" class="feedback error" role="alert">{{ exportError }}</p>
     <p v-if="deletionError" class="feedback error" role="alert">{{ deletionError }}</p>
     <p v-if="deletedCount !== null" class="feedback success" role="status">已删除 {{ deletedCount }} 条记录。</p>
