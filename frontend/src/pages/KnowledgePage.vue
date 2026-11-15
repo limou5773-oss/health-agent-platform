@@ -17,6 +17,7 @@ const sort = ref("RELEVANCE");
 const favoritesOnly = ref(false);
 const changing = ref<number | null>(null);
 const actionError = ref("");
+let appliedFilters = new URLSearchParams({ sort: sort.value, favoritesOnly: "false" });
 let revision = 0;
 async function load() {
   const request = ++revision;
@@ -26,9 +27,7 @@ async function load() {
   actionError.value = "";
   selected.value = null;
   try {
-    const params = new URLSearchParams({ query: query.value, sort: sort.value, favoritesOnly: String(favoritesOnly.value) });
-    if (category.value) params.set("category", category.value);
-    const result = id ? [await api<Article>(`/knowledge/${id}`)] : await api<Article[]>(`/knowledge?${params}`);
+    const result = id ? [await api<Article>(`/knowledge/${id}`)] : await api<Article[]>(`/knowledge?${appliedFilters}`);
     if (request !== revision) return;
     articles.value = result;
     if (id) selected.value = result[0].id;
@@ -38,6 +37,11 @@ async function load() {
     if (request === revision) loading.value = false;
   }
 }
+function applyFilters() {
+  appliedFilters = new URLSearchParams({ query: query.value, sort: sort.value, favoritesOnly: String(favoritesOnly.value) });
+  if (category.value) appliedFilters.set("category", category.value);
+  void load();
+}
 async function toggleFavorite(article: Article) {
   changing.value = article.id;
   actionError.value = "";
@@ -45,7 +49,7 @@ async function toggleFavorite(article: Article) {
   try {
     await api(`/knowledge/${article.id}/favorite`, json(favorite ? "PUT" : "DELETE"));
     article.favorite = favorite;
-    if (!favorite && favoritesOnly.value && !route.query.id) await load();
+    if (!favorite && appliedFilters.get("favoritesOnly") === "true" && !route.query.id) await load();
   } catch (cause) {
     actionError.value = errorMessage(cause);
   } finally {
@@ -58,7 +62,7 @@ watch(() => route.query.id, load, { immediate: true });
   <div v-if="route.query.id" class="actions">
     <RouterLink class="button secondary" to="/knowledge">返回知识库</RouterLink>
   </div>
-  <form v-else class="filter-bar" @submit.prevent="load">
+  <form v-else class="filter-bar" @submit.prevent="applyFilters">
     <label class="search-input"
       ><Search :size="18" /><span class="sr-only">检索知识资料</span
       ><input
@@ -95,7 +99,7 @@ watch(() => route.query.id, load, { immediate: true });
       <div class="article-meta">
         <span class="eyebrow">{{ knowledgeCategories[article.category] }} · {{ article.sourceName }}</span
         ><span class="small muted"
-          >更新于 {{ article.updatedAt.slice(0, 10) }}</span
+          >资料 #{{ article.id }} · 更新于 {{ article.updatedAt.replace("T", " ").slice(0, 19) }}</span
         >
       </div>
       <h2>
@@ -117,6 +121,9 @@ watch(() => route.query.id, load, { immediate: true });
       <div v-else class="prose">{{ article.content }}</div>
       <button class="secondary" :disabled="changing !== null" :aria-pressed="article.favorite"
         @click="toggleFavorite(article)">{{ article.favorite ? "取消收藏" : "收藏资料" }}</button>
+      <RouterLink v-if="!route.query.id" class="text-link" :to="{ path: '/knowledge', query: { id: article.id } }">
+        打开资料详情
+      </RouterLink>
       <a
         v-if="safeLink(article.sourceUrl)"
         :href="safeLink(article.sourceUrl)"
