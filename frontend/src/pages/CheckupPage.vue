@@ -112,35 +112,44 @@ onBeforeUnmount(() => URL.revokeObjectURL(imageUrl.value));
       <label>报告图片<input type="file" accept="image/jpeg,image/png" :disabled="busy" required @change="selectFile" /></label>
       <button :disabled="busy || !file">提取指标</button>
     </form>
-    <details v-if="imageUrl">
-      <summary>查看本次原图</summary>
-      <img class="checkup-original" :src="imageUrl" alt="本次上传的体检报告原图" />
-    </details>
     <p v-if="actionError" class="feedback error" role="alert">{{ actionError }}</p>
     <p v-if="saved" class="feedback success" role="status">{{ saved }}</p>
-    <form v-if="draft" @submit.prevent="save(draft)">
-      <h3>核对提取结果</h3>
-      <p v-if="!draft.items.length">没有读到可核对的指标，可换用更清晰的图片。</p>
-      <fieldset v-else :disabled="busy">
-        <div class="form-grid">
-          <label>报告标题<input v-model.trim="draft.title" required maxlength="120" /></label>
-          <label>报告日期<input v-model="draft.reportDate" type="date" required /></label>
-        </div>
-        <fieldset v-for="(item, index) in draft.items" :key="index" class="checkup-item">
-          <legend>指标 {{ index + 1 }}</legend>
+    <div :class="{ 'checkup-review': draft && imageUrl }">
+      <details v-if="imageUrl" class="checkup-source" :open="!!draft">
+        <summary>查看本次原图</summary>
+        <a class="text-link" :href="imageUrl" target="_blank" rel="noopener noreferrer">在新标签页查看原尺寸</a>
+        <img class="checkup-original" :src="imageUrl" alt="本次上传的体检报告原图" />
+      </details>
+      <form v-if="draft" class="checkup-fields" @submit.prevent="draft.items.length && save(draft)">
+        <h3>核对提取结果</h3>
+        <p v-if="!draft.items.length">暂无指标。可按原图补录，或换用更清晰的图片。</p>
+        <fieldset :disabled="busy">
           <div class="form-grid">
-            <label>指标名称<input v-model.trim="item.name" required maxlength="120" /></label>
-            <label>结果<input v-model.trim="item.value" required maxlength="80" /></label>
-            <label>单位<input v-model="item.unit" maxlength="50" /></label>
-            <label>原报告参考范围<input v-model="item.referenceRange" maxlength="200" /></label>
-            <label>原文位置<input v-model.trim="item.location" required maxlength="180" /></label>
-            <label>原文摘录<textarea v-model.trim="item.excerpt" required maxlength="400" rows="2" /></label>
+            <label>报告标题<input v-model.trim="draft.title" required maxlength="120" /></label>
+            <label>报告日期<input v-model="draft.reportDate" type="date" required /></label>
           </div>
-          <button type="button" class="secondary" @click="draft.items.splice(index, 1)">移除此项</button>
+          <fieldset v-for="(item, index) in draft.items" :key="index" class="checkup-item">
+            <legend>指标 {{ index + 1 }}</legend>
+            <div class="form-grid">
+              <label>指标名称<input v-model.trim="item.name" required maxlength="120" /></label>
+              <label>结果<input v-model.trim="item.value" required maxlength="80" /></label>
+              <label>单位<input v-model="item.unit" maxlength="50" /></label>
+              <label>原报告参考范围<input v-model="item.referenceRange" maxlength="200" /></label>
+              <label>原文位置<input v-model.trim="item.location" required maxlength="180" /></label>
+              <label>原文摘录<textarea v-model.trim="item.excerpt" required maxlength="400" rows="2" /></label>
+            </div>
+            <button type="button" class="secondary" @click="draft.items.splice(index, 1)">移除此项</button>
+          </fieldset>
+          <div class="actions">
+            <button type="button" class="secondary" :disabled="draft.items.length >= 50"
+              @click="draft.items.push({ name: '', value: '', unit: '', referenceRange: '', location: '', excerpt: '' })">
+              补录指标
+            </button>
+            <button :disabled="!draft.items.length">确认保存报告</button>
+          </div>
         </fieldset>
-        <button>确认保存报告</button>
-      </fieldset>
-    </form>
+      </form>
+    </div>
   </section>
   <section class="panel">
     <h2>已保存报告</h2>
@@ -175,4 +184,16 @@ onBeforeUnmount(() => URL.revokeObjectURL(imageUrl.value));
 <style scoped>
 .checkup-original { display: block; width: min(100%, 58rem); height: auto; margin-block: 0.75rem; }
 .checkup-item { margin-block: 0.75rem; }
+.checkup-review {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.checkup-review .checkup-source { position: sticky; top: 5rem; max-height: calc(100vh - 6rem); overflow: auto; }
+.checkup-fields fieldset { min-width: 0; }
+@media (max-width: 950px) {
+  .checkup-review { grid-template-columns: minmax(0, 1fr); }
+  .checkup-review .checkup-source { position: static; max-height: none; }
+}
 </style>
