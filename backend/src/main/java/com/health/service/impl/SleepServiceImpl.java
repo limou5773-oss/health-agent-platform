@@ -26,6 +26,7 @@ public class SleepServiceImpl implements SleepService {
   private final TaskService tasks;
   private final AppleHealthImporter appleImporter;
   private final MiFitnessSleepImporter miFitnessImporter;
+  private final HuaweiHealthSleepImporter huaweiImporter;
   private final NotificationService notifications;
   private final ImportAdminService importAdmin;
   private final TriggerService triggers;
@@ -34,7 +35,7 @@ public class SleepServiceImpl implements SleepService {
       SleepMapper mapper,
       AccountService accounts,
       TaskService tasks,
-      AppleHealthImporter appleImporter, MiFitnessSleepImporter miFitnessImporter,
+      AppleHealthImporter appleImporter, MiFitnessSleepImporter miFitnessImporter, HuaweiHealthSleepImporter huaweiImporter,
       NotificationService notifications, TriggerService triggers,
       ImportAdminService importAdmin) {
     this.mapper = mapper;
@@ -42,6 +43,7 @@ public class SleepServiceImpl implements SleepService {
     this.tasks = tasks;
     this.appleImporter = appleImporter;
     this.miFitnessImporter = miFitnessImporter;
+    this.huaweiImporter = huaweiImporter;
     this.notifications = notifications;
     this.importAdmin = importAdmin;
     this.triggers = triggers;
@@ -214,10 +216,14 @@ public class SleepServiceImpl implements SleepService {
       case "CSV" -> parseCsv(uid, file, options.timezone);
       case "APPLE_HEALTH" -> appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
       case "MI_FITNESS" -> miFitnessImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone), options.miFitnessSid);
+      case "HUAWEI_HEALTH" -> huaweiImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
       default -> throw new IllegalStateException("已校验的导入格式无效");
     };
-    batch.sourceApp = "MI_FITNESS".equals(options.format) ? "MI_FITNESS" : options.sourceApp;
-    batch.deviceBrand = options.deviceBrand;
+    batch.sourceApp = switch (options.format) {
+      case "MI_FITNESS", "HUAWEI_HEALTH" -> options.format;
+      default -> options.sourceApp;
+    };
+    batch.deviceBrand = "HUAWEI_HEALTH".equals(options.format) ? "HUAWEI" : options.deviceBrand;
     batch.deviceType = options.deviceType;
     batch.deviceModel = options.deviceModel.strip();
     return savePreview(uid, batch);

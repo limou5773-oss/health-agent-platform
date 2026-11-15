@@ -54,8 +54,8 @@ export interface HeartRateStatistics {
   daily: { date: string; recordCount: number; averageBpm: number | null }[];
 }
 export interface WearableSource {
-  sourceApp: "MI_FITNESS" | "APPLE_HEALTH" | "OTHER";
-  deviceBrand: "XIAOMI" | "REDMI" | "APPLE" | "OTHER";
+  sourceApp: "MI_FITNESS" | "APPLE_HEALTH" | "HUAWEI_HEALTH" | "OTHER";
+  deviceBrand: "XIAOMI" | "REDMI" | "APPLE" | "HUAWEI" | "OTHER";
   deviceType: "BAND" | "WATCH" | "OTHER";
   deviceModel: string;
 }
@@ -111,7 +111,7 @@ export interface ImportRow {
 }
 export interface ImportBatch extends WearableSource {
   id: number;
-  format: "CSV" | "APPLE_HEALTH" | "MI_FITNESS";
+  format: "CSV" | "APPLE_HEALTH" | "MI_FITNESS" | "HUAWEI_HEALTH";
   status: string;
   totalRows: number;
   validRows: number;

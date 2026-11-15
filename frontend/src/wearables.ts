@@ -3,12 +3,14 @@ import type { WearableSource } from "./types";
 export const sourceApps = {
   MI_FITNESS: "小米运动健康（Mi Fitness）",
   APPLE_HEALTH: "苹果健康",
+  HUAWEI_HEALTH: "华为运动健康",
   OTHER: "其他 / 未指定",
 };
 export const deviceBrands = {
   XIAOMI: "小米",
   REDMI: "红米 / Redmi",
   APPLE: "苹果",
+  HUAWEI: "华为",
   OTHER: "其他 / 未指定",
 };
 export const deviceTypes = {

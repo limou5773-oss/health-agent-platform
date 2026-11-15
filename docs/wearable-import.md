@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | Mi Fitness 中的小米、红米手环与手表 | Mi Fitness 导出 ZIP、健康明细 CSV，或整理后的通用睡眠 CSV | 明细解析覆盖睡眠分期，真实设备样本待验收 |
 | 苹果健康或写入苹果健康的设备 | export.xml 或规定目录的 ZIP | 支持在睡眠、步数、心率、体重页面分别导入，真实样本待用户验证 |
+| 华为运动健康 | 解压后的专业睡眠明细 JSON | 支持分期区间，单批对应一个设备，真实设备样本待验收 |
 | 其他来源 | 整理后的通用睡眠CSV | 不宣称支持其专用格式 |
 
 上述是文件导入能力，不含设备自动同步、蓝牙连接或小米账号登录。设备描述由用户填写，不推断设备是否真实连接。
@@ -32,11 +33,17 @@
 
 ZIP 由浏览器本地读取，限 100 MB 和 10000 个条目。只提取唯一的健康明细 CSV，整包、密码和包内其他文件留在本机。包内明细多于一份时，页面提示单独选择 CSV。
 
-单设备文件直接预览。文件含多个睡眠设备来源时，先按 `Sid` 选择本批设备，可对照导出包里的 `hlth_center_data_source.csv` 确认设备。每批只导入所选设备，可以使用同一份文件逐个选择和确认。来源使用 `Mi Fitness · Sid`，同一来源参与重复记录的去重。账号 ID 和其他指标原文不保存。单个明细 CSV 最多 10 MB、10000 个预览项。文件记录数、拆分后的睡眠区间数和跳过的行数分别统计，跳过项包括其他指标和其他设备的睡眠行。汇总表、华为文件和自动同步仍待接入。
+单设备文件直接预览。文件含多个睡眠设备来源时，先按 `Sid` 选择本批设备，可对照导出包里的 `hlth_center_data_source.csv` 确认设备。每批只导入所选设备，可以使用同一份文件逐个选择和确认。来源使用 `Mi Fitness · Sid`，同一来源参与重复记录的去重。账号 ID 和其他指标原文不保存。单个明细 CSV 最多 10 MB、10000 个预览项。文件记录数、拆分后的睡眠区间数和跳过的行数分别统计，跳过项包括其他指标和其他设备的睡眠行。Mi Fitness 汇总表和自动同步仍待接入。
 
 [小米官方Mi Fitness数据导出说明](https://www.mi.com/ph/support/article/KA-11566/)
 
 [Open Health Sync 的公开导出字段说明](https://github.com/soma-intelligence/open-health-sync/blob/cad8a65af0461f328931dbe65e03c635f701268c/docs/connectors/xiaomi.md#7-mapping)
+
+## 导入华为运动健康
+
+通过华为隐私中心申请数据副本，解压后在睡眠导入页选择「华为运动健康 JSON」。上传含 `type=9`、`deviceCode` 和 `samplePoints` 的专业睡眠明细数组。单次限 10 MB、10000 条分期明细，一次选择一个设备。按 `startTime` 和 `endTime` 的 Unix 毫秒换算到档案时区，再使用连续区间的结束日期归属。深睡、浅睡、REM 和午睡计入时长，清醒仅参与日期归属，无法识别的分期在预览中标为不支持。跨 UTC 偏移切换时提示改用 UTC 档案时区。每日汇总和其他指标跳过。设备原始编号仅在解析时使用，统计来源保存由其生成的固定编号。
+
+格式依据来自公开导出解析实现，实际华为账号导出文件待用户核对。[华为数据副本申请说明](https://consumer.huawei.com/cn/support/content/zh-cn16044986/) · [睡眠明细字段](https://github.com/suqinghuai/Huawei-Health-Sleep-Data-Extraction-Tool/blob/main/main.py) · [分期键](https://github.com/TomSkywalker/Huawei-Health-Raw-Export-Tools-and-Strava-export/blob/main/aggregate_huawei_health.py)
 
 ## 数据与实现
 

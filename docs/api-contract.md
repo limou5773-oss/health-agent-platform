@@ -33,16 +33,17 @@
 - GET /sleep/goal 和 PUT /sleep/goal 使用 `{minutes}`。保存时提供 1 至 1440 的整数，或显式传 null 清除。睡眠统计返回 `dailyGoalMinutes` 和 `goalDays`，未设目标时两项均为 null。达标天数只统计当前筛选下有记录的日期。
 - GET /sleep/sources → string[]（当前用户已录入的来源名称）。
 - GET /sleep/export?startDate=&endDate=&sourceName= → UTF-8 CSV，导出本人符合已应用日期及来源筛选的所有记录，包含各页。文本列保留 CSV 公式转义。
-- POST /imports/preview multipart file + format（CSV / APPLE_HEALTH / MI_FITNESS，默认CSV）+ timezone（通用CSV使用，IANA，默认档案时区）+ sourceApp + deviceBrand + deviceType + deviceModel → ImportBatch及rows。通用CSV最多10MB、10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。
+- POST /imports/preview multipart file + format（CSV / APPLE_HEALTH / MI_FITNESS / HUAWEI_HEALTH，默认CSV）+ timezone（通用CSV使用，IANA，默认档案时区）+ sourceApp + deviceBrand + deviceType + deviceModel → ImportBatch及rows。通用CSV最多10MB、10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。
 - POST /imports/{id}/confirm → {id,status,insertedRows,duplicateRows,invalidRows}。只入有效未重复行，同批确认幂等。所有来源保留；同一醒来日期内，不同来源时段实际重叠且未选择sourceName时，返回409 SOURCE_SELECTION_REQUIRED，由用户选择后统计。不同来源的非重叠时段可以汇总，不能因来源数量大于1就拒绝统计。
 - 睡眠导入预览返回 `firstStartTime` 和 `lastEndTime`，即有效行最早的入睡与最晚的醒来时间，使用档案时区，包含有效重复行。无有效行时两个字段均为 null。此范围用于预览，确认和历史批次不保存。
 - GET /imports → 当前用户导入批次概要数组。
 
 ### 可穿戴设备统一导入
 
-- sourceApp：MI_FITNESS / APPLE_HEALTH / OTHER；deviceBrand：XIAOMI / REDMI / APPLE / OTHER；deviceType：BAND / WATCH / OTHER；这三项省略时为OTHER。deviceModel为选填文本，最多80字符，默认空串，入批次时去除首尾空白。参数只在Controller DTO入口校验一次。
+- sourceApp：MI_FITNESS / APPLE_HEALTH / HUAWEI_HEALTH / OTHER；deviceBrand：XIAOMI / REDMI / APPLE / HUAWEI / OTHER；deviceType：BAND / WATCH / OTHER；这三项省略时为OTHER。deviceModel为选填文本，最多80字符，默认空串，入批次时去除首尾空白。参数只在Controller DTO入口校验一次。
 - App、品牌、设备类型与文件格式独立。每批针对同一设备，用户提供的设备信息保存在ImportBatch，确认时复制到新增SleepRecord；不从文件名或型号猜品牌，不代表设备连接或官方认证。预览、确认返回及批次历史均含这四个字段。
 - 小米、红米手环和手表共用 `MI_FITNESS` 解析入口。浏览器从 ZIP 本地提取明细 CSV。单设备文件直接预览；多设备文件在未选择时返回 `409 MI_FITNESS_SOURCE_REQUIRED`，`details.sourceIds` 为可选的睡眠来源编号列表，此时不创建批次。原文件和 `miFitnessSid` 一并提交后只预览所选设备。`sourceApp` 固定为 `MI_FITNESS`。`totalRows` 为原文件数据行数，`validRows` 为有效分期数，`skippedRows` 合计其他指标和其他来源的睡眠行数。支持范围及获取数据说明见wearable-import.md。
+- `format=HUAWEI_HEALTH` 接收单设备专业睡眠明细 JSON。批次的 `sourceApp` 固定为 `HUAWEI_HEALTH`，`deviceBrand` 固定为 `HUAWEI`。`totalRows` 按专业睡眠分期点计数，缺少明细或设备编号的记录和其他类型记录各计一条。`skippedRows` 合计已识别的清醒点和其他类型记录。复用现有确认接口和去重键。
 - sourceName仍为文件中实际来源名称，是去重与统计选择的标识；不同设备应使用不同sourceName。去重仍按用户、开始、结束和来源，不因设备说明字段不同而生成重复健康记录。已重复记录不会被本批设备说明覆盖。
 - 手动新增的记录设备字段为OTHER及空型号；修改睡眠时间、来源或备注保留原设备信息。现有四列表头CSV导出保持不变，不包含设备说明字段；重新导入时重新选择设备。旧记录不推断硬件型号。
 

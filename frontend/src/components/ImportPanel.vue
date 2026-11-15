@@ -18,7 +18,13 @@ import {
 import StateNotice from "./StateNotice.vue";
 const emit = defineEmits<{ imported: [] }>();
 const format = ref<ImportBatch["format"]>("CSV");
-const formatLabels = { CSV: "通用 CSV", APPLE_HEALTH: "苹果健康", MI_FITNESS: "Mi Fitness 明细 CSV" };
+const formatLabels = { CSV: "通用 CSV", APPLE_HEALTH: "苹果健康", MI_FITNESS: "Mi Fitness 明细 CSV", HUAWEI_HEALTH: "华为运动健康 JSON" };
+const fileTypes = {
+  CSV: ".csv,text/csv",
+  APPLE_HEALTH: ".xml,.zip,application/xml,application/zip",
+  MI_FITNESS: ".csv,.zip,text/csv,application/zip",
+  HUAWEI_HEALTH: ".json,application/json",
+};
 const device = reactive<WearableSource>({
   sourceApp: "MI_FITNESS",
   deviceBrand: "OTHER",
@@ -49,8 +55,16 @@ const rows = computed(
       previewPage.value * 20,
     ) || [],
 );
-watch(format, () => {
+watch(format, (_, previous) => {
+  if (previous === "HUAWEI_HEALTH") {
+    device.sourceApp = "OTHER";
+    device.deviceBrand = "OTHER";
+  }
   if (format.value === "MI_FITNESS") device.sourceApp = "MI_FITNESS";
+  if (format.value === "HUAWEI_HEALTH") {
+    device.sourceApp = "HUAWEI_HEALTH";
+    device.deviceBrand = "HUAWEI";
+  }
   file.value = null;
 });
 watch(file, () => {
@@ -180,7 +194,7 @@ onMounted(load);
       ><form class="form-grid" @submit.prevent="upload">
         <label
           >数据来源 App
-          <select v-model="device.sourceApp" :disabled="busy || format === 'MI_FITNESS'">
+          <select v-model="device.sourceApp" :disabled="busy || format === 'MI_FITNESS' || format === 'HUAWEI_HEALTH'">
             <option
               v-for="(label, value) in sourceApps"
               :key="value"
@@ -192,7 +206,7 @@ onMounted(load);
         </label>
         <label
           >设备品牌
-          <select v-model="device.deviceBrand" :disabled="busy">
+          <select v-model="device.deviceBrand" :disabled="busy || format === 'HUAWEI_HEALTH'">
             <option
               v-for="(label, value) in deviceBrands"
               :key="value"
@@ -228,6 +242,7 @@ onMounted(load);
           <select v-model="format" :disabled="busy">
             <option value="CSV">通用睡眠 CSV（各品牌）</option>
             <option value="MI_FITNESS">Mi Fitness CSV / ZIP（睡眠，待样本验收）</option>
+            <option value="HUAWEI_HEALTH">华为运动健康 JSON（睡眠，待样本验收）</option>
             <option value="APPLE_HEALTH">苹果健康 XML / ZIP（睡眠）</option>
           </select>
         </label>
@@ -236,11 +251,7 @@ onMounted(load);
           }}<input
             :key="format"
             type="file"
-            :accept="
-              format === 'APPLE_HEALTH'
-                ? '.xml,.zip,application/xml,application/zip'
-                : format === 'MI_FITNESS' ? '.csv,.zip,text/csv,application/zip' : '.csv,text/csv'
-            "
+            :accept="fileTypes[format]"
             :disabled="busy"
             required
             @change="selectFile" /></label
@@ -278,6 +289,9 @@ onMounted(load);
       <p v-else-if="format === 'MI_FITNESS'" class="footnote">
         可选择小米账号导出的 ZIP（最多 100 MB），或含睡眠分期的 <code>hlth_center_fitness_data.csv</code> 明细文件。
         ZIP 在浏览器解压，只上传明细 CSV（最多 10 MB）。文件有多个设备时，可逐个选择预览和确认。时间换算为档案时区 {{ profileTimezone }}。
+      </p>
+      <p v-else-if="format === 'HUAWEI_HEALTH'" class="footnote">
+        选择华为数据副本解压后的专业睡眠明细 JSON（最多 10 MB）。预览深睡、浅睡、REM 和午睡区间，时间换算为档案时区 {{ profileTimezone }}。
       </p>
       <p v-else class="footnote">
         上传苹果健康导出的 export.xml 或包含该文件的 ZIP，单文件最多 100 MB，

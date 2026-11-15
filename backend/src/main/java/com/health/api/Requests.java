@@ -81,7 +81,7 @@ public final class Requests {
   }
 
   public static class ImportOptions {
-    @NotBlank @Pattern(regexp = "CSV|APPLE_HEALTH|MI_FITNESS")
+    @NotBlank @Pattern(regexp = "CSV|APPLE_HEALTH|MI_FITNESS|HUAWEI_HEALTH")
     public String format = "CSV";
 
     public String timezone;
@@ -89,10 +89,10 @@ public final class Requests {
     @Pattern(regexp = "[0-9]{1,32}", message = "Mi Fitness 来源编号须为1至32位数字")
     public String miFitnessSid;
 
-    @NotBlank @Pattern(regexp = "MI_FITNESS|APPLE_HEALTH|OTHER")
+    @NotBlank @Pattern(regexp = "MI_FITNESS|APPLE_HEALTH|HUAWEI_HEALTH|OTHER")
     public String sourceApp = "OTHER";
 
-    @NotBlank @Pattern(regexp = "XIAOMI|REDMI|APPLE|OTHER")
+    @NotBlank @Pattern(regexp = "XIAOMI|REDMI|APPLE|HUAWEI|OTHER")
     public String deviceBrand = "OTHER";
 
     @NotBlank @Pattern(regexp = "BAND|WATCH|OTHER")
