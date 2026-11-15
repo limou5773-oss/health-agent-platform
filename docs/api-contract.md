@@ -33,7 +33,7 @@
 - GET /sleep/goal 和 PUT /sleep/goal 使用 `{minutes}`。保存时提供 1 至 1440 的整数，或显式传 null 清除。睡眠统计返回 `dailyGoalMinutes` 和 `goalDays`，未设目标时两项均为 null。达标天数只统计当前筛选下有记录的日期。
 - GET /sleep/sources → string[]（当前用户已录入的来源名称）。
 - GET /sleep/export?startDate=&endDate=&sourceName= → UTF-8 CSV，导出本人符合已应用日期及来源筛选的所有记录，包含各页。文本列保留 CSV 公式转义。
-- POST /imports/preview multipart file + format（CSV / APPLE_HEALTH，默认CSV）+ timezone（CSV使用，IANA，默认档案时区）+ sourceApp + deviceBrand + deviceType + deviceModel → ImportBatch及rows。CSV10MB、最多10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。
+- POST /imports/preview multipart file + format（CSV / APPLE_HEALTH / MI_FITNESS，默认CSV）+ timezone（通用CSV使用，IANA，默认档案时区）+ sourceApp + deviceBrand + deviceType + deviceModel → ImportBatch及rows。通用CSV最多10MB、10000行；表头 startTime,endTime,sourceName,note，start/end ISO本地日期时间或带offset，转换至档案时区。保留问题行，预览不入sleep正式表。业务重复用唯一去重键；不静默吞掉坏行。
 - POST /imports/{id}/confirm → {id,status,insertedRows,duplicateRows,invalidRows}。只入有效未重复行，同批确认幂等。所有来源保留；同一醒来日期内，不同来源时段实际重叠且未选择sourceName时，返回409 SOURCE_SELECTION_REQUIRED，由用户选择后统计。不同来源的非重叠时段可以汇总，不能因来源数量大于1就拒绝统计。
 - 睡眠导入预览返回 `firstStartTime` 和 `lastEndTime`，即有效行最早的入睡与最晚的醒来时间，使用档案时区，包含有效重复行。无有效行时两个字段均为 null。此范围用于预览，确认和历史批次不保存。
 - GET /imports → 当前用户导入批次概要数组。
@@ -42,14 +42,14 @@
 
 - sourceApp：MI_FITNESS / APPLE_HEALTH / OTHER；deviceBrand：XIAOMI / REDMI / APPLE / OTHER；deviceType：BAND / WATCH / OTHER；这三项省略时为OTHER。deviceModel为选填文本，最多80字符，默认空串，入批次时去除首尾空白。参数只在Controller DTO入口校验一次。
 - App、品牌、设备类型与文件格式独立。每批针对同一设备，用户提供的设备信息保存在ImportBatch，确认时复制到新增SleepRecord；不从文件名或型号猜品牌，不代表设备连接或官方认证。预览、确认返回及批次历史均含这四个字段。
-- 小米、红米手环和手表共用CSV模板。Mi Fitness原始导出包尚未适配，不接受其CSV或ZIP冒充通用模板。支持范围及获取数据说明见wearable-import.md。
+- 小米、红米手环和手表共用 `MI_FITNESS` 解析入口。接收解压后的单设备明细 CSV，解析实际睡眠分期，`sourceApp` 固定为 `MI_FITNESS`。`totalRows` 为原文件数据行数，`validRows` 为拆分出的有效分期数，`skippedRows` 为其他指标行数。支持范围及获取数据说明见wearable-import.md。
 - sourceName仍为文件中实际来源名称，是去重与统计选择的标识；不同设备应使用不同sourceName。去重仍按用户、开始、结束和来源，不因设备说明字段不同而生成重复健康记录。已重复记录不会被本批设备说明覆盖。
 - 手动新增的记录设备字段为OTHER及空型号；修改睡眠时间、来源或备注保留原设备信息。现有四列表头CSV导出保持不变，不包含设备说明字段；重新导入时重新选择设备。旧记录不推断硬件型号。
 
 ### 苹果健康格式
 
 - 统一入口 /imports/preview 使用format=APPLE_HEALTH；原有POST /imports/apple/preview继续接受multipart file，内部直接调用同一入口，固定format与sourceApp为APPLE_HEALTH，设备品牌及类型为OTHER。二者均复用 /imports/{id}/confirm 确认入库。接受 export.xml 或包含 export.xml / apple_health_export/export.xml 的 ZIP；文件最多100MB，ZIP总展开内容最多500MB、最多10000个条目，最多10000条SleepAnalysis记录。时间采用文件内偏移并统一到档案时区，不另猜时区。
-- 导入批次新增 format（CSV / APPLE_HEALTH）、skippedRows、unsupportedRows；CSV的后两项为0。Apple的totalRows为全部Record条数；有效、无效、跳过、不支持互斥计数，重复数属于有效数。预览rows仅保留睡眠条目及其问题项，不保存其他健康指标原文。
+- 导入批次包含 format、skippedRows、unsupportedRows。通用 CSV 的后两项为 0。Apple 的 totalRows 为全部 Record 条数。重复数属于有效数。预览 rows 仅保留睡眠条目及其问题项，不保存其他健康指标原文。
 - 支持 HKCategoryTypeIdentifierSleepAnalysis 下的 Asleep / AsleepUnspecified、AsleepCore、AsleepDeep、AsleepREM。InBed、Awake不计入睡眠时长，其他指标跳过，未知睡眠值作为不支持项显示。跨日归属使用同来源连续或重叠区间的结束日期，清醒、在床区间仅用于识别连续记录边界，不计入时长，不猜测未记录的间隔。
 - ImportRow新增sleepDate；Apple分段保留原阶段和原始偏移时间于note。CSV仍按结束日期归属。durationMinutes为数值，可包含小数；录入和CSV支持至少1秒的有效区间，统计按秒合并后换算小时，避免截断短睡眠阶段。
 - 只读取压缩包中的数据，不将条目解压到文件系统；XML关闭外部实体和DTD解析。该边界依据需求NF03的文件结构、大小、记录数和资源限制，未引入通用重试或兼容框架。

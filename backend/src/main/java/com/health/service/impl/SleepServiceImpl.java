@@ -25,6 +25,7 @@ public class SleepServiceImpl implements SleepService {
   private final AccountService accounts;
   private final TaskService tasks;
   private final AppleHealthImporter appleImporter;
+  private final MiFitnessSleepImporter miFitnessImporter;
   private final NotificationService notifications;
   private final ImportAdminService importAdmin;
   private final TriggerService triggers;
@@ -33,12 +34,14 @@ public class SleepServiceImpl implements SleepService {
       SleepMapper mapper,
       AccountService accounts,
       TaskService tasks,
-      AppleHealthImporter appleImporter, NotificationService notifications, TriggerService triggers,
+      AppleHealthImporter appleImporter, MiFitnessSleepImporter miFitnessImporter,
+      NotificationService notifications, TriggerService triggers,
       ImportAdminService importAdmin) {
     this.mapper = mapper;
     this.accounts = accounts;
     this.tasks = tasks;
     this.appleImporter = appleImporter;
+    this.miFitnessImporter = miFitnessImporter;
     this.notifications = notifications;
     this.importAdmin = importAdmin;
     this.triggers = triggers;
@@ -207,11 +210,13 @@ public class SleepServiceImpl implements SleepService {
   @Transactional
   public ImportBatch preview(Long uid, MultipartFile file, Requests.ImportOptions options) {
     Identity.requireExisting(mapper.lockUser(uid));
-    ImportBatch batch =
-        "CSV".equals(options.format)
-            ? parseCsv(uid, file, options.timezone)
-            : appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
-    batch.sourceApp = options.sourceApp;
+    ImportBatch batch = switch (options.format) {
+      case "CSV" -> parseCsv(uid, file, options.timezone);
+      case "APPLE_HEALTH" -> appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
+      case "MI_FITNESS" -> miFitnessImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
+      default -> throw new IllegalStateException("已校验的导入格式无效");
+    };
+    batch.sourceApp = "MI_FITNESS".equals(options.format) ? "MI_FITNESS" : options.sourceApp;
     batch.deviceBrand = options.deviceBrand;
     batch.deviceType = options.deviceType;
     batch.deviceModel = options.deviceModel.strip();

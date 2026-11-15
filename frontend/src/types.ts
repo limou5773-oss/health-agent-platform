@@ -111,7 +111,7 @@ export interface ImportRow {
 }
 export interface ImportBatch extends WearableSource {
   id: number;
-  format: "CSV" | "APPLE_HEALTH";
+  format: "CSV" | "APPLE_HEALTH" | "MI_FITNESS";
   status: string;
   totalRows: number;
   validRows: number;

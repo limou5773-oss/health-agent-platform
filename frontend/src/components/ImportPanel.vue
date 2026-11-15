@@ -17,7 +17,8 @@ import {
 } from "../wearables";
 import StateNotice from "./StateNotice.vue";
 const emit = defineEmits<{ imported: [] }>();
-const format = ref<"CSV" | "APPLE_HEALTH">("CSV");
+const format = ref<ImportBatch["format"]>("CSV");
+const formatLabels = { CSV: "通用 CSV", APPLE_HEALTH: "苹果健康", MI_FITNESS: "Mi Fitness 明细 CSV" };
 const device = reactive<WearableSource>({
   sourceApp: "MI_FITNESS",
   deviceBrand: "OTHER",
@@ -43,6 +44,7 @@ const rows = computed(
     ) || [],
 );
 watch(format, () => {
+  if (format.value === "MI_FITNESS") device.sourceApp = "MI_FITNESS";
   file.value = null;
   preview.value = null;
   result.value = null;
@@ -148,7 +150,7 @@ onMounted(load);
       ><form class="form-grid" @submit.prevent="upload">
         <label
           >数据来源 App
-          <select v-model="device.sourceApp" :disabled="busy">
+          <select v-model="device.sourceApp" :disabled="busy || format === 'MI_FITNESS'">
             <option
               v-for="(label, value) in sourceApps"
               :key="value"
@@ -195,18 +197,19 @@ onMounted(load);
           >文件格式
           <select v-model="format" :disabled="busy">
             <option value="CSV">通用睡眠 CSV（各品牌）</option>
+            <option value="MI_FITNESS">Mi Fitness 明细 CSV（睡眠，待样本验收）</option>
             <option value="APPLE_HEALTH">苹果健康 XML / ZIP（睡眠）</option>
           </select>
         </label>
         <label
-          >{{ format === "CSV" ? "CSV 文件" : "苹果健康导出文件"
+          >{{ format === "APPLE_HEALTH" ? "苹果健康导出文件" : "CSV 文件"
           }}<input
             :key="format"
             type="file"
             :accept="
-              format === 'CSV'
-                ? '.csv,text/csv'
-                : '.xml,.zip,application/xml,application/zip'
+              format === 'APPLE_HEALTH'
+                ? '.xml,.zip,application/xml,application/zip'
+                : '.csv,text/csv'
             "
             :disabled="busy"
             required
@@ -227,8 +230,12 @@ onMounted(load);
         最多 10 MB / 10,000 行。表头为
         startTime,endTime,sourceName,note；时间格式如
         2026-11-01T23:00:00。此处格式仅作说明，请填入自己的真实数据。
-        小米、红米手环或手表的数据须先整理为此模板；不同设备请使用不同的
+        不同设备请使用不同的
         sourceName。
+      </p>
+      <p v-else-if="format === 'MI_FITNESS'" class="footnote">
+        解压小米账号导出的文件，选择含睡眠分期的 <code>hlth_center_fitness_data.csv</code> 明细文件。
+        每批只接受一个设备来源 Sid，文件最多 10 MB。仅导入深睡、浅睡、REM，时间换算为档案时区 {{ profileTimezone }}。
       </p>
       <p v-else class="footnote">
         上传苹果健康导出的 export.xml 或包含该文件的 ZIP，单文件最多 100 MB，
@@ -239,9 +246,7 @@ onMounted(load);
         {{ profileTimezone }}。此处为文件导入，不含设备自动同步。
       </p>
       <p class="footnote">
-        每批对应同一设备，所选 App、品牌、类型及型号会保存到批次和正式记录。 Mi
-        Fitness 原始导出包尚未适配，请使用通用
-        CSV；选择设备不代表已连接设备或账号。
+        每批对应同一设备，所选 App、品牌、类型及型号会保存到批次和正式记录。当前接入方式为手动文件导入。
       </p>
       <p v-if="actionError" class="feedback error" role="alert">
         {{ actionError }}
@@ -249,7 +254,7 @@ onMounted(load);
       <p v-if="result" class="feedback success" role="status">
         导入完成：写入 {{ result.insertedRows }} 条，重复
         {{ result.duplicateRows }} 条，无效 {{ result.invalidRows }} 条。
-        <template v-if="result.format === 'APPLE_HEALTH'">
+        <template v-if="result.format !== 'CSV'">
           跳过 {{ result.skippedRows }} 条，不支持
           {{ result.unsupportedRows }} 条。
         </template>
@@ -265,10 +270,10 @@ onMounted(load);
               至 {{ preview.lastEndTime.replace("T", " ") }}
             </p>
             <p>
-              文件共 {{ preview.totalRows }} 条记录 · 有效
+              文件共 {{ preview.totalRows }} 条记录 · {{ preview.format === "MI_FITNESS" ? "有效睡眠分期" : "有效" }}
               {{ preview.validRows }} · 无效 {{ preview.invalidRows }} · 重复
               {{ preview.duplicateRows }}
-              <template v-if="preview.format === 'APPLE_HEALTH'">
+              <template v-if="preview.format !== 'CSV'">
                 · 跳过 {{ preview.skippedRows }} · 不支持
                 {{ preview.unsupportedRows }}
               </template>
@@ -283,7 +288,7 @@ onMounted(load);
             <thead>
               <tr>
                 <th>
-                  {{ preview.format === "APPLE_HEALTH" ? "记录序号" : "行号" }}
+                  {{ preview.format === "CSV" ? "行号" : "记录序号" }}
                 </th>
                 <th>入睡 / 醒来</th>
                 <th>归属日期</th>
@@ -354,7 +359,7 @@ onMounted(load);
               <tr v-for="batch in batches" :key="batch.id">
                 <td>#{{ batch.id }}</td>
                 <td>
-                  {{ batch.format === "APPLE_HEALTH" ? "苹果健康" : "CSV" }}
+                  {{ formatLabels[batch.format] }}
                 </td>
                 <td>{{ wearableLabel(batch) }}</td>
                 <td>{{ batch.status }}</td>

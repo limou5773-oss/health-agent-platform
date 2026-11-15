@@ -81,7 +81,7 @@ public final class Requests {
   }
 
   public static class ImportOptions {
-    @NotBlank @Pattern(regexp = "CSV|APPLE_HEALTH")
+    @NotBlank @Pattern(regexp = "CSV|APPLE_HEALTH|MI_FITNESS")
     public String format = "CSV";
 
     public String timezone;
