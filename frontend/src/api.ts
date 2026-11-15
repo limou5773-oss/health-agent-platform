@@ -17,6 +17,7 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details?: Record<string, unknown>,
   ) {
     super(message);
   }
@@ -51,7 +52,7 @@ async function request(path: string, options: RequestInit = {}, timeoutMs = 3000
       }));
     if (response.status === 401 && session.token)
       logout(payload.code === "ACCOUNT_UNAVAILABLE" ? payload.message : "登录已失效，请重新登录。");
-    throw new ApiError(response.status, payload.code, payload.message);
+    throw new ApiError(response.status, payload.code, payload.message, payload.details);
   }
   return response;
 }

@@ -42,7 +42,7 @@
 
 - sourceApp：MI_FITNESS / APPLE_HEALTH / OTHER；deviceBrand：XIAOMI / REDMI / APPLE / OTHER；deviceType：BAND / WATCH / OTHER；这三项省略时为OTHER。deviceModel为选填文本，最多80字符，默认空串，入批次时去除首尾空白。参数只在Controller DTO入口校验一次。
 - App、品牌、设备类型与文件格式独立。每批针对同一设备，用户提供的设备信息保存在ImportBatch，确认时复制到新增SleepRecord；不从文件名或型号猜品牌，不代表设备连接或官方认证。预览、确认返回及批次历史均含这四个字段。
-- 小米、红米手环和手表共用 `MI_FITNESS` 解析入口。浏览器从 ZIP 本地提取明细，服务端接收单设备 CSV，解析实际睡眠分期，`sourceApp` 固定为 `MI_FITNESS`。`totalRows` 为原文件数据行数，`validRows` 为拆分出的有效分期数，`skippedRows` 为其他指标行数。支持范围及获取数据说明见wearable-import.md。
+- 小米、红米手环和手表共用 `MI_FITNESS` 解析入口。浏览器从 ZIP 本地提取明细 CSV。单设备文件直接预览；多设备文件在未选择时返回 `409 MI_FITNESS_SOURCE_REQUIRED`，`details.sourceIds` 为可选的睡眠来源编号列表，此时不创建批次。原文件和 `miFitnessSid` 一并提交后只预览所选设备。`sourceApp` 固定为 `MI_FITNESS`。`totalRows` 为原文件数据行数，`validRows` 为有效分期数，`skippedRows` 合计其他指标和其他来源的睡眠行数。支持范围及获取数据说明见wearable-import.md。
 - sourceName仍为文件中实际来源名称，是去重与统计选择的标识；不同设备应使用不同sourceName。去重仍按用户、开始、结束和来源，不因设备说明字段不同而生成重复健康记录。已重复记录不会被本批设备说明覆盖。
 - 手动新增的记录设备字段为OTHER及空型号；修改睡眠时间、来源或备注保留原设备信息。现有四列表头CSV导出保持不变，不包含设备说明字段；重新导入时重新选择设备。旧记录不推断硬件型号。
 

@@ -86,6 +86,9 @@ public final class Requests {
 
     public String timezone;
 
+    @Pattern(regexp = "[0-9]{1,32}", message = "Mi Fitness 来源编号须为1至32位数字")
+    public String miFitnessSid;
+
     @NotBlank @Pattern(regexp = "MI_FITNESS|APPLE_HEALTH|OTHER")
     public String sourceApp = "OTHER";
 
@@ -102,6 +105,8 @@ public final class Requests {
     public void setFormat(String value) { format = value; }
     public String getTimezone() { return timezone; }
     public void setTimezone(String value) { timezone = value; }
+    public String getMiFitnessSid() { return miFitnessSid; }
+    public void setMiFitnessSid(String value) { miFitnessSid = value; }
     public String getSourceApp() { return sourceApp; }
     public void setSourceApp(String value) { sourceApp = value; }
     public String getDeviceBrand() { return deviceBrand; }

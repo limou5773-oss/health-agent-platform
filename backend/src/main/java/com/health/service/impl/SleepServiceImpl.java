@@ -213,7 +213,7 @@ public class SleepServiceImpl implements SleepService {
     ImportBatch batch = switch (options.format) {
       case "CSV" -> parseCsv(uid, file, options.timezone);
       case "APPLE_HEALTH" -> appleImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
-      case "MI_FITNESS" -> miFitnessImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone));
+      case "MI_FITNESS" -> miFitnessImporter.parse(file, ZoneId.of(accounts.profile(uid).timezone), options.miFitnessSid);
       default -> throw new IllegalStateException("已校验的导入格式无效");
     };
     batch.sourceApp = "MI_FITNESS".equals(options.format) ? "MI_FITNESS" : options.sourceApp;

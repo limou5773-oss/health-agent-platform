@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.health.api.ApiException;
+import com.health.api.MiFitnessSourceRequired;
 import com.health.model.Models.ImportBatch;
 import com.health.model.Models.ImportRow;
 import java.io.BufferedReader;
@@ -17,9 +18,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.springframework.stereotype.Component;
@@ -29,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class MiFitnessSleepImporter {
   private static final Set<String> SLEEP_KEYS = Set.of("sleep", "watch_night_sleep", "watch_daytime_sleep");
   private static final List<String> STAGES = List.of("深睡", "浅睡", "REM", "清醒");
+  private static final Pattern DEVICE_ID = Pattern.compile("[0-9]{1,32}");
   private static final String LIMIT_MESSAGE = "单批最多预览10000条睡眠明细，请缩小上传范围";
   private final ObjectReader json;
 
@@ -36,12 +40,15 @@ public class MiFitnessSleepImporter {
     this.json = json.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
   }
 
-  public ImportBatch parse(MultipartFile file, ZoneId zone) {
+  public ImportBatch parse(MultipartFile file, ZoneId zone, String requestedSid) {
     if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024)
       throw new ApiException(400, "INVALID_MI_FITNESS_CSV", "Mi Fitness 明细 CSV 不能为空且不能超过10MB");
     ImportBatch batch = new ImportBatch();
     batch.format = "MI_FITNESS";
     batch.rows = new ArrayList<>();
+    var deviceIds = new LinkedHashSet<String>();
+    var lines = new ArrayList<SleepLine>();
+    String device = requestedSid;
     try (var reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
         StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)))) {
       String first = reader.readLine();
@@ -51,7 +58,6 @@ public class MiFitnessSleepImporter {
       int sid = header.indexOf("sid"), key = header.indexOf("key"), value = header.indexOf("value");
       if (sid < 0 || key < 0 || value < 0 || !header.contains("time")) throw invalidHeader();
 
-      String source = null;
       String line;
       int lineNumber = 1;
       while ((line = reader.readLine()) != null) {
@@ -60,7 +66,7 @@ public class MiFitnessSleepImporter {
         batch.totalRows++;
         var row = fields(line);
         if (row.size() != header.size()) {
-          addIssue(batch, lineNumber, "CSV 列数与表头不一致", false);
+          lines.add(new SleepLine(lineNumber, null, "CSV 列数与表头不一致"));
           continue;
         }
         if (!SLEEP_KEYS.contains(row.get(key))) {
@@ -68,40 +74,54 @@ public class MiFitnessSleepImporter {
           continue;
         }
         String deviceId = row.get(sid);
-        if (!deviceId.matches("[0-9]{1,32}")) {
-          addIssue(batch, lineNumber, "缺少有效设备来源编号 Sid", false);
+        if (!DEVICE_ID.matcher(deviceId).matches()) {
+          lines.add(new SleepLine(lineNumber, null, "缺少有效设备来源编号 Sid"));
           continue;
         }
-        String rowSource = "Mi Fitness · " + deviceId;
-        if (source != null && !source.equals(rowSource))
-          throw new ApiException(400, "MI_FITNESS_MULTIPLE_DEVICES", "文件含多个睡眠来源，请按 Sid 分开上传并选择对应设备");
-        source = rowSource;
-        JsonNode payload;
-        try {
-          payload = json.readTree(row.get(value));
-        } catch (JsonProcessingException e) {
-          addIssue(batch, lineNumber, "Value 不是有效的睡眠 JSON", false);
-          continue;
-        }
-        if (!payload.isObject()) {
-          addIssue(batch, lineNumber, "Value 缺少睡眠 JSON 对象", false);
-          continue;
-        }
-        var sessions = payload.path("segment_details");
-        if (sessions.isArray()) {
-          if (sessions.isEmpty()) addIssue(batch, lineNumber, "没有睡眠分期区间", true);
-          for (JsonNode session : sessions) addSession(batch, session, source, zone, lineNumber);
-        } else {
-          addSession(batch, payload, source, zone, lineNumber);
-        }
+        deviceIds.add(deviceId);
+        if (device == null) device = deviceId;
+        if (device.equals(deviceId)) lines.add(new SleepLine(lineNumber, row.get(value), null));
+        else batch.skippedRows++;
       }
     } catch (IOException e) {
       throw new ApiException(400, "INVALID_MI_FITNESS_CSV", "无法解析 Mi Fitness UTF-8 明细 CSV，请检查导出文件");
+    }
+    if (requestedSid == null && deviceIds.size() > 1)
+      throw new MiFitnessSourceRequired(List.copyOf(deviceIds));
+    if (requestedSid != null && !deviceIds.contains(requestedSid))
+      throw new ApiException(400, "MI_FITNESS_SOURCE_NOT_FOUND", "文件不含所选来源的睡眠数据，请重新选择文件或来源");
+
+    String source = device == null ? null : "Mi Fitness · " + device;
+    for (SleepLine line : lines) {
+      if (line.error() != null) {
+        addIssue(batch, line.number(), line.error(), false);
+        continue;
+      }
+      JsonNode payload;
+      try {
+        payload = json.readTree(line.value());
+      } catch (JsonProcessingException e) {
+        addIssue(batch, line.number(), "Value 不是有效的睡眠 JSON", false);
+        continue;
+      }
+      if (!payload.isObject()) {
+        addIssue(batch, line.number(), "Value 缺少睡眠 JSON 对象", false);
+        continue;
+      }
+      var sessions = payload.path("segment_details");
+      if (sessions.isArray()) {
+        if (sessions.isEmpty()) addIssue(batch, line.number(), "没有睡眠分期区间", true);
+        for (JsonNode session : sessions) addSession(batch, session, source, zone, line.number());
+      } else {
+        addSession(batch, payload, source, zone, line.number());
+      }
     }
     if (batch.rows.isEmpty())
       throw new ApiException(400, "MI_FITNESS_NO_SLEEP", "文件没有可预览的睡眠明细，请选择包含睡眠的明细 CSV");
     return batch;
   }
+
+  private record SleepLine(int number, String value, String error) {}
 
   private static void addSession(ImportBatch batch, JsonNode session, String source, ZoneId zone, int lineNumber) {
     JsonNode items = session.path("items");

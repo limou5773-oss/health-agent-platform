@@ -18,6 +18,12 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 public class ErrorHandler {
   private static final Logger log = LoggerFactory.getLogger(ErrorHandler.class);
 
+  @ExceptionHandler(MiFitnessSourceRequired.class)
+  ResponseEntity<?> miFitnessSources(MiFitnessSourceRequired e) {
+    return ResponseEntity.status(e.status).body(Map.of("code", e.code, "message", e.getMessage(),
+        "details", Map.of("sourceIds", e.sourceIds)));
+  }
+
   @ExceptionHandler(ApiException.class)
   ResponseEntity<?> api(ApiException e) {
     return error(e.status, e.code, e.getMessage());
