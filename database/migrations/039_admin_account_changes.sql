@@ -1,0 +1,7 @@
+USE health_agent;
+
+CREATE TABLE admin_account_changes (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, actor_id BIGINT NOT NULL, target_id BIGINT NOT NULL,
+ field ENUM('STATUS','ROLE') NOT NULL, previous_value VARCHAR(8) NOT NULL, new_value VARCHAR(8) NOT NULL,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+);

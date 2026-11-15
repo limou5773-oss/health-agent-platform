@@ -15,6 +15,21 @@ const tab = ref("users"),
   tasks = ref<AdminTask[]>([]),
   articles = ref<Article[]>([]);
 const auditId = ref<string | null>(null);
+type AccountChange = {
+  id: number;
+  actorId: number;
+  targetId: number;
+  field: "STATUS" | "ROLE";
+  previousValue: string;
+  newValue: string;
+  createdAt: string;
+};
+const accountChanges = ref<AccountChange[] | null>(null);
+const changesLoading = ref(false);
+const changesError = ref("");
+const accountValues: Record<string, string> = {
+  USER: "普通用户", ADMIN: "管理员", true: "启用", false: "停用",
+};
 const loading = ref(true),
   error = ref(""),
   actionError = ref(""),
@@ -59,10 +74,39 @@ async function toggle(user: AdminUser) {
     );
     user.enabled = !user.enabled;
     message.value = `账号 ${user.username} 已${user.enabled ? "启用" : "停用"}。`;
+    if (accountChanges.value) await loadAccountChanges();
   } catch (cause) {
     actionError.value = errorMessage(cause);
   } finally {
     busy.value = false;
+  }
+}
+async function changeRole(user: AdminUser) {
+  const role = user.role === "ADMIN" ? "USER" : "ADMIN";
+  if (!window.confirm(`将账号 ${user.username} 的角色改为「${accountValues[role]}」？`)) return;
+  busy.value = true;
+  actionError.value = "";
+  message.value = "";
+  try {
+    await api(`/admin/users/${user.id}/role`, json("PATCH", { role }));
+    user.role = role;
+    message.value = `账号 ${user.username} 已改为${accountValues[role]}。`;
+    if (accountChanges.value) await loadAccountChanges();
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  } finally {
+    busy.value = false;
+  }
+}
+async function loadAccountChanges() {
+  changesLoading.value = true;
+  changesError.value = "";
+  try {
+    accountChanges.value = await api<AccountChange[]>("/admin/users/changes");
+  } catch (cause) {
+    changesError.value = errorMessage(cause);
+  } finally {
+    changesLoading.value = false;
   }
 }
 function edit(article?: Article) {
@@ -176,7 +220,7 @@ onMounted(load);
           </thead>
           <tbody>
             <tr v-for="user in users" :key="user.id">
-              <td>{{ user.username }}</td>
+              <td>{{ user.username }} <span class="small muted">#{{ user.id }}</span></td>
               <td>{{ user.nickname }}</td>
               <td>{{ user.role === "ADMIN" ? "管理员" : "普通用户" }}</td>
               <td>
@@ -188,15 +232,38 @@ onMounted(load);
               <td>
                 <span v-if="user.id === session.user?.id" class="small muted"
                   >当前账号</span
-                ><button
-                  v-else
-                  class="text-button"
-                  :disabled="busy"
-                  @click="toggle(user)"
                 >
-                  {{ user.enabled ? "停用账号" : "启用账号" }}
-                </button>
+                <div v-else class="actions">
+                  <button class="text-button" :disabled="busy" @click="toggle(user)">
+                    {{ user.enabled ? "停用账号" : "启用账号" }}
+                  </button>
+                  <button class="text-button" :disabled="busy" @click="changeRole(user)">
+                    {{ user.role === "ADMIN" ? "改为普通用户" : "设为管理员" }}
+                  </button>
+                </div>
               </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-heading">
+        <h3>账号变更记录</h3>
+        <button class="secondary" :disabled="changesLoading || busy" @click="loadAccountChanges">
+          {{ accountChanges ? "刷新记录" : "查看最近 100 条" }}
+        </button>
+      </div>
+      <StateNotice :loading="changesLoading" :error="changesError" :empty="accountChanges?.length === 0"
+        title="暂无账号变更" @retry="loadAccountChanges" />
+      <div v-if="accountChanges?.length && !changesError && !changesLoading" class="table-wrap">
+        <table>
+          <thead><tr><th>时间</th><th>操作者</th><th>目标账号</th><th>变更</th></tr></thead>
+          <tbody>
+            <tr v-for="change in accountChanges" :key="change.id">
+              <td>{{ change.createdAt.replace("T", " ").slice(0, 19) }}</td>
+              <td>#{{ change.actorId }}</td>
+              <td>#{{ change.targetId }}</td>
+              <td>{{ change.field === "ROLE" ? "角色" : "状态" }} ·
+                {{ accountValues[change.previousValue] }} → {{ accountValues[change.newValue] }}</td>
             </tr>
           </tbody>
         </table>

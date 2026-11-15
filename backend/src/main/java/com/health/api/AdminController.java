@@ -63,6 +63,17 @@ public class AdminController {
     accounts.status(Identity.user(r).id, id, q.enabled());
   }
 
+  @PatchMapping("/admin/users/{id}/role")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void role(HttpServletRequest r, @PathVariable Long id, @Valid @RequestBody Requests.UserRoleChange q) {
+    accounts.role(Identity.user(r).id, id, q.role());
+  }
+
+  @GetMapping("/admin/users/changes")
+  public List<AccountChange> accountChanges() {
+    return accounts.accountChanges();
+  }
+
   @GetMapping("/admin/tasks")
   public List<Map<String, Object>> tasks() {
     return tasks.admin();

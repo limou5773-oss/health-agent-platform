@@ -22,5 +22,9 @@ public interface AccountService {
 
   void status(Long actor, Long id, boolean enabled);
 
+  void role(Long actor, Long id, UserRole role);
+
+  List<AccountChange> accountChanges();
+
   void initializeAdmin(String username, String password);
 }

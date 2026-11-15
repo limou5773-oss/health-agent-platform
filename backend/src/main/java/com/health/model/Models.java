@@ -19,6 +19,11 @@ public final class Models {
     @JsonIgnore public String passwordHash;
   }
 
+  public enum UserRole { USER, ADMIN }
+
+  public record AccountChange(Long id, Long actorId, Long targetId, String field,
+      String previousValue, String newValue, LocalDateTime createdAt) {}
+
   public static class Profile {
     @JsonIgnore public Long userId;
     public String nickname;

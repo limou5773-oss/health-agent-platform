@@ -8,6 +8,7 @@ import com.health.security.JwtTokens;
 import com.health.service.AccountService;
 import java.time.Instant;
 import java.util.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,11 +17,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountServiceImpl implements AccountService {
   private final AccountMapper mapper;
   private final JwtTokens tokens;
+  private final String initialAdminUsername;
   private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
 
-  public AccountServiceImpl(AccountMapper mapper, JwtTokens tokens) {
+  public AccountServiceImpl(AccountMapper mapper, JwtTokens tokens,
+      @Value("${app.admin-username}") String initialAdminUsername) {
     this.mapper = mapper;
     this.tokens = tokens;
+    this.initialAdminUsername = initialAdminUsername;
   }
 
   @Transactional
@@ -96,9 +100,35 @@ public class AccountServiceImpl implements AccountService {
     return mapper.users();
   }
 
+  @Transactional
   public void status(Long actor, Long id, boolean enabled) {
+    User target = lockAdminChange(actor, id);
     if (actor.equals(id) && !enabled) throw ApiException.conflict("不能停用当前管理员");
-    if (mapper.status(id, enabled) == 0) throw ApiException.missing();
+    if (target.enabled == enabled) return;
+    mapper.status(id, enabled);
+    mapper.insertAccountChange(actor, id, "STATUS", Boolean.toString(target.enabled), Boolean.toString(enabled));
+  }
+
+  @Transactional
+  public void role(Long actor, Long id, UserRole role) {
+    User target = lockAdminChange(actor, id);
+    if (target.role.equals(role.name())) return;
+    if (actor.equals(id) || initialAdminUsername.equalsIgnoreCase(target.username))
+      throw ApiException.conflict("不能更改当前账号或初始化管理员的角色");
+    mapper.role(id, role);
+    mapper.insertAccountChange(actor, id, "ROLE", target.role, role.name());
+  }
+
+  public List<AccountChange> accountChanges() {
+    return mapper.accountChanges();
+  }
+
+  private User lockAdminChange(Long actorId, Long targetId) {
+    List<User> accounts = mapper.lockAdminAccounts(actorId, targetId);
+    User actor = accounts.stream().filter(user -> actorId.equals(user.id)).findFirst().orElse(null);
+    if (actor == null || !actor.enabled || !"ADMIN".equals(actor.role))
+      throw new ApiException(403, "FORBIDDEN", "需要有效的管理员权限");
+    return accounts.stream().filter(user -> targetId.equals(user.id)).findFirst().orElseThrow(ApiException::missing);
   }
 
   @Transactional

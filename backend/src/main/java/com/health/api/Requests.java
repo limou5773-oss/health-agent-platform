@@ -267,6 +267,8 @@ public final class Requests {
 
   public record UserStatus(@NotNull Boolean enabled) {}
 
+  public record UserRoleChange(@NotNull com.health.model.Models.UserRole role) {}
+
   public record Article(
       @NotBlank @Size(max = 200) String title,
       @NotBlank @Size(max = 100000) String content,

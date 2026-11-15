@@ -171,6 +171,8 @@ steps=[{id,name,status,inputSummary,outputSummary,createdAt}]，status RUNNING/C
 - GET /admin/imports、GET /admin/imports/{kind}/{id}/issues、PUT /admin/import-templates/{kind} 提供批次查询、问题分类和模板说明维护。详见[后台导入管理](import-admin.md)。
 - GET /admin/users → [{id,username,nickname,role,enabled,createdAt}]。
 - PATCH /admin/users/{id}/status {enabled} → 204，不允许停用自己。
+- PATCH /admin/users/{id}/role {role} → 204，角色为 USER 或 ADMIN，禁止修改自身及初始化管理员的角色。
+- GET /admin/users/changes → [{id,actorId,targetId,field,previousValue,newValue,createdAt}]，最近 100 条账号状态与角色变更，按编号倒序。只记录实际变更，与账号更新在同一事务内写入。审计保留账号编号和变更值，账号删除后仍可追溯。已有库执行 `database/migrations/039_admin_account_changes.sql`。
 - GET /admin/tasks → 任务编号、状态、类型、日期、耗时及通用失败提示。
 - `GET /admin/tasks/{id}` 查询脱敏详情，`PUT /agent/tasks/{id}/feedback` 保存本人任务反馈。详见[后台任务管理](task-audit.md)。
 - GET /admin/knowledge → 所有Article。

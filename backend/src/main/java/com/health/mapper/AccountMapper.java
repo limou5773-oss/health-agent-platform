@@ -24,5 +24,10 @@ public interface AccountMapper {
 
   List<User> users();
 
-  int status(@Param("id") Long id, @Param("enabled") boolean enabled);
+  List<User> lockAdminAccounts(@Param("actorId") Long actorId, @Param("targetId") Long targetId);
+  void status(@Param("id") Long id, @Param("enabled") boolean enabled);
+  void role(@Param("id") Long id, @Param("role") UserRole role);
+  void insertAccountChange(@Param("actorId") Long actorId, @Param("targetId") Long targetId,
+      @Param("field") String field, @Param("previousValue") String previousValue, @Param("newValue") String newValue);
+  List<AccountChange> accountChanges();
 }
