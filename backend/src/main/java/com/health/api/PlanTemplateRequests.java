@@ -12,7 +12,8 @@ public final class PlanTemplateRequests {
   private PlanTemplateRequests() {}
 
   public record Item(@Min(1) @Max(31) int day, @NotNull LocalTime time,
-      @NotBlank @Size(max = 200) String title, @NotNull @Size(max = 2000) String description) {}
+      @NotBlank @Size(max = 200) String title, @NotNull @Size(max = 2000) String description,
+      LocalTime reminderTime) {}
 
   public record Save(@Min(0) int version, @NotNull Category category,
       @NotBlank @Size(max = 200) String title, @NotBlank @Size(max = 4000) String instructions,

@@ -6,9 +6,11 @@
 
 模板生成是本地操作，不读取健康记录、不调用外部模型，也不建立 Agent 检查点。草稿由用户确认后保存为正式计划。
 
+模板任务可设置单独的提醒时间，套用前可展开查看任务安排。生成的草稿会继承该时间，用户可在确认前修改。开启按任务提醒时，留空沿用任务执行时间。
+
 ## 接口与升级
 
-- `GET /api/admin/plan-templates`、`POST /api/admin/plan-templates`、`PUT /api/admin/plan-templates/{id}` 查询和保存模板。保存字段为 `version`、`category`（`SLEEP`、`EXERCISE`、`WATER`）、`title`、`instructions`、`days`、`enabled`、`items`（每项为 `day`、`time`、`title`、`description`）。新建提交版本 0，编辑提交读取到的当前版本。
+- `GET /api/admin/plan-templates`、`POST /api/admin/plan-templates`、`PUT /api/admin/plan-templates/{id}` 查询和保存模板。保存字段为 `version`、`category`（`SLEEP`、`EXERCISE`、`WATER`）、`title`、`instructions`、`days`、`enabled`、`items`（每项为 `day`、`time`、`title`、`description` 和选填的 `reminderTime`）。新建提交版本 0，编辑提交读取到的当前版本。旧模板缺少提醒时间时按空值读取。
 - `GET /api/plan-templates` 返回启用模板。
 - `POST /api/plan-templates/{id}/draft` 接收 `{version,startDate}`，返回待确认任务。
 

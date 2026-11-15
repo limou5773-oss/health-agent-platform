@@ -63,6 +63,15 @@ async function create() {
         </div>
         <p class="muted">第 {{ template.version }} 版 · {{ template.days }} 天 · {{ template.items.length }} 项任务</p>
         <p class="prose">{{ template.instructions }}</p>
+        <details>
+          <summary>查看模板任务</summary>
+          <ul>
+            <li v-for="(item, index) in template.items" :key="index">
+              第 {{ item.day }} 天 {{ item.time.slice(0, 5) }} · {{ item.title }}
+              <span v-if="item.reminderTime" class="small muted"> · 提醒 {{ item.reminderTime.slice(0, 5) }}</span>
+            </li>
+          </ul>
+        </details>
         <p v-if="actionError" class="feedback error" role="alert">{{ actionError }}</p>
         <button v-if="actionError" type="button" class="secondary" :disabled="busy" @click="load">刷新模板</button>
       </form>

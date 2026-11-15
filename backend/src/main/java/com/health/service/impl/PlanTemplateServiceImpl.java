@@ -59,7 +59,7 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
     read(template);
     var start = request.startDate();
     var items = template.items.stream().map(item -> new DraftItem(
-        start.plusDays(item.day() - 1L), item.time(), item.title(), item.description(), null)).toList();
+        start.plusDays(item.day() - 1L), item.time(), item.title(), item.description(), item.reminderTime())).toList();
     var draft = new Draft(1, template.title, template.instructions, start, start.plusDays(template.days - 1L), items);
     return tasks.createTemplateDraft(userId, template, draft);
   }

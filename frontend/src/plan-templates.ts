@@ -8,5 +8,5 @@ export type PlanTemplate = {
   instructions: string;
   days: number;
   enabled: boolean;
-  items: { day: number; time: string; title: string; description: string }[];
+  items: { day: number; time: string; title: string; description: string; reminderTime: string | null }[];
 };

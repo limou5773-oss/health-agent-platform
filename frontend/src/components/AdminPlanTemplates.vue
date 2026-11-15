@@ -23,14 +23,17 @@ function edit(template?: PlanTemplate) {
   actionError.value = "";
   editor.value = template ? { ...template, items: template.items.map(item => ({ ...item })) }
     : { id: 0, version: 0, category: "SLEEP", title: "", instructions: "", days: 7, enabled: false,
-        items: [{ day: 1, time: "", title: "", description: "" }] };
+        items: [{ day: 1, time: "", title: "", description: "", reminderTime: null }] };
 }
 async function save(template: PlanTemplate) {
   busy.value = true;
   actionError.value = "";
   try {
     const { id, ...body } = template;
-    await api(id ? `/admin/plan-templates/${id}` : "/admin/plan-templates", json(id ? "PUT" : "POST", body));
+    await api(id ? `/admin/plan-templates/${id}` : "/admin/plan-templates", json(id ? "PUT" : "POST", {
+      ...body,
+      items: body.items.map(item => ({ ...item, reminderTime: item.reminderTime || null })),
+    }));
     editor.value = null;
     await load();
   } catch (cause) {
@@ -64,7 +67,8 @@ onMounted(load);
           <legend>任务 {{ index + 1 }}</legend>
           <div class="form-grid">
             <label>第几天<input v-model.number="item.day" type="number" min="1" :max="editor.days" required /></label>
-            <label>时间<input v-model="item.time" type="time" step="1" required /></label>
+            <label>执行时间<input v-model="item.time" type="time" step="1" required /></label>
+            <label>提醒时间（选填）<input v-model="item.reminderTime" type="time" step="1" /></label>
             <label>任务名称<input v-model="item.title" maxlength="200" required /></label>
             <label>任务说明<textarea v-model="item.description" maxlength="2000" /></label>
           </div>
@@ -72,7 +76,7 @@ onMounted(load);
         </fieldset>
         <div class="actions">
           <button type="button" class="secondary" :disabled="editor.items.length >= 93"
-            @click="editor.items.push({ day: 1, time: '', title: '', description: '' })">添加任务</button>
+            @click="editor.items.push({ day: 1, time: '', title: '', description: '', reminderTime: null })">添加任务</button>
           <button :disabled="!editor.items.length">保存模板</button>
           <button type="button" class="secondary" @click="editor = null">取消</button>
         </div>

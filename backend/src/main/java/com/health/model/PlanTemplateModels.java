@@ -9,7 +9,7 @@ public final class PlanTemplateModels {
 
   public enum Category { SLEEP, EXERCISE, WATER }
 
-  public record Item(int day, LocalTime time, String title, String description) {}
+  public record Item(int day, LocalTime time, String title, String description, LocalTime reminderTime) {}
 
   public static class Template {
     public Long id;
