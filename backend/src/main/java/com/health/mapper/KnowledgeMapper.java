@@ -10,6 +10,7 @@ public interface KnowledgeMapper {
       @Param("userId") Long userId, @Param("category") Category category,
       @Param("sort") Sort sort, @Param("favoritesOnly") boolean favoritesOnly);
   Article published(@Param("id") Long id, @Param("userId") Long userId);
+  List<Long> publishedIds(@Param("ids") List<Long> ids);
   void favorite(@Param("userId") Long userId, @Param("id") Long id);
   void unfavorite(@Param("userId") Long userId, @Param("id") Long id);
 

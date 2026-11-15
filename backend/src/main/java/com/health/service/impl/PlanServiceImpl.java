@@ -4,6 +4,7 @@ import com.health.security.Identity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.*;
+import com.health.mapper.KnowledgeMapper;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.HealthGoal;
@@ -22,14 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PlanServiceImpl implements PlanService {
   private final PlanMapper mapper;
+  private final KnowledgeMapper knowledge;
   private final TaskMapper tasks;
   private final ObjectMapper json;
   private final AccountService accounts;
   private final TaskService agentTasks;
 
-  public PlanServiceImpl(PlanMapper mapper, TaskMapper tasks, ObjectMapper json, AccountService accounts,
+  public PlanServiceImpl(PlanMapper mapper, KnowledgeMapper knowledge, TaskMapper tasks, ObjectMapper json, AccountService accounts,
       TaskService agentTasks) {
     this.mapper = mapper;
+    this.knowledge = knowledge;
     this.tasks = tasks;
     this.json = json;
     this.accounts = accounts;
@@ -185,6 +188,11 @@ public class PlanServiceImpl implements PlanService {
       r.references = r.referencesJson == null ? null : json.readTree(r.referencesJson);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("已保存报告JSON无效", e);
+    }
+    if (r.references != null && !r.references.isEmpty()) {
+      List<Long> ids = new ArrayList<>();
+      r.references.forEach(reference -> ids.add(reference.path("id").asLong()));
+      r.publishedReferenceIds = knowledge.publishedIds(ids);
     }
     return r;
   }

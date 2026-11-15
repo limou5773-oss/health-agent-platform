@@ -32,6 +32,10 @@
  </insert>
  <delete id="unfavorite">DELETE FROM knowledge_favorites WHERE user_id=#{userId} AND article_id=#{id}</delete>
  <select id="get" resultType="com.health.model.Models$Article">SELECT * FROM knowledge_articles WHERE id=#{id}</select>
+ <select id="publishedIds" resultType="long">
+  SELECT id FROM knowledge_articles WHERE published=TRUE AND id IN
+  <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+ </select>
  <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO knowledge_articles(title,content,source_name,source_url,published,category) VALUES(#{title},#{content},#{sourceName},#{sourceUrl},#{published},COALESCE(#{category},'GENERAL'))</insert>
  <update id="update">UPDATE knowledge_articles SET title=#{title},content=#{content},source_name=#{sourceName},source_url=#{sourceUrl},published=#{published},category=COALESCE(#{category},category) WHERE id=#{id}</update>
 </mapper>

@@ -8,6 +8,8 @@
 
 管理员在「管理后台 → 知识资料」维护分类及发布状态。升级后旧资料默认归入综合，内置睡眠统计口径归入睡眠。睡眠报告保存 Agent 检索时取得的资料编号、标题、来源、链接及更新时间，报告和 PDF 使用该摘要标识引用版本。库内链接打开当前仍发布的资料。下架后库内详情不可访问，已有报告仍可查看引用摘要。早期报告仅显示当时保存的字段。
 
+报告详情按引用编号查询当前发布状态，通过 `publishedReferenceIds` 返回仍已发布的资料编号。报告和 PDF 保留引用时保存的出处与版本，并标注当前状态。
+
 - `GET /api/knowledge` 支持 `query`、`category`、`sort`（`RELEVANCE` 或 `RECENT`）、`favoritesOnly`，返回 `category` 和本人收藏状态 `favorite`。
 - `GET /api/knowledge/{id}` 获取已发布资料。
 - `PUT /api/knowledge/{id}/favorite` 收藏，`DELETE /api/knowledge/{id}/favorite` 取消收藏。

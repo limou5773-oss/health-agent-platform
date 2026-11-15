@@ -216,6 +216,7 @@ public final class Models {
     @JsonIgnore public String referencesJson;
     public JsonNode statistics;
     public JsonNode references;
+    public List<Long> publishedReferenceIds;
   }
 
   public static class Article {

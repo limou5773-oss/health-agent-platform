@@ -266,6 +266,7 @@ interface ReportMetadata {
   sourceChange: "CORRECTED" | "DELETED" | "CHECKIN_REVOKED" | "DIARY_CHANGED" | null;
   includeDiary: boolean;
   content?: string;
+  publishedReferenceIds?: number[] | null;
   references?: {
     id: number;
     title: string;
