@@ -20,7 +20,9 @@ const reports = ref<Report[]>([]),
 const detail = ref<HTMLElement | null>(null);
 const exporting = ref(false);
 const exportError = ref("");
+const printReportId = ref<number>();
 let expandedForPrint: HTMLDetailsElement[] = [];
+let pageTitleBeforePrint: string | undefined;
 const sourceChangeLabels = {
   CORRECTED: "来源记录已更正",
   DELETED: "来源记录已删除",
@@ -78,44 +80,55 @@ async function exportPdf(id: number) {
   exporting.value = true;
   exportError.value = "";
   try {
-    const latest = await api<Report>(`/reports/${id}`);
+    const latest = await api<Report>(`/reports/${id}`, { cache: "no-store" });
     if (selected.value !== id) return;
     report.value = latest;
     if (latest.sourceDeleted) {
       await load();
       return;
     }
+    printReportId.value = id;
     await nextTick();
-    if (selected.value === id) window.print();
+    const article = detail.value;
+    if (!article?.classList.contains("report-print-ready")) {
+      restorePrint();
+      return;
+    }
+    expandedForPrint = Array.from(article.querySelectorAll<HTMLDetailsElement>("details:not([open])"));
+    for (const disclosure of expandedForPrint) disclosure.open = true;
+    pageTitleBeforePrint = document.title;
+    document.title = `健康报告-${id}-第${latest.reportVersion}版-${latest.startDate}_${latest.endDate}`;
+    window.print();
   } catch (cause) {
+    restorePrint();
     if (selected.value === id) exportError.value = errorMessage(cause);
   } finally {
     exporting.value = false;
   }
 }
 
-function preparePrint() {
-  expandedForPrint = Array.from(detail.value?.querySelectorAll<HTMLDetailsElement>("details:not([open])") ?? []);
-  for (const disclosure of expandedForPrint) disclosure.open = true;
-}
-
 function restorePrint() {
+  printReportId.value = undefined;
   for (const disclosure of expandedForPrint) disclosure.open = false;
   expandedForPrint = [];
+  if (pageTitleBeforePrint !== undefined) {
+    document.title = pageTitleBeforePrint;
+    pageTitleBeforePrint = undefined;
+  }
 }
 
 watch(selected, loadDetail, { immediate: true });
 onMounted(() => {
   void load();
-  window.addEventListener("beforeprint", preparePrint);
   window.addEventListener("afterprint", restorePrint);
 });
 onUnmounted(() => {
-  window.removeEventListener("beforeprint", preparePrint);
   window.removeEventListener("afterprint", restorePrint);
+  restorePrint();
 });
 </script>
 <template>
+  <p class="report-print-instruction">请在健康报告页面选择版本，再点击「导出 PDF」。</p>
   <div class="report-screen-only"><HealthReportForm @generated="load" /></div>
   <div class="report-screen-only"><StateNotice
     :loading="loading"
@@ -162,7 +175,7 @@ onUnmounted(() => {
       </ul>
     </section>
     <article ref="detail" class="panel report-detail"
-      :class="{ 'report-print-ready': report && !report.sourceDeleted && !detailLoading && !detailError }">
+      :class="{ 'report-print-ready': report && selected === printReportId && report.id === printReportId && !report.sourceDeleted && !detailLoading && !detailError }">
       <StateNotice
         :loading="detailLoading"
         :error="detailError"
@@ -268,24 +281,25 @@ onUnmounted(() => {
 </template>
 
 <style>
-.report-print-only {
+.report-print-only,
+.report-print-instruction {
   display: none;
 }
 
 @media print {
-  @page {
+  @page health-report {
     size: A4;
     margin: 15mm;
   }
 
-  body:has(.report-print-ready) {
+  body:has(.report-print-instruction) {
     background: white;
     color: #1a261e;
   }
 
-  .app-shell:has(.report-print-ready),
+  .app-shell:has(.report-print-instruction),
   .report-workspace:has(.report-print-ready),
-  .main-content:has(.report-print-ready),
+  .main-content:has(.report-print-instruction),
   .report-print-ready {
     display: block;
     min-height: 0;
@@ -299,13 +313,19 @@ onUnmounted(() => {
     background: white;
   }
 
-  .app-shell:has(.report-print-ready) > :not(.main-content),
-  .main-content:has(.report-print-ready) > .page-header,
-  .main-content:has(.report-print-ready) .report-screen-only {
+  .app-shell:has(.report-print-instruction) > :not(.main-content),
+  .main-content:has(.report-print-instruction) > .page-header,
+  .main-content:has(.report-print-instruction) .report-screen-only,
+  .report-workspace:not(:has(.report-print-ready)) {
     display: none !important;
   }
 
+  .main-content:not(:has(.report-print-ready)) > .report-print-instruction {
+    display: block;
+  }
+
   .report-print-ready {
+    page: health-report;
     font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
     font-size: 10pt;
     overflow-wrap: anywhere;
@@ -330,6 +350,18 @@ onUnmounted(() => {
   .report-print-ready .table-wrap {
     overflow: visible;
     max-height: none;
+  }
+
+  .report-print-ready .chart-panel {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .report-print-ready td,
+  .report-print-ready th {
+    padding: 0.3rem 0.4rem;
+    white-space: normal;
   }
 
   .report-print-ready .sleep-chart {
