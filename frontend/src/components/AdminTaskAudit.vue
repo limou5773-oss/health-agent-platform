@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { api, errorMessage, statusText } from "../api";
 import StateNotice from "./StateNotice.vue";
 
@@ -16,6 +16,12 @@ const emit = defineEmits<{ close: [] }>();
 const details = ref<Audit | null>(null);
 const loading = ref(true);
 const error = ref("");
+const heading = ref<HTMLElement | null>(null);
+const failedOnly = ref(false);
+const steps = computed(() => {
+  const all = details.value?.steps ?? [];
+  return failedOnly.value ? all.filter(step => step.status === "FAILED") : all;
+});
 const stepLabels: Record<string, string> = {
   get_sleep_statistics: "查询睡眠统计",
   get_sleep_records: "查询睡眠明细",
@@ -38,12 +44,13 @@ async function load() {
   }
 }
 watch(() => props.id, load, { immediate: true });
+onMounted(() => heading.value?.focus());
 </script>
 
 <template>
   <section class="panel">
     <div class="section-heading">
-      <h2>任务运行详情</h2>
+      <h2 ref="heading" tabindex="-1">任务运行详情 #{{ id }}</h2>
       <div class="actions">
         <button class="secondary" :disabled="loading" @click="load">刷新详情</button>
         <button class="secondary" @click="emit('close')">关闭</button>
@@ -51,7 +58,7 @@ watch(() => props.id, load, { immediate: true });
     </div>
     <StateNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="details && !loading && !error">
-      <p class="muted">#{{ details.task.id }} · {{ statusText[details.task.status] }}</p>
+      <p class="muted">{{ statusText[details.task.status] }}</p>
       <dl class="meta-list">
         <div><dt>产物编号</dt><dd>
           <span v-if="details.task.planId">计划 #{{ details.task.planId }}</span>
@@ -70,11 +77,14 @@ watch(() => props.id, load, { immediate: true });
         </dd></div>
       </dl>
       <h3>执行步骤</h3>
-      <p v-if="!details.steps.length" class="muted">暂无步骤记录。</p>
+      <label v-if="details.steps.length" class="checkbox-label">
+        <input v-model="failedOnly" type="checkbox" />只看失败步骤
+      </label>
+      <p v-if="!steps.length" class="muted">{{ failedOnly ? "暂无失败步骤。" : "暂无步骤记录。" }}</p>
       <div v-else class="table-wrap">
         <table>
           <thead><tr><th scope="col">步骤</th><th scope="col">调用摘要</th><th scope="col">状态</th><th scope="col">记录时间</th></tr></thead>
-          <tbody><tr v-for="step in details.steps" :key="step.id">
+          <tbody><tr v-for="step in steps" :key="step.id">
             <td>#{{ step.id }}</td>
             <td>{{ stepLabels[step.name] ?? step.name }}</td>
             <td>{{ statusText[step.status] }}</td>

@@ -15,6 +15,7 @@ const tab = ref("users"),
   tasks = ref<AdminTask[]>([]),
   articles = ref<Article[]>([]);
 const auditId = ref<string | null>(null);
+const taskNumber = ref("");
 type AccountChange = {
   id: number;
   actorId: number;
@@ -363,10 +364,16 @@ onMounted(load);
       <div class="section-heading">
         <div>
           <h2>任务运行情况</h2>
-          <p>仅展示运行元数据与失败摘要，不展示个人健康明细。</p>
+          <p>最近 200 条任务的运行状态。可按编号查询历史任务的脱敏详情。</p>
         </div>
         <button class="secondary" @click="load">刷新</button>
       </div>
+      <form class="filter-bar" @submit.prevent="auditId = taskNumber">
+        <label>任务编号
+          <input v-model.trim="taskNumber" required maxlength="36" placeholder="粘贴完整任务编号" />
+        </label>
+        <button class="secondary">查询任务详情</button>
+      </form>
       <StateNotice
         :empty="!tasks.length"
         title="暂无任务"
