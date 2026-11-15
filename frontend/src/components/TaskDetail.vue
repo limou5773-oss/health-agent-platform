@@ -24,7 +24,7 @@ const sourceFields = {
 const selectedSources = ref<Partial<Record<keyof typeof sourceFields, string>>>({});
 const conflicts = computed(() => {
   const current = task.value;
-  if (current?.status !== "WAITING_INPUT" || current.parentTaskId ||
+  if (current?.status !== "WAITING_INPUT" || current.aiConsentRevoked || current.parentTaskId ||
       !current.statistics || !("metrics" in current.statistics)) return [];
   return current.statistics.metrics.filter(metric => metric.issue && metric.sources.length);
 });
@@ -242,23 +242,26 @@ onUnmounted(() => {
       >
         <span class="loading-dot"></span>任务正在处理，状态每 2.5 秒更新。
       </p>
+      <p v-if="task.aiConsentRevoked" class="feedback" role="status">
+        此任务使用的 AI 授权已撤回。如需继续分析，请按当前授权新建任务。
+      </p>
       <div v-if="task.status === 'FAILED'" class="feedback error" role="alert">
         <strong>任务未完成</strong>
         <p>{{ task.error }}</p>
         <button
-          v-if="task.retryable"
+          v-if="task.retryable && !task.aiConsentRevoked"
           class="secondary"
           :disabled="busy"
           @click="action('retry')"
         >
           手动重试此任务
         </button>
-        <p v-else class="small">
+        <p v-else-if="!task.aiConsentRevoked" class="small">
           此错误不可重试，请按错误信息修正条件后再创建任务。
         </p>
       </div>
       <form
-        v-if="task.status === 'WAITING_INPUT'"
+        v-if="task.status === 'WAITING_INPUT' && !task.aiConsentRevoked"
         class="supplement-form"
         @submit.prevent="action('input')"
       >
@@ -306,7 +309,7 @@ onUnmounted(() => {
         @updated="update"
         @confirmed="confirmed"
       />
-      <form v-if="task.status === 'COMPLETED' && (task.kind === 'ANALYZE' || task.kind === 'COMBINED')"
+      <form v-if="!task.aiConsentRevoked && task.status === 'COMPLETED' && (task.kind === 'ANALYZE' || task.kind === 'COMBINED')"
         class="supplement-form" @submit.prevent="askFollowup">
         <label>继续追问
           <textarea v-model="followupQuestion" required maxlength="2000" rows="3"

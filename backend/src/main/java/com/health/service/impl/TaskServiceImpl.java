@@ -159,7 +159,10 @@ public class TaskServiceImpl implements TaskService {
   }
 
   public Task get(Long uid, String id) {
-    return hydrate(owned(mapper.get(id), uid));
+    Task task = owned(mapper.get(id), uid);
+    task.aiConsentRevoked = task.templateId == null
+        && task.aiConsentVersion != accounts.profile(uid).aiConsentVersion;
+    return hydrate(task);
   }
 
   @Transactional

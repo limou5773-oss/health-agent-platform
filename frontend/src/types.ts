@@ -194,6 +194,7 @@ export interface TaskDetail extends CombinedTaskSources {
   question: string | null;
   error: string | null;
   retryable: boolean;
+  aiConsentRevoked: boolean;
   statistics: SleepStatistics | CombinedStatistics | null;
   draft: PlanDraft | null;
   planId: number | null;

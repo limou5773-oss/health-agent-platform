@@ -123,6 +123,7 @@ public final class Models {
     public String question;
     public String error;
     public boolean retryable;
+    public boolean aiConsentRevoked;
     @JsonIgnore public String statisticsJson;
     @JsonIgnore public String draftJson;
     @JsonIgnore public String taskToken;
