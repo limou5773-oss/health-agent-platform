@@ -5,7 +5,7 @@ import com.health.model.Models.Page;
 import java.util.List;
 
 public interface ImportAdminService {
-  Page<Batch> batches(Kind kind, boolean issuesOnly, int page, int size);
+  Page<Batch> batches(Kind kind, boolean issuesOnly, Long recordId, int page, int size);
   List<Issue> issues(Kind kind, Long id);
   Template template(Kind kind);
   Template saveTemplate(Kind kind, String instructions);

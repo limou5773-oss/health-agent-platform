@@ -6,8 +6,8 @@ import org.apache.ibatis.annotations.Param;
 
 public interface ImportAdminMapper {
   List<Batch> batches(@Param("kind") Kind kind, @Param("issuesOnly") boolean issuesOnly,
-      @Param("offset") long offset, @Param("size") int size);
-  long count(@Param("kind") Kind kind, @Param("issuesOnly") boolean issuesOnly);
+      @Param("recordId") Long recordId, @Param("offset") long offset, @Param("size") int size);
+  long count(@Param("kind") Kind kind, @Param("issuesOnly") boolean issuesOnly, @Param("recordId") Long recordId);
   Batch batch(@Param("kind") Kind kind, @Param("id") Long id);
   List<Issue> issues(@Param("kind") Kind kind, @Param("id") Long id, @Param("confirmed") boolean confirmed);
   void snapshotIssues(@Param("kind") Kind kind, @Param("id") Long id);

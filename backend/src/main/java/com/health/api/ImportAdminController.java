@@ -17,9 +17,10 @@ public class ImportAdminController {
 
   @GetMapping("/admin/imports")
   public Page<Batch> batches(@RequestParam Kind kind, @RequestParam(defaultValue = "false") boolean issuesOnly,
+      @RequestParam(required = false) @Min(-Long.MAX_VALUE) Long recordId,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize) {
-    return service.batches(kind, issuesOnly, page, pageSize);
+    return service.batches(kind, issuesOnly, recordId, page, pageSize);
   }
 
   @GetMapping("/admin/imports/{kind}/{id}/issues")

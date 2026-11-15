@@ -10,7 +10,7 @@ CSV 模板表头由同一份后端定义提供给下载和导入校验。管理�
 
 ## 接口与升级
 
-- `GET /api/admin/imports?kind=SLEEP&issuesOnly=false&page=1&pageSize=20` 返回分页批次和已记录的预览拒绝。
+- `GET /api/admin/imports?kind=SLEEP&issuesOnly=false&page=1&pageSize=20` 返回分页批次和已记录的预览拒绝。可传 `recordId` 精确定位，正数为批次编号，负数为失败请求编号。页面分别选择编号类型，输入显示的正数编号即可查询。
 - `GET /api/admin/imports/{kind}/{id}/issues` 返回固定分类及数量。预览拒绝返回一次业务错误码。
 - `GET /api/import-templates/{kind}` 返回表头及说明，登录用户可读。
 - `PUT /api/admin/import-templates/{kind}` 更新 `{instructions}`，最多 1000 字符。

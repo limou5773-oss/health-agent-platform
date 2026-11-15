@@ -38,6 +38,9 @@ const reasonText: Record<string, string> = {
 const status = { PREVIEW: "待确认", CONFIRMED: "已确认", REJECTED: "预览失败" };
 const kind = ref<ImportKind>("SLEEP");
 const issuesOnly = ref(false);
+const lookupKind = ref("batch");
+const lookupNumber = ref("");
+const recordId = ref("");
 const page = ref(1);
 const list = ref<Page<Batch> | null>(null);
 const template = ref<ImportTemplate | null>(null);
@@ -55,13 +58,25 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const data = await api<Page<Batch>>(`/admin/imports?kind=${kind.value}&issuesOnly=${issuesOnly.value}&page=${page.value}`);
+    const params = new URLSearchParams({ kind: kind.value, issuesOnly: String(issuesOnly.value), page: String(page.value) });
+    if (recordId.value) params.set("recordId", recordId.value);
+    const data = await api<Page<Batch>>(`/admin/imports?${params}`);
     if (request === listRequest) list.value = data;
   } catch (cause) {
     if (request === listRequest) error.value = errorMessage(cause);
   } finally {
     if (request === listRequest) loading.value = false;
   }
+}
+
+function lookup() {
+  const id = lookupKind.value === "rejected" ? `-${lookupNumber.value}` : lookupNumber.value;
+  if (recordId.value === id && page.value === 1) {
+    void load();
+    return;
+  }
+  recordId.value = id;
+  page.value = 1;
 }
 
 async function loadTemplate() {
@@ -111,7 +126,7 @@ async function show(batch: Batch) {
     if (request === detailRequest) issueLoading.value = false;
   }
 }
-watch([kind, issuesOnly, page], load, { immediate: true });
+watch([kind, issuesOnly, recordId, page], load, { immediate: true });
 watch(kind, loadTemplate, { immediate: true });
 </script>
 
@@ -127,6 +142,20 @@ watch(kind, loadTemplate, { immediate: true });
       <label class="checkbox-label"><input v-model="issuesOnly" type="checkbox" @change="page = 1" />只看有问题的批次</label>
       <button class="secondary" :disabled="loading" @click="load">刷新</button>
     </div>
+    <form class="filter-bar" @submit.prevent="lookup">
+      <label>编号类型
+        <select v-model="lookupKind">
+          <option value="batch">导入批次</option>
+          <option value="rejected">预览失败请求</option>
+        </select>
+      </label>
+      <label>编号<input v-model.trim="lookupNumber" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="19" required /></label>
+      <button class="secondary" :disabled="loading">按编号查询</button>
+      <button v-if="recordId" type="button" class="secondary" @click="recordId = ''; lookupNumber = ''">清除编号筛选</button>
+    </form>
+    <p v-if="recordId" class="small muted">
+      当前查询 {{ recordId.startsWith("-") ? `失败请求 #${recordId.slice(1)}` : `批次 #${recordId}` }}
+    </p>
     <StateNotice :loading="loading" :error="error" :empty="!list?.items.length"
       title="没有符合条件的导入记录" @retry="load" />
     <div v-if="list?.items.length && !loading && !error" class="table-wrap">

@@ -23,9 +23,9 @@ public class ImportAdminServiceImpl implements ImportAdminService {
   }
 
   @Transactional(readOnly = true)
-  public Page<Batch> batches(Kind kind, boolean issuesOnly, int page, int size) {
-    return new Page<>(mapper.batches(kind, issuesOnly, (page - 1L) * size, size),
-        mapper.count(kind, issuesOnly), page, size);
+  public Page<Batch> batches(Kind kind, boolean issuesOnly, Long recordId, int page, int size) {
+    return new Page<>(mapper.batches(kind, issuesOnly, recordId, (page - 1L) * size, size),
+        mapper.count(kind, issuesOnly, recordId), page, size);
   }
 
   @Transactional(readOnly = true)
