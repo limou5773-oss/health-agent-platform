@@ -51,13 +51,19 @@ async function preview(file: File) {
     <div v-if="result" role="status">
       <p v-if="!result.length" class="muted">照片中未识别到明确的食物，可以在下方手动录入。</p>
       <template v-else>
-        <p class="small muted">选择一项填入下方表单并核对。照片份量为粗估，可修改或清空。</p>
+        <p class="small muted">可只填食物名称，也可采用照片粗估份量。请在下方表单核对后保存。</p>
         <ul>
           <li v-for="(item, index) in result" :key="index">
             {{ item.foodName }} · {{ item.portionGrams === null ? "份量未知" : `约 ${item.portionGrams} 克` }}
             · 识别把握{{ confidenceText[item.confidence] }}
             <button type="button" class="secondary" :disabled="disabled"
-              @click="emit('candidate', item.foodName, item.portionGrams, confidenceText[item.confidence])">填入</button>
+              @click="emit('candidate', item.foodName, null, confidenceText[item.confidence])">
+              {{ item.portionGrams === null ? "填入食物" : "只填食物" }}
+            </button>
+            <button v-if="item.portionGrams !== null" type="button" class="secondary" :disabled="disabled"
+              @click="emit('candidate', item.foodName, item.portionGrams, confidenceText[item.confidence])">
+              填入食物和粗估份量
+            </button>
           </li>
         </ul>
       </template>

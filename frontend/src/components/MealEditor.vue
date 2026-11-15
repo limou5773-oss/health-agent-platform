@@ -39,8 +39,8 @@ function applyCandidate(foodName: string, portionGrams: number | null, confidenc
   form.referenceCaloriesKcal = "";
   form.nutritionSource = "";
   form.sourceName = "照片识别后人工核对";
-  const estimate = portionGrams === null ? "份量未估计" : `初始份量粗估 ${portionGrams} 克`;
-  form.note = `照片识别候选：${foodName}，识别把握${confidence}，${estimate}。`;
+  const estimate = portionGrams === null ? "" : `，采用初始粗估份量 ${portionGrams} 克`;
+  form.note = `照片识别候选：${foodName}，识别把握${confidence}${estimate}。`;
 }
 watch(
   () => form.calorieMode,
