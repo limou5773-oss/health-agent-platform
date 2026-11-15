@@ -31,6 +31,9 @@ const timezone = ref(""),
   preview = ref<ImportPreview | null>(null),
   result = ref<ImportBatch | null>(null),
   batches = ref<ImportBatch[]>([]);
+const archivePassword = ref("");
+const usesMiFitnessArchive = computed(() => format.value === "MI_FITNESS" &&
+  file.value?.name.toLowerCase().endsWith(".zip"));
 const loading = ref(true),
   error = ref(""),
   actionError = ref(""),
@@ -46,6 +49,7 @@ const rows = computed(
 watch(format, () => {
   if (format.value === "MI_FITNESS") device.sourceApp = "MI_FITNESS";
   file.value = null;
+  archivePassword.value = "";
   preview.value = null;
   result.value = null;
   actionError.value = "";
@@ -69,6 +73,8 @@ async function load() {
 }
 function selectFile(event: Event) {
   file.value = (event.target as HTMLInputElement).files?.[0] || null;
+  archivePassword.value = "";
+  actionError.value = "";
   preview.value = null;
   result.value = null;
 }
@@ -90,12 +96,18 @@ async function upload() {
   actionError.value = "";
   preview.value = null;
   result.value = null;
-  const form = new FormData();
-  form.append("file", file.value);
-  form.append("format", format.value);
-  for (const [key, value] of Object.entries(device)) form.append(key, value);
-  if (format.value === "CSV") form.append("timezone", timezone.value);
   try {
+    let uploadFile = file.value;
+    if (usesMiFitnessArchive.value) {
+      const { extractMiFitnessCsv } = await import("../mi-fitness-archive");
+      uploadFile = await extractMiFitnessCsv(uploadFile, archivePassword.value);
+      archivePassword.value = "";
+    }
+    const form = new FormData();
+    form.append("file", uploadFile);
+    form.append("format", format.value);
+    for (const [key, value] of Object.entries(device)) form.append(key, value);
+    if (format.value === "CSV") form.append("timezone", timezone.value);
     preview.value = await api<ImportPreview>("/imports/preview", {
       method: "POST",
       body: form,
@@ -197,19 +209,19 @@ onMounted(load);
           >文件格式
           <select v-model="format" :disabled="busy">
             <option value="CSV">通用睡眠 CSV（各品牌）</option>
-            <option value="MI_FITNESS">Mi Fitness 明细 CSV（睡眠，待样本验收）</option>
+            <option value="MI_FITNESS">Mi Fitness CSV / ZIP（睡眠，待样本验收）</option>
             <option value="APPLE_HEALTH">苹果健康 XML / ZIP（睡眠）</option>
           </select>
         </label>
         <label
-          >{{ format === "APPLE_HEALTH" ? "苹果健康导出文件" : "CSV 文件"
+          >{{ format === "CSV" ? "CSV 文件" : "健康导出文件"
           }}<input
             :key="format"
             type="file"
             :accept="
               format === 'APPLE_HEALTH'
                 ? '.xml,.zip,application/xml,application/zip'
-                : '.csv,text/csv'
+                : format === 'MI_FITNESS' ? '.csv,.zip,text/csv,application/zip' : '.csv,text/csv'
             "
             :disabled="busy"
             required
@@ -220,6 +232,10 @@ onMounted(load);
             required
             placeholder="Asia/Shanghai"
         /></label>
+        <label v-if="usesMiFitnessArchive">
+          ZIP 解压密码（如有）
+          <input v-model="archivePassword" type="password" autocomplete="off" :disabled="busy" />
+        </label>
         <div class="span-all actions">
           <button :disabled="busy || !file">
             <Upload :size="16" />{{ busy ? "处理中…" : "上传并预览" }}
@@ -234,8 +250,8 @@ onMounted(load);
         sourceName。
       </p>
       <p v-else-if="format === 'MI_FITNESS'" class="footnote">
-        解压小米账号导出的文件，选择含睡眠分期的 <code>hlth_center_fitness_data.csv</code> 明细文件。
-        每批只接受一个设备来源 Sid，文件最多 10 MB。仅导入深睡、浅睡、REM，时间换算为档案时区 {{ profileTimezone }}。
+        可选择小米账号导出的 ZIP（最多 100 MB），或含睡眠分期的 <code>hlth_center_fitness_data.csv</code> 明细文件。
+        ZIP 在浏览器解压，只上传明细 CSV（最多 10 MB）。每批只接受一个设备来源 Sid，时间换算为档案时区 {{ profileTimezone }}。
       </p>
       <p v-else class="footnote">
         上传苹果健康导出的 export.xml 或包含该文件的 ZIP，单文件最多 100 MB，
