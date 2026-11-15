@@ -2,6 +2,7 @@ package com.health.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record RuntimeStats(LocalDate startDate, LocalDate endDate, List<StatusCount> taskStatuses,
@@ -9,6 +10,8 @@ public record RuntimeStats(LocalDate startDate, LocalDate endDate, List<StatusCo
     List<ImportVolume> imports, long scheduledItems, long completedItems, BigDecimal planCompletionRate) {
 
   public record StatusCount(String status, long count) {}
+  public enum TaskStatus { COMPLETED, FAILED, CANCELLED, QUEUED, RUNNING, WAITING_INPUT, WAITING_CONFIRMATION }
+  public record TaskRow(String id, String kind, LocalDateTime createdAt, Long durationMs) {}
   public record Timing(long timedTasks, BigDecimal averageDurationMs) {}
   public record ToolFailure(String tool, long count) {}
   public record ImportVolume(String kind, long batches, long confirmed, long rejected,

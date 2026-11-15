@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { importKindText, type ImportKind } from "../import-template";
 import { onMounted, reactive, ref } from "vue";
-import { api, dateAfter, errorMessage, recentRange, statusText } from "../api";
+import { api, dateAfter, errorMessage, kindText, recentRange, statusText } from "../api";
+import type { Page } from "../types";
+import AdminTaskAudit from "./AdminTaskAudit.vue";
 import StateNotice from "./StateNotice.vue";
 
 type Stats = {
@@ -22,6 +24,14 @@ const stats = ref<Stats | null>(null);
 const loading = ref(true);
 const error = ref("");
 const taskStates = ["COMPLETED", "FAILED", "CANCELLED", "QUEUED", "RUNNING", "WAITING_INPUT", "WAITING_CONFIRMATION"];
+type TaskRow = { id: string; kind: string; createdAt: string; durationMs: number | null };
+const taskStatus = ref("");
+const taskPage = ref(1);
+const taskRows = ref<Page<TaskRow> | null>(null);
+const tasksLoading = ref(false);
+const tasksError = ref("");
+const auditId = ref<string | null>(null);
+let taskRequest = 0;
 const toolNames: Record<string, string> = {
   get_sleep_statistics: "睡眠统计",
   get_sleep_records: "睡眠明细",
@@ -34,6 +44,9 @@ const toolNames: Record<string, string> = {
 };
 
 async function load() {
+  taskRequest++;
+  taskStatus.value = "";
+  auditId.value = null;
   loading.value = true;
   error.value = "";
   try {
@@ -42,6 +55,27 @@ async function load() {
     error.value = errorMessage(cause);
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadTasks(period: Stats, status: string, page = 1) {
+  const request = ++taskRequest;
+  taskStatus.value = status;
+  taskPage.value = page;
+  taskRows.value = null;
+  auditId.value = null;
+  tasksLoading.value = true;
+  tasksError.value = "";
+  const query = new URLSearchParams({
+    startDate: period.startDate, endDate: period.endDate, status, page: String(page),
+  });
+  try {
+    const result = await api<Page<TaskRow>>(`/admin/runtime-stats/tasks?${query}`);
+    if (request === taskRequest) taskRows.value = result;
+  } catch (cause) {
+    if (request === taskRequest) tasksError.value = errorMessage(cause);
+  } finally {
+    if (request === taskRequest) tasksLoading.value = false;
   }
 }
 onMounted(load);
@@ -70,15 +104,44 @@ onMounted(load);
       <p class="muted">按任务创建日期归集当前状态。完成率以完成、失败及取消数之和为分母。耗时累计实际执行轮次。</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th scope="col">状态</th><th scope="col">任务数</th></tr></thead>
+          <thead><tr><th scope="col">状态</th><th scope="col">任务数</th><th scope="col">核对</th></tr></thead>
           <tbody>
             <tr v-for="state in taskStates" :key="state">
               <th scope="row">{{ statusText[state] }}</th>
               <td>{{ stats.taskStatuses.find(item => item.status === state)?.count ?? 0 }}</td>
+              <td><button type="button" class="text-button" @click="loadTasks(stats, state)">
+                查看{{ statusText[state] }}任务
+              </button></td>
             </tr>
           </tbody>
         </table>
       </div>
+      <section v-if="taskStatus">
+        <h3>{{ statusText[taskStatus] }}任务 · {{ stats.startDate }} 至 {{ stats.endDate }}</h3>
+        <StateNotice :loading="tasksLoading" :error="tasksError" :empty="taskRows?.items.length === 0"
+          title="此页无符合条件的任务" @retry="loadTasks(stats, taskStatus, taskPage)" />
+        <div v-if="taskRows?.items.length" class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">任务编号</th><th scope="col">类型</th><th scope="col">创建时间</th>
+              <th scope="col">执行耗时</th><th scope="col">操作</th></tr></thead>
+            <tbody>
+              <tr v-for="task in taskRows.items" :key="task.id">
+                <td>#{{ task.id }}</td><td>{{ kindText[task.kind] }}</td>
+                <td>{{ task.createdAt.replace("T", " ").slice(0, 19) }}</td>
+                <td>{{ task.durationMs === null ? "暂无采样" : `${(task.durationMs / 1000).toFixed(2)} 秒` }}</td>
+                <td><button type="button" class="text-button" @click="auditId = task.id">查看审计</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="taskRows" class="actions">
+          <button class="secondary" :disabled="taskPage === 1" @click="loadTasks(stats, taskStatus, taskPage - 1)">上一页</button>
+          <span>当前共 {{ taskRows.total }} 项 · 第 {{ taskPage }} 页</span>
+          <button class="secondary" :disabled="taskPage * taskRows.pageSize >= taskRows.total"
+            @click="loadTasks(stats, taskStatus, taskPage + 1)">下一页</button>
+        </div>
+        <AdminTaskAudit v-if="auditId" :key="auditId" :id="auditId" @close="auditId = null" />
+      </section>
       <h3>工具失败</h3>
       <p v-if="!stats.toolFailures.length" class="muted">本周期无已记录的工具失败。</p>
       <ul v-else>

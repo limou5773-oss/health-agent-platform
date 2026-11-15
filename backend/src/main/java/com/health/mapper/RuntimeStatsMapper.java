@@ -7,6 +7,9 @@ import org.apache.ibatis.annotations.Param;
 
 public interface RuntimeStatsMapper {
   List<StatusCount> statuses(@Param("start") LocalDate start, @Param("until") LocalDate until);
+  List<TaskRow> tasks(@Param("start") LocalDate start, @Param("until") LocalDate until,
+      @Param("status") TaskStatus status, @Param("offset") long offset, @Param("size") int size);
+  long taskCount(@Param("start") LocalDate start, @Param("until") LocalDate until, @Param("status") TaskStatus status);
   Timing timing(@Param("start") LocalDate start, @Param("until") LocalDate until);
   List<ToolFailure> toolFailures(@Param("start") LocalDate start, @Param("until") LocalDate until);
   List<ImportVolume> imports(@Param("start") LocalDate start, @Param("until") LocalDate until);

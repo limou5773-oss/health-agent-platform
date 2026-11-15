@@ -1,10 +1,14 @@
 package com.health.api;
 
 import com.health.model.RuntimeStats;
+import com.health.model.RuntimeStats.TaskRow;
+import com.health.model.RuntimeStats.TaskStatus;
+import com.health.model.Models.Page;
 import com.health.service.RuntimeStatsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,6 +24,12 @@ public class RuntimeStatsController {
   @GetMapping
   public RuntimeStats stats(@Valid @ModelAttribute Query query) {
     return service.stats(query.startDate(), query.endDate());
+  }
+
+  @GetMapping("/tasks")
+  public Page<TaskRow> tasks(@Valid @ModelAttribute Query query, @RequestParam TaskStatus status,
+      @RequestParam(defaultValue = "1") @Min(1) int page) {
+    return service.tasks(query.startDate(), query.endDate(), status, page);
   }
 
   public record Query(@NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

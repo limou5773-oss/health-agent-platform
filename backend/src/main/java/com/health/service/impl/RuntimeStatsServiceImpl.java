@@ -3,6 +3,9 @@ package com.health.service.impl;
 import com.health.mapper.RuntimeStatsMapper;
 import com.health.model.RuntimeStats;
 import com.health.model.RuntimeStats.StatusCount;
+import com.health.model.RuntimeStats.TaskRow;
+import com.health.model.RuntimeStats.TaskStatus;
+import com.health.model.Models.Page;
 import com.health.service.RuntimeStatsService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -15,6 +18,15 @@ public class RuntimeStatsServiceImpl implements RuntimeStatsService {
   private final RuntimeStatsMapper mapper;
 
   public RuntimeStatsServiceImpl(RuntimeStatsMapper mapper) { this.mapper = mapper; }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<TaskRow> tasks(LocalDate start, LocalDate end, TaskStatus status, int page) {
+    LocalDate until = end.plusDays(1);
+    int size = 20;
+    return new Page<>(mapper.tasks(start, until, status, (page - 1L) * size, size),
+        mapper.taskCount(start, until, status), page, size);
+  }
 
   @Override
   @Transactional(readOnly = true)

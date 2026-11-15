@@ -2,6 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.health.mapper.RuntimeStatsMapper">
   <sql id="createdWindow">created_at &gt;= #{start} AND created_at &lt; #{until}</sql>
+  <sql id="taskFilter"><include refid="createdWindow"/> AND status=#{status}</sql>
+  <select id="tasks" resultType="com.health.model.RuntimeStats$TaskRow">
+    SELECT id,kind,created_at,duration_ms FROM agent_tasks WHERE <include refid="taskFilter"/>
+    ORDER BY created_at DESC,id DESC LIMIT #{size} OFFSET #{offset}
+  </select>
+  <select id="taskCount" resultType="long">
+    SELECT COUNT(*) FROM agent_tasks WHERE <include refid="taskFilter"/>
+  </select>
   <select id="statuses" resultType="com.health.model.RuntimeStats$StatusCount">
     SELECT status,COUNT(*) AS count FROM agent_tasks
     WHERE <include refid="createdWindow"/> GROUP BY status ORDER BY status
