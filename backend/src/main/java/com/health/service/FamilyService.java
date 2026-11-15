@@ -13,6 +13,7 @@ public interface FamilyService {
   void invite(Long userId, Invitation request);
   void accept(Long userId, Long id);
   void revoke(Long userId, Long id);
+  void verifyAccess(Long userId, Long id);
   Period statistics(Long userId, Long id, Metric metric, StatisticsQuery query);
   Report report(Long userId, Long id, Long reportId);
 }

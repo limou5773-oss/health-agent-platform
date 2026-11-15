@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
-import { api, dateAfter, errorMessage, json, recentRange } from "../api";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { api, ApiError, dateAfter, errorMessage, json, recentRange } from "../api";
 import { reportMetrics, type ReportMetric } from "../report-metrics";
 import type { Report } from "../types";
 import StateNotice from "../components/StateNotice.vue";
@@ -31,6 +31,7 @@ const dates = reactive(recentRange());
 const sourceName = ref("");
 const period = ref<{ metric: ReportMetric; data: Period }>();
 const report = ref<Report>();
+const checkingAccess = ref(false);
 
 function clearSelection() {
   selectedId.value = undefined;
@@ -72,6 +73,47 @@ function select(grant: Grant) {
   actionError.value = "";
 }
 
+watch(selectedId, (id, _, onCleanup) => {
+  checkingAccess.value = false;
+  if (id === undefined) return;
+  let active = true;
+  let checking = false;
+
+  async function verifyAccess() {
+    if (document.hidden || checking) return;
+    checking = true;
+    try {
+      await api(`/family/grants/${id}/access`, { cache: "no-store" });
+    } catch (cause) {
+      if (!active || selectedId.value !== id) return;
+      clearSelection();
+      if (cause instanceof ApiError && cause.status === 404) {
+        await load();
+        actionError.value = "此授权已不可用，共享内容已关闭。";
+      } else {
+        actionError.value = `无法确认共享授权，内容已关闭。${errorMessage(cause)}`;
+      }
+    } finally {
+      checking = false;
+      if (active) checkingAccess.value = false;
+    }
+  }
+
+  function onVisibilityChange() {
+    checkingAccess.value = true;
+    void verifyAccess();
+  }
+
+  onVisibilityChange();
+  const timer = window.setInterval(verifyAccess, 30_000);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  onCleanup(() => {
+    active = false;
+    window.clearInterval(timer);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  });
+});
+
 async function read(grant: Grant, metric?: ReportMetric, reportId?: number) {
   busy.value = true;
   actionError.value = "";
@@ -81,12 +123,13 @@ async function read(grant: Grant, metric?: ReportMetric, reportId?: number) {
     if (metric) {
       const params = new URLSearchParams({ ...dates, ...(sourceName.value ? { sourceName: sourceName.value } : {}) });
       const data = await api<Period>(`/family/grants/${grant.id}/statistics/${metric}?${params}`);
-      period.value = { metric, data };
+      if (selectedId.value === grant.id) period.value = { metric, data };
     } else {
-      report.value = await api<Report>(`/family/grants/${grant.id}/reports/${reportId}`);
+      const data = await api<Report>(`/family/grants/${grant.id}/reports/${reportId}`);
+      if (selectedId.value === grant.id) report.value = data;
     }
   } catch (cause) {
-    actionError.value = errorMessage(cause);
+    if (selectedId.value === grant.id) actionError.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -152,37 +195,40 @@ onMounted(load);
         <h2>{{ selected.ownerName }} 的共享内容</h2>
         <button class="secondary" :disabled="busy" @click="clearSelection">关闭</button>
       </div>
-      <div v-if="selected.metrics.length" class="filter-bar">
-        <label>开始日期<input v-model="dates.startDate" type="date" required :max="dates.endDate" :disabled="busy" /></label>
-        <label>结束日期<input v-model="dates.endDate" type="date" required :min="dates.startDate"
-          :max="dateAfter(dates.startDate, 365)" :disabled="busy" /></label>
-        <label>来源全名<input v-model.trim="sourceName" maxlength="100" :disabled="busy" placeholder="全部来源" /></label>
-      </div>
-      <div class="actions">
-        <button v-for="key in selected.metrics" :key="key" class="secondary" :disabled="busy || !dates.startDate || !dates.endDate"
-          @click="read(selected, key)">{{ reportMetrics[key][0] }}</button>
-        <button v-for="id in selected.reportIds" :key="id" class="secondary" :disabled="busy"
-          @click="read(selected, undefined, id)">报告 #{{ id }}</button>
-      </div>
-      <p v-if="busy" role="status">正在读取…</p>
-      <p v-if="actionError" class="feedback error" role="alert">{{ actionError }}</p>
-      <div v-if="period">
-        <h3>{{ reportMetrics[period.metric][0] }}</h3>
-        <p>{{ period.data.startDate }} 至 {{ period.data.endDate }} · 覆盖 {{ period.data.validDays }} / {{ period.data.periodDays }} 天</p>
-        <p>{{ period.metric === "HEART_RATE" ? "采样均值" : "日均" }} {{ period.data.average === null ? "无有效记录" : `${period.data.average} ${reportMetrics[period.metric][1]}` }}</p>
-        <p v-if="period.data.recordCount !== null">采样 {{ period.data.recordCount }} 条</p>
-        <p v-if="period.data.missingDates.length" class="small muted">缺失日期 {{ period.data.missingDates.join("、") }}</p>
-      </div>
-      <article v-if="report">
-        <h3>{{ report.title }} · 第 {{ report.reportVersion }} 版</h3>
-        <p>{{ report.startDate }} 至 {{ report.endDate }}</p>
-        <p v-if="report.content" class="prose">{{ report.content }}</p>
-        <SleepSummary v-if="report.reportType === 'SLEEP' && report.statistics" :statistics="report.statistics" />
-        <HealthReportSummary v-if="(report.reportType === 'HEALTH_WEEK' || report.reportType === 'HEALTH_MONTH') && report.statistics"
-          :snapshot="report.statistics" :start-date="report.startDate" :end-date="report.endDate" :link-records="false" />
-        <FocusedReportSummary v-if="(report.reportType === 'HEALTH_FOCUSED' || report.reportType === 'HEALTH_COMPARISON') && report.statistics"
-          :snapshot="report.statistics" :link-records="false" />
-      </article>
+      <p v-if="checkingAccess" role="status">正在确认授权…</p>
+      <template v-else>
+        <div v-if="selected.metrics.length" class="filter-bar">
+          <label>开始日期<input v-model="dates.startDate" type="date" required :max="dates.endDate" :disabled="busy" /></label>
+          <label>结束日期<input v-model="dates.endDate" type="date" required :min="dates.startDate"
+            :max="dateAfter(dates.startDate, 365)" :disabled="busy" /></label>
+          <label>来源全名<input v-model.trim="sourceName" maxlength="100" :disabled="busy" placeholder="全部来源" /></label>
+        </div>
+        <div class="actions">
+          <button v-for="key in selected.metrics" :key="key" class="secondary" :disabled="busy || !dates.startDate || !dates.endDate"
+            @click="read(selected, key)">{{ reportMetrics[key][0] }}</button>
+          <button v-for="id in selected.reportIds" :key="id" class="secondary" :disabled="busy"
+            @click="read(selected, undefined, id)">报告 #{{ id }}</button>
+        </div>
+        <p v-if="busy" role="status">正在读取…</p>
+        <p v-if="actionError" class="feedback error" role="alert">{{ actionError }}</p>
+        <div v-if="period">
+          <h3>{{ reportMetrics[period.metric][0] }}</h3>
+          <p>{{ period.data.startDate }} 至 {{ period.data.endDate }} · 覆盖 {{ period.data.validDays }} / {{ period.data.periodDays }} 天</p>
+          <p>{{ period.metric === "HEART_RATE" ? "采样均值" : "日均" }} {{ period.data.average === null ? "无有效记录" : `${period.data.average} ${reportMetrics[period.metric][1]}` }}</p>
+          <p v-if="period.data.recordCount !== null">采样 {{ period.data.recordCount }} 条</p>
+          <p v-if="period.data.missingDates.length" class="small muted">缺失日期 {{ period.data.missingDates.join("、") }}</p>
+        </div>
+        <article v-if="report">
+          <h3>{{ report.title }} · 第 {{ report.reportVersion }} 版</h3>
+          <p>{{ report.startDate }} 至 {{ report.endDate }}</p>
+          <p v-if="report.content" class="prose">{{ report.content }}</p>
+          <SleepSummary v-if="report.reportType === 'SLEEP' && report.statistics" :statistics="report.statistics" />
+          <HealthReportSummary v-if="(report.reportType === 'HEALTH_WEEK' || report.reportType === 'HEALTH_MONTH') && report.statistics"
+            :snapshot="report.statistics" :start-date="report.startDate" :end-date="report.endDate" :link-records="false" />
+          <FocusedReportSummary v-if="(report.reportType === 'HEALTH_FOCUSED' || report.reportType === 'HEALTH_COMPARISON') && report.statistics"
+            :snapshot="report.statistics" :link-records="false" />
+        </article>
+      </template>
     </section>
   </template>
 </template>

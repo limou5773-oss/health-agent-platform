@@ -70,16 +70,21 @@ public class FamilyServiceImpl implements FamilyService {
     if (mapper.revoke(userId, id) == 0) throw ApiException.missing();
   }
 
+  @Override
+  public void verifyAccess(Long userId, Long id) {
+    readable(userId, id);
+  }
+
   @Transactional(readOnly = true)
   public Period statistics(Long userId, Long id, Metric metric, StatisticsQuery query) {
-    Grant grant = readable(userId, id);
+    Grant grant = hydrate(readable(userId, id));
     if (!grant.metrics.contains(metric)) throw ApiException.missing();
     return baseline.summarize(grant.ownerId, metric, query.sourceName, query.startDate, query.endDate);
   }
 
   @Transactional(readOnly = true)
   public Report report(Long userId, Long id, Long reportId) {
-    Grant grant = readable(userId, id);
+    Grant grant = hydrate(readable(userId, id));
     if (!grant.reportIds.contains(reportId)) throw ApiException.missing();
     Report report = plans.report(grant.ownerId, reportId);
     if (report.sourceDeleted) throw ApiException.missing();
@@ -90,7 +95,7 @@ public class FamilyServiceImpl implements FamilyService {
   private Grant readable(Long userId, Long id) {
     Grant grant = mapper.readable(userId, id);
     if (grant == null) throw ApiException.missing();
-    return hydrate(grant);
+    return grant;
   }
 
   private Grant hydrate(Grant grant) {

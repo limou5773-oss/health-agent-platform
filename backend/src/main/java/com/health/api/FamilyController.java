@@ -47,6 +47,12 @@ public class FamilyController {
     service.revoke(Identity.user(r).id, id);
   }
 
+  @GetMapping("/{id}/access")
+  public ResponseEntity<Void> access(HttpServletRequest r, @PathVariable Long id) {
+    service.verifyAccess(Identity.user(r).id, id);
+    return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+  }
+
   @GetMapping("/{id}/statistics/{metric}")
   public ResponseEntity<Period> statistics(HttpServletRequest r, @PathVariable Long id, @PathVariable Metric metric,
       @Valid @ModelAttribute Requests.StatisticsQuery query) {
