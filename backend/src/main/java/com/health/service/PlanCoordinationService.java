@@ -8,7 +8,8 @@ public interface PlanCoordinationService {
   Preview preview(Long userId, Long planId, PlanCoordinationRequest request);
 
   record Conflict(long itemId, String title, String scheduledAt, long priorityPlanId,
-      long priorityItemId, String priorityTitle, String priorityAt, String reason, String suggestion) {}
+      long priorityItemId, String priorityTitle, String priorityAt, String reason, String suggestion, long planId) {}
 
-  record Preview(int planVersion, int latestVersion, List<Conflict> conflicts, Content draft, String note) {}
+  record Preview(int planVersion, int latestVersion, List<Conflict> conflicts, List<Conflict> priorityConflicts,
+      Content draft, String note) {}
 }

@@ -13,8 +13,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,41 +43,52 @@ public class PlanCoordinationServiceImpl implements PlanCoordinationService {
     if (!"ACTIVE".equals(plan.status)) throw ApiException.conflict("请选择进行中的计划");
     var now = LocalDateTime.now(ZoneId.of(accounts.profile(userId).timezone));
 
-    List<PriorityItem> priority = new ArrayList<>();
+    Map<LocalDate, List<PriorityItem>> priorityByDate = new HashMap<>();
+    List<Conflict> priorityConflicts = new ArrayList<>();
+    Set<LocalDateTime> occupied = new HashSet<>();
     for (Long id : request.priorityPlanIds().stream().sorted().toList()) {
       var higher = plans.get(userId, id);
       if (higher == null) throw ApiException.missing();
       if (!"ACTIVE".equals(higher.status)) throw ApiException.conflict("优先计划须处于进行中");
-      for (PlanItem item : plans.items(id)) priority.add(new PriorityItem(id, item));
+      for (PlanItem item : plans.items(id)) {
+        var sameDay = priorityByDate.computeIfAbsent(item.date, date -> new ArrayList<>());
+        for (PriorityItem entry : sameDay) {
+          if (entry.planId == id) continue;
+          Match match = match(item, entry);
+          if (match != null) priorityConflicts.add(conflict(id, item, match, "两份优先计划均保留，请检查安排"));
+        }
+        sameDay.add(new PriorityItem(id, item));
+        occupied.add(at(item));
+      }
     }
 
     var original = plans.items(planId);
-    Set<LocalDateTime> occupied = new HashSet<>();
-    for (PriorityItem entry : priority) occupied.add(at(entry.item));
     for (PlanItem item : original) occupied.add(at(item));
     List<Conflict> conflicts = new ArrayList<>();
     List<Item> draftItems = new ArrayList<>();
     int remaining = original.size();
     boolean changed = false;
     for (PlanItem item : original) {
-      var scheduled = at(item);
-      var duplicate = priority.stream().filter(entry -> entry.item.date.equals(item.date)
-          && entry.item.title.strip().equalsIgnoreCase(item.title.strip())).findFirst();
-      var conflict = duplicate.or(() -> priority.stream().filter(entry -> at(entry.item).equals(scheduled)).findFirst());
-      if (conflict.isEmpty()) {
+      List<Match> matches = new ArrayList<>();
+      for (PriorityItem entry : priorityByDate.getOrDefault(item.date, List.of())) {
+        Match match = match(item, entry);
+        if (match != null) matches.add(match);
+      }
+      if (matches.isEmpty()) {
         draftItems.add(snapshot(item, item.time, item.reminderTime));
         continue;
       }
 
+      boolean duplicate = matches.stream().anyMatch(Match::duplicate);
       String suggestion;
       if (item.completed || !item.date.atTime(item.time).isAfter(now)) {
         suggestion = "已打卡或已到执行时间，保留原安排";
         draftItems.add(snapshot(item, item.time, item.reminderTime));
-      } else if (duplicate.isPresent() && remaining > 1) {
+      } else if (duplicate && remaining > 1) {
         suggestion = "移除此任务，保留优先计划的同日同名任务";
         remaining--;
         changed = true;
-      } else if (duplicate.isPresent()) {
+      } else if (duplicate) {
         suggestion = "这是计划中剩余的唯一任务，请手动处理";
         draftItems.add(snapshot(item, item.time, item.reminderTime));
       } else {
@@ -91,17 +104,28 @@ public class PlanCoordinationServiceImpl implements PlanCoordinationService {
           changed = true;
         }
       }
-      var higher = conflict.orElseThrow();
-      conflicts.add(new Conflict(item.id, item.title, item.date.atTime(item.time).toString(), higher.planId,
-          higher.item.id, higher.item.title, higher.item.date.atTime(higher.item.time).toString(),
-          duplicate.isPresent() ? "同日同名" : "同一分钟", suggestion));
+      for (Match match : matches) conflicts.add(conflict(planId, item, match, suggestion));
     }
     Content draft = changed ? new Content(plan.title, plan.reason, plan.startDate, plan.endDate, draftItems) : null;
     return new Preview(plan.version, Math.max(plan.version, plans.latestRevision(plan.id)),
-        conflicts, draft, "多目标协调：按优先计划与可用时段调整冲突任务");
+        conflicts, priorityConflicts, draft, "多目标协调：按优先计划与可用时段调整冲突任务");
   }
 
   private record PriorityItem(long planId, PlanItem item) {}
+  private record Match(PriorityItem entry, boolean duplicate, boolean sameMinute) {}
+
+  private static Match match(PlanItem item, PriorityItem entry) {
+    boolean duplicate = entry.item.title.strip().equalsIgnoreCase(item.title.strip());
+    boolean sameMinute = at(entry.item).equals(at(item));
+    return duplicate || sameMinute ? new Match(entry, duplicate, sameMinute) : null;
+  }
+
+  private static Conflict conflict(long planId, PlanItem item, Match match, String suggestion) {
+    var other = match.entry();
+    String reason = match.duplicate() ? (match.sameMinute() ? "同日同名、同一分钟" : "同日同名") : "同一分钟";
+    return new Conflict(item.id, item.title, item.date.atTime(item.time).toString(), other.planId,
+        other.item.id, other.item.title, other.item.date.atTime(other.item.time).toString(), reason, suggestion, planId);
+  }
 
   private static LocalDateTime at(PlanItem item) {
     return item.date.atTime(item.time).withSecond(0).withNano(0);

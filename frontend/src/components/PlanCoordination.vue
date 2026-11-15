@@ -7,13 +7,15 @@ import StateNotice from "./StateNotice.vue";
 type Content = Pick<Plan, "title" | "reason" | "startDate" | "endDate"> & {
   items: (DraftItem & { id: number | null; reminderTime: string | null })[];
 };
+type Conflict = {
+  planId: number; itemId: number; title: string; scheduledAt: string; priorityPlanId: number;
+  priorityItemId: number; priorityTitle: string; priorityAt: string; reason: string; suggestion: string;
+};
 type Preview = {
   planVersion: number;
   latestVersion: number;
-  conflicts: {
-    itemId: number; title: string; scheduledAt: string; priorityPlanId: number;
-    priorityItemId: number; priorityTitle: string; priorityAt: string; reason: string; suggestion: string;
-  }[];
+  conflicts: Conflict[];
+  priorityConflicts: Conflict[];
   draft: Content | null;
   note: string;
 };
@@ -21,6 +23,7 @@ type Preview = {
 const props = defineProps<{ plan: Plan; plans: Plan[] }>();
 const emit = defineEmits<{ propose: [content: Content, note: string, version: number, latestVersion: number] }>();
 const options = computed(() => props.plans.filter(item => item.id !== props.plan.id && item.status === "ACTIVE"));
+const planTitles = computed(() => new Map(props.plans.map(item => [item.id, item.title])));
 const form = reactive({ priorityPlanIds: [] as number[], availableFrom: "", availableUntil: "" });
 const result = ref<Preview>();
 const loading = ref(false);
@@ -64,14 +67,23 @@ async function preview() {
       </form>
       <StateNotice :loading="loading" :error="error" @retry="preview" />
       <div v-if="result">
-        <p v-if="!result.conflicts.length">所选计划之间没有发现安排冲突。</p>
-        <ul v-else>
-          <li v-for="row in result.conflicts" :key="row.itemId">
-            <strong>{{ row.reason }}</strong> · {{ row.scheduledAt.replace("T", " ") }} {{ row.title }}
-            <p class="small">优先计划 #{{ row.priorityPlanId }} · {{ row.priorityAt.replace("T", " ") }} {{ row.priorityTitle }}</p>
-            <p>{{ row.suggestion }}</p>
-          </li>
-        </ul>
+        <p v-if="!result.conflicts.length && !result.priorityConflicts.length">所选计划之间没有发现安排冲突。</p>
+        <template v-for="group in [
+          { title: '当前计划与优先计划的冲突', rows: result.conflicts },
+          { title: '优先计划之间的冲突', rows: result.priorityConflicts },
+        ]" :key="group.title">
+          <template v-if="group.rows.length">
+            <h3>{{ group.title }}</h3>
+            <ul>
+              <li v-for="row in group.rows" :key="`${row.itemId}-${row.priorityItemId}`">
+                <strong>{{ row.reason }}</strong>
+                <p class="small">{{ planTitles.get(row.planId) ?? `计划 #${row.planId}` }} · {{ row.scheduledAt.replace("T", " ") }} {{ row.title }}</p>
+                <p class="small">{{ planTitles.get(row.priorityPlanId) ?? `计划 #${row.priorityPlanId}` }} · {{ row.priorityAt.replace("T", " ") }} {{ row.priorityTitle }}</p>
+                <p>{{ row.suggestion }}</p>
+              </li>
+            </ul>
+          </template>
+        </template>
         <button v-if="result.draft" type="button" class="secondary"
           @click="emit('propose', result.draft, result.note, result.planVersion, result.latestVersion)">
           带入修订草稿
