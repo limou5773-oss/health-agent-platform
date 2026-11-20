@@ -19,7 +19,7 @@ from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
 from app.gateway import AgentError, COMBINED_TOOL, DIARY_TOOL, JavaGateway, SourceSelectionRequired, TOOLS
-from app.schemas import AgentReport, AgentResult, ArticleReference, ModelDecision, TaskContext
+from app.schemas import AgentReport, AgentResult, ArticleReference, KnowledgeEvidence, ModelDecision, TaskContext
 
 
 SYSTEM_PROMPT = """你是睡眠健康管理助手，使用中文进行可解释的健康管理，不进行医疗诊断。
@@ -36,6 +36,7 @@ COMBINED只分析工具返回的已授权指标，按相同日期对齐实际观
 统计日期以当前任务范围为准，不从补充消息自行改动范围。用户可在待补充表单中缩短分析日期，需要扩大范围时新建任务。
 追问可以参考前一轮问答来理解指代。它只是背景，数值与结论须根据本轮重新查询的工具结果核对。
 若需要偏好、已有计划或知识依据，按需调用get_profile/get_plans/search_knowledge。
+引用知识时只用本任务search_knowledge实际返回的资料编号，在正文标为[资料#编号]。没有命中时明确说明，不能编造出处或链接。
 需要说明计划执行或打卡完成情况时调用get_checkin_summary，说明返回的日期范围；completionRate为null表示无应完成任务。
 仅在提供get_authorized_diary工具且需要背景时读取任务范围内逐条授权的日记；不得声称读过未实际读取的日记。
 日记中的情绪、压力、身体感受和事件是用户自述，只作背景，不作为诊断或睡眠变化的因果证明。
@@ -64,6 +65,7 @@ class AgentState(TypedDict):
     statistics: dict | None
     diary_ids: list[int]
     references: dict[str, dict]
+    knowledge_searched: NotRequired[bool]
     result: dict | None
     source_required: bool
     consumed_input_id: NotRequired[str | None]
@@ -88,6 +90,7 @@ def initial_state(spec: dict, user_input: str | None = None, input_id: str | Non
         "statistics": None,
         "diary_ids": [],
         "references": {},
+        "knowledge_searched": False,
         "result": None,
         "source_required": False,
         "consumed_input_id": input_id,
@@ -122,6 +125,19 @@ def pending_tool_batch(state: AgentState) -> tuple[AIMessage, int]:
         if isinstance(message, AIMessage):
             return message, completed
     raise RuntimeError("工具节点缺少模型调用消息")
+
+
+def knowledge_evidence(matches: dict[str, dict], searched: bool,
+                       reference_ids: list[int]) -> KnowledgeEvidence | None:
+    unique_ids = dict.fromkeys(map(str, reference_ids))
+    if unique_ids.keys() - matches.keys():
+        raise AgentError(502, "MODEL_REFERENCE_INVALID", "模型引用了未经本任务检索的资料，结果未保存")
+    if not matches and not searched:
+        return None
+    return KnowledgeEvidence(
+        matchedCount=len(matches),
+        references=[ArticleReference(**matches[ref_id]) for ref_id in unique_ids],
+    )
 
 
 def build_graph(saver: AsyncSqliteSaver):
@@ -180,6 +196,7 @@ def build_graph(saver: AsyncSqliteSaver):
         statistics = state["statistics"]
         diary_ids = state.get("diary_ids", [])
         references = dict(state["references"])
+        knowledge_searched = state.get("knowledge_searched", False) or name == "search_knowledge"
         source_required = state["source_required"] or needs_source
         if not needs_source and name in {"get_sleep_statistics", "get_combined_statistics"}:
             statistics = observation
@@ -194,11 +211,13 @@ def build_graph(saver: AsyncSqliteSaver):
         if source_required:
             result = AgentResult(
                 status="WAITING_INPUT", question="该日期范围包含多个来源，请选择一个来源后继续。",
+                knowledgeEvidence=knowledge_evidence(references, knowledge_searched, []),
             ).model_dump(mode="json")
         return {
             "messages": [ToolMessage(content=json.dumps(observation, ensure_ascii=False),
                                      tool_call_id=call["id"], name=name)],
             "statistics": statistics, "diary_ids": diary_ids, "references": references,
+            "knowledge_searched": knowledge_searched,
             "source_required": source_required, "result": result,
         }
 
@@ -206,6 +225,8 @@ def build_graph(saver: AsyncSqliteSaver):
         context = await runtime.context.gateway.authorized_context()
         statistics = state["statistics"]
         kind = state["spec"]["kind"]
+        references = state["references"]
+        searched = state.get("knowledge_searched", False)
         uses_combined = kind in ("COMBINED", "ACTIVITY_PLAN")
         if uses_combined and statistics is not None:
             metrics = statistics["metrics"]
@@ -218,7 +239,8 @@ def build_graph(saver: AsyncSqliteSaver):
                             if kind == "ACTIVITY_PLAN"
                             else "当前日期没有可比较的指标。请补录数据，或核对来源冲突后再继续。")
             if question:
-                result = AgentResult(status="WAITING_INPUT", question=question, statistics=statistics)
+                result = AgentResult(status="WAITING_INPUT", question=question, statistics=statistics,
+                                     knowledgeEvidence=knowledge_evidence(references, searched, []))
                 await runtime.context.gateway.step("结构化任务结果", f"任务类型：{kind}", "等待补充数据或来源")
                 return {"result": result.model_dump(mode="json")}
         # function_calling is explicit: no JSON-mode fallback, repair call or retry.
@@ -229,7 +251,8 @@ def build_graph(saver: AsyncSqliteSaver):
             model_messages(state, context) + [HumanMessage(content=(
                 "将当前工具证据和结论转为ModelDecision。不要再调用读取工具。"
                 "需要补充则WAITING_INPUT并给question；计划草稿则WAITING_CONFIRMATION；"
-                "分析或报告完成则COMPLETED。report只给referenceIds，不能编造引用。"
+                "分析或报告完成则COMPLETED。分析或草稿用referenceIds列出实际采用的资料编号。"
+                "报告只填写report.referenceIds，待补充或没有引用时留空。"
             ))]
         )
         if decision.status != "WAITING_INPUT":
@@ -249,19 +272,17 @@ def build_graph(saver: AsyncSqliteSaver):
                 raise AgentError(502, "MODEL_OUTPUT_INVALID", "只有计划任务允许等待计划确认")
             if (kind == "REPORT") != (decision.report is not None):
                 raise AgentError(502, "MODEL_OUTPUT_INVALID", "模型报告产物与任务类型不一致")
+        reference_ids = decision.report.referenceIds if decision.report is not None else decision.referenceIds
+        evidence = knowledge_evidence(references, searched, reference_ids)
         report = None
         if decision.report is not None:
-            unknown = set(map(str, decision.report.referenceIds)) - state["references"].keys()
-            if unknown:
-                raise AgentError(502, "MODEL_REFERENCE_INVALID", "模型引用了未经真实知识工具检索的资料，报告未保存")
             report = AgentReport(
                 title=decision.report.title, content=decision.report.content,
-                references=[ArticleReference(**state["references"][str(ref_id)])
-                            for ref_id in dict.fromkeys(decision.report.referenceIds)],
+                references=evidence.references if evidence is not None else [],
             )
         result = AgentResult(
             status=decision.status, answer=decision.answer, question=decision.question,
-            statistics=statistics, draft=decision.draft, report=report,
+            statistics=statistics, draft=decision.draft, report=report, knowledgeEvidence=evidence,
         )
         await runtime.context.gateway.step("结构化任务结果", f"任务类型：{kind}", f"结果状态：{result.status}")
         return {"result": result.model_dump(mode="json")}
@@ -284,6 +305,7 @@ def build_graph(saver: AsyncSqliteSaver):
         # Java has already committed the confirmed plan. Never re-run the model or write it again.
         result = AgentResult(
             status="COMPLETED", answer="计划已确认并保存。", statistics=state["statistics"],
+            knowledgeEvidence=state["result"].get("knowledgeEvidence"),
         )
         return {"result": result.model_dump(mode="json")}
 

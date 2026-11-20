@@ -206,6 +206,8 @@ export interface TaskDetail extends CombinedTaskSources {
   retryable: boolean;
   aiConsentRevoked: boolean;
   statistics: SleepStatistics | CombinedStatistics | null;
+  knowledgeEvidence?: { matchedCount: number; references: KnowledgeReference[] } | null;
+  publishedReferenceIds?: number[] | null;
   draft: PlanDraft | null;
   planId: number | null;
   reportId: number | null;
@@ -261,6 +263,14 @@ export interface HealthSnapshot {
   completion: { scheduled: number; completed: number };
   completionRate: number | null;
 }
+export interface KnowledgeReference {
+  id: number;
+  title: string;
+  sourceName: string;
+  sourceUrl: string | null;
+  updatedAt?: string | null;
+}
+
 interface ReportMetadata {
   id: number;
   taskId: string | null;
@@ -277,13 +287,7 @@ interface ReportMetadata {
   includeDiary: boolean;
   content?: string;
   publishedReferenceIds?: number[] | null;
-  references?: {
-    id: number;
-    title: string;
-    sourceName: string;
-    sourceUrl: string;
-    updatedAt?: string | null;
-  }[];
+  references?: KnowledgeReference[];
 }
 export interface FocusedSnapshot {
   metric: import("./report-metrics").ReportMetric;

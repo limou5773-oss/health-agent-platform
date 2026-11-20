@@ -234,6 +234,11 @@ class Article(ArticleReference):
     published: bool
 
 
+class KnowledgeEvidence(BaseModel):
+    matchedCount: int
+    references: list[ArticleReference]
+
+
 class ModelReport(RequestModel):
     title: str = Field(min_length=1, max_length=200)
     content: str = Field(min_length=1, max_length=20000)
@@ -248,6 +253,7 @@ class ModelDecision(RequestModel):
     question: str | None = Field(default=None, min_length=1, max_length=2000)
     draft: PlanDraft | None = None
     report: ModelReport | None = None
+    referenceIds: list[int] = Field(default_factory=list, max_length=30)
 
     @model_validator(mode="after")
     def result_shape(self) -> Self:
@@ -275,6 +281,7 @@ class AgentResult(BaseModel):
     statistics: SleepStatistics | CombinedStatistics | None = None
     draft: PlanDraft | None = None
     report: AgentReport | None = None
+    knowledgeEvidence: KnowledgeEvidence | None = None
 
 
 class EmptyArguments(RequestModel):

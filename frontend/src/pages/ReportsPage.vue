@@ -2,13 +2,14 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { FileText } from "@lucide/vue";
-import { api, errorMessage, safeLink } from "../api";
+import { api, errorMessage } from "../api";
 import type { Report } from "../types";
 import StateNotice from "../components/StateNotice.vue";
 import SleepSummary from "../components/SleepSummary.vue";
 import HealthReportForm from "../components/HealthReportForm.vue";
 import HealthReportSummary from "../components/HealthReportSummary.vue";
 import FocusedReportSummary from "../components/FocusedReportSummary.vue";
+import KnowledgeReferences from "../components/KnowledgeReferences.vue";
 const route = useRoute();
 const router = useRouter();
 const reports = ref<Report[]>([]),
@@ -244,27 +245,7 @@ onUnmounted(() => {
           />
           <section v-if="report.references?.length" class="references">
             <h3>参考资料</h3>
-            <ul>
-              <li v-for="reference in report.references" :key="reference.id">
-                <a
-                  v-if="safeLink(reference.sourceUrl)"
-                  :href="safeLink(reference.sourceUrl)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >{{ reference.title }}</a
-                ><strong v-else>{{ reference.title }}</strong
-                ><span class="muted small"> · {{ reference.sourceName }}</span>
-                <span v-if="reference.updatedAt" class="muted small">
-                  · 引用版本更新于 {{ reference.updatedAt.replace("T", " ") }}
-                </span>
-                <template v-if="report.publishedReferenceIds?.includes(reference.id)">
-                  <span class="muted small"> · 当前已发布</span>
-                  <RouterLink class="small report-screen-only"
-                    :to="{ path: '/knowledge', query: { id: reference.id } }">查看当前库内资料</RouterLink>
-                </template>
-                <span v-else class="muted small"> · 当前未发布</span>
-              </li>
-            </ul>
+            <KnowledgeReferences :references="report.references" :published-ids="report.publishedReferenceIds" />
           </section>
           <p v-if="report.reportType === 'SLEEP'" class="footnote">
             此报告由 AI 辅助生成，仅用于日常健康管理，不替代专业诊断。

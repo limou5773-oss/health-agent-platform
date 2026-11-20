@@ -1,5 +1,6 @@
 package com.health.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.health.api.*;
 import com.health.mapper.KnowledgeMapper;
 import com.health.mapper.AccountMapper;
@@ -7,6 +8,7 @@ import com.health.security.Identity;
 import com.health.model.Models.Article;
 import com.health.model.KnowledgeOptions.*;
 import com.health.service.KnowledgeService;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
   public List<Article> list(String query, boolean all) {
     return mapper.list(query, all, null, null, Sort.RELEVANCE, false);
+  }
+
+  public List<Long> publishedReferenceIds(JsonNode references) {
+    if (references == null || references.isEmpty()) return List.of();
+    List<Long> ids = new ArrayList<>();
+    references.forEach(reference -> ids.add(reference.path("id").asLong()));
+    return mapper.publishedIds(ids);
   }
 
   public List<Article> browse(Long userId, String query, Category category, Sort sort, boolean favoritesOnly) {

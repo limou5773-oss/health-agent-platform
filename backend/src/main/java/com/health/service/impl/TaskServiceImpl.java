@@ -38,6 +38,7 @@ public class TaskServiceImpl implements TaskService {
   private static final String COMBINED_INVALIDATED = "源健康记录已变更，综合分析已失效";
   private final TaskMapper mapper;
   private final PlanMapper plans;
+  private final KnowledgeService knowledge;
   private final AccountService accounts;
   private final PreferenceService preferences;
   private final NotificationService notifications;
@@ -52,6 +53,7 @@ public class TaskServiceImpl implements TaskService {
   public TaskServiceImpl(
       TaskMapper mapper,
       PlanMapper plans,
+      KnowledgeService knowledge,
       AccountService accounts,
       PreferenceService preferences,
       NotificationService notifications,
@@ -64,6 +66,7 @@ public class TaskServiceImpl implements TaskService {
       @Value("${app.internal-service-key}") String key) {
     this.mapper = mapper;
     this.plans = plans;
+    this.knowledge = knowledge;
     this.accounts = accounts;
     this.preferences = preferences;
     this.notifications = notifications;
@@ -164,7 +167,7 @@ public class TaskServiceImpl implements TaskService {
     Task task = owned(mapper.get(id), uid);
     task.aiConsentRevoked = task.templateId == null
         && task.aiConsentVersion != accounts.profile(uid).aiConsentVersion;
-    return hydrate(task);
+    return hydrateDetail(task);
   }
 
   @Transactional
@@ -184,6 +187,7 @@ public class TaskServiceImpl implements TaskService {
       t.startDate = r.startDate();
       t.endDate = r.endDate();
       t.statisticsJson = null;
+      t.knowledgeEvidenceJson = null;
       t.answer = null;
       t.taskToken = newToken();
     }
@@ -219,7 +223,7 @@ public class TaskServiceImpl implements TaskService {
     draft.put("version", current + 1);
     t.draftJson = draft.toString();
     mapper.update(t);
-    return hydrate(t);
+    return hydrateDetail(t);
   }
 
   @Transactional
@@ -444,6 +448,7 @@ public class TaskServiceImpl implements TaskService {
       t.answer = null;
       t.question = null;
       t.statisticsJson = null;
+      t.knowledgeEvidenceJson = null;
       t.draftJson = null;
       t.pendingInput = null;
       t.feedback = null;
@@ -545,6 +550,7 @@ public class TaskServiceImpl implements TaskService {
     t.answer = text(result, "answer");
     t.question = text(result, "question");
     t.statisticsJson = result.hasNonNull("statistics") ? result.get("statistics").toString() : null;
+    t.knowledgeEvidenceJson = result.hasNonNull("knowledgeEvidence") ? result.get("knowledgeEvidence").toString() : null;
     if ("WAITING_INPUT".equals(status) && (t.question == null || t.question.isBlank()))
       throw invalidResult("待补充任务缺少问题");
     if ("WAITING_CONFIRMATION".equals(status)) {
@@ -636,6 +642,14 @@ public class TaskServiceImpl implements TaskService {
     t.statistics = read(t.statisticsJson);
     t.draft = read(t.draftJson);
     t.steps = mapper.steps(t.id);
+    return t;
+  }
+
+  private Task hydrateDetail(Task t) {
+    hydrate(t);
+    t.knowledgeEvidence = read(t.knowledgeEvidenceJson);
+    if (t.knowledgeEvidence != null)
+      t.publishedReferenceIds = knowledge.publishedReferenceIds(t.knowledgeEvidence.path("references"));
     return t;
   }
 

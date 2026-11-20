@@ -139,7 +139,7 @@ CREATE TABLE agent_tasks (
  step_source VARCHAR(100), workout_source VARCHAR(100), weight_source VARCHAR(100), heart_rate_source VARCHAR(100),
  include_diary BOOLEAN NOT NULL DEFAULT FALSE,
  answer MEDIUMTEXT, question TEXT, error VARCHAR(1000), retryable BOOLEAN NOT NULL DEFAULT FALSE,
- statistics_json JSON, draft_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),
+ statistics_json JSON, draft_json JSON, knowledge_evidence_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),
  plan_id BIGINT, report_id BIGINT, confirmed_version INT, operation_id VARCHAR(100),
  template_id BIGINT, template_version INT,
  duration_ms BIGINT,

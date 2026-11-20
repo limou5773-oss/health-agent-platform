@@ -7,6 +7,7 @@ import StateNotice from "./StateNotice.vue";
 import DraftEditor from "./DraftEditor.vue";
 import SleepSummary from "./SleepSummary.vue";
 import CombinedAnalysisSummary from "./CombinedAnalysisSummary.vue";
+import KnowledgeReferences from "./KnowledgeReferences.vue";
 import { reportMetrics } from "../report-metrics";
 const props = defineProps<{ id: string; sources: string[] }>();
 const emit = defineEmits<{ changed: []; deleted: []; followedUp: [id: string] }>();
@@ -326,6 +327,13 @@ onUnmounted(() => {
       <section v-if="task.answer" class="answer-section">
         <h3>分析结果</h3>
         <div class="prose">{{ task.answer }}</div>
+      </section>
+      <section v-if="task.knowledgeEvidence" class="references">
+        <h3>参考资料</h3>
+        <KnowledgeReferences v-if="task.knowledgeEvidence.references.length"
+          :references="task.knowledgeEvidence.references" :published-ids="task.publishedReferenceIds" />
+        <p v-else-if="task.knowledgeEvidence.matchedCount === 0">本次知识检索未找到匹配资料。</p>
+        <p v-else>本次检索找到 {{ task.knowledgeEvidence.matchedCount }} 条资料，当前结果没有引用。</p>
       </section>
       <CombinedAnalysisSummary v-if="task.statistics && 'metrics' in task.statistics"
         :statistics="task.statistics" :can-resolve="conflicts.length > 0" />

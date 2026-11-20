@@ -4,12 +4,12 @@ import com.health.security.Identity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.health.api.*;
-import com.health.mapper.KnowledgeMapper;
 import com.health.mapper.PlanMapper;
 import com.health.mapper.TaskMapper;
 import com.health.model.HealthGoal;
 import com.health.model.Models.*;
 import com.health.service.AccountService;
+import com.health.service.KnowledgeService;
 import com.health.service.PlanService;
 import com.health.service.TaskService;
 import java.math.BigDecimal;
@@ -23,13 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PlanServiceImpl implements PlanService {
   private final PlanMapper mapper;
-  private final KnowledgeMapper knowledge;
+  private final KnowledgeService knowledge;
   private final TaskMapper tasks;
   private final ObjectMapper json;
   private final AccountService accounts;
   private final TaskService agentTasks;
 
-  public PlanServiceImpl(PlanMapper mapper, KnowledgeMapper knowledge, TaskMapper tasks, ObjectMapper json, AccountService accounts,
+  public PlanServiceImpl(PlanMapper mapper, KnowledgeService knowledge, TaskMapper tasks, ObjectMapper json, AccountService accounts,
       TaskService agentTasks) {
     this.mapper = mapper;
     this.knowledge = knowledge;
@@ -189,11 +189,7 @@ public class PlanServiceImpl implements PlanService {
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("已保存报告JSON无效", e);
     }
-    if (r.references != null && !r.references.isEmpty()) {
-      List<Long> ids = new ArrayList<>();
-      r.references.forEach(reference -> ids.add(reference.path("id").asLong()));
-      r.publishedReferenceIds = knowledge.publishedIds(ids);
-    }
+    r.publishedReferenceIds = knowledge.publishedReferenceIds(r.references);
     return r;
   }
 }

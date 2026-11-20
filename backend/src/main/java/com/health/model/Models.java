@@ -139,6 +139,7 @@ public final class Models {
     public boolean aiConsentRevoked;
     @JsonIgnore public String statisticsJson;
     @JsonIgnore public String draftJson;
+    @JsonIgnore public String knowledgeEvidenceJson;
     @JsonIgnore public String taskToken;
     @JsonIgnore public String pendingInput;
     @JsonIgnore public Integer confirmedVersion;
@@ -153,6 +154,8 @@ public final class Models {
     @JsonIgnore public LocalDateTime updatedAt;
     public JsonNode statistics;
     public JsonNode draft;
+    public JsonNode knowledgeEvidence;
+    public List<Long> publishedReferenceIds;
     public List<Step> steps;
   }
 

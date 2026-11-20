@@ -10,6 +10,8 @@
 
 报告详情按引用编号查询当前发布状态，通过 `publishedReferenceIds` 返回仍已发布的资料编号。报告和 PDF 保留引用时保存的出处与版本，并标注当前状态。
 
+健康助手的任务详情也显示分析、计划草稿和睡眠周报引用的资料。模型提交资料编号，服务端仅接受本任务实际检索返回的编号，并保存当时的标题、来源、链接与更新时间。检索无命中时显示提示。资料后来下架时，历史任务仍显示出处与当前状态，库内链接仅在资料已发布时显示。已有库执行 `database/migrations/041_task_knowledge_evidence.sql` 后，新生成的结果会保存这些信息；旧报告继续使用已有的引用记录。
+
 - `GET /api/knowledge` 支持 `query`、`category`、`sort`（`RELEVANCE` 或 `RECENT`）、`favoritesOnly`，返回 `category` 和本人收藏状态 `favorite`。
 - `GET /api/knowledge/{id}` 获取已发布资料。
 - `PUT /api/knowledge/{id}/favorite` 收藏，`DELETE /api/knowledge/{id}/favorite` 取消收藏。

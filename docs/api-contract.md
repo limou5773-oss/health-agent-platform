@@ -123,6 +123,7 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 - GET /agent/tasks → 当前用户TaskDetail概要数组（最多50条，按创建倒序）。
 - GET /agent/tasks/{id} → TaskDetail。
 - POST /agent/tasks/{id}/input {input,sourceName?,startDate?,endDate?} → 202 TaskDetail，待补充时继续同一任务。来源冲突由用户选择来源。非追问任务可同时提交两项日期，在当前分析范围内选取较短的区间。Java 保留任务编号和计划执行日期，清除旧范围的步骤、统计及 Python 检查点，再用新范围和本次补充执行。
+- GET /agent/tasks/{id} 的 `knowledgeEvidence` 保存任务实际检索匹配条数及采用的引用，`publishedReferenceIds` 反映当前发布状态。知识检索无命中时 `matchedCount` 为 0。资料编号从本任务工具返回值核对，采用引用的出处与版本按生成时保存。
 - PUT /agent/tasks/{id}/draft {version,title,reason,startDate,endDate,items} → TaskDetail，编辑只改草稿并递增版本，须WAITING_CONFIRMATION。
 - POST /agent/tasks/{id}/confirm {version,operationId} → {planId,taskId,status:"COMPLETED"}。锁任务行，校验有效草稿版本，同一任务最多一份正式计划，重复确认返回同份计划，旧版本409。
 - POST /agent/tasks/{id}/cancel → TaskDetail，取消后工具拒绝继续，已有正式结果不撤销。
