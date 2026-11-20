@@ -40,12 +40,13 @@ public class CombinedAnalysisServiceImpl implements CombinedAnalysisService {
     var start = task.startDate;
     var end = task.endDate;
     Long userId = task.userId;
+    boolean activityOnly = "ACTIVITY_PLAN".equals(task.kind);
     var filters = new Generate(null, null, task.sourceName, task.stepSource, task.workoutSource,
         null, null, task.weightSource, task.heartRateSource);
     var sources = reports.reportSources(userId, start, end, filters).stream()
         .collect(Collectors.groupingBy(Source::metric, Collectors.mapping(Source::sourceName, Collectors.toList())));
     var metrics = java.util.stream.Stream.of(
-        profile.aiSleep ? metric("SLEEP", "小时", "按醒来日期汇总睡眠时长", sources.getOrDefault("SLEEP", List.of()), () -> {
+        !activityOnly && profile.aiSleep ? metric("SLEEP", "小时", "按醒来日期汇总睡眠时长", sources.getOrDefault("SLEEP", List.of()), () -> {
           var stats = sleep.statistics(userId, start, end, task.sourceName);
           return new Values(stats.validDays(), (long) stats.recordCount(),
               stats.daily().stream().map(d -> new Day(d.date(), d.hours())).toList());
@@ -60,12 +61,12 @@ public class CombinedAnalysisServiceImpl implements CombinedAnalysisService {
           return new Values(stats.validDays(), (long) stats.recordCount(),
               stats.daily().stream().map(d -> new Day(d.date(), d.minutes())).toList());
         }) : null,
-        profile.aiWeight ? metric("WEIGHT", "千克", "每日取最后一次测量", sources.getOrDefault("WEIGHT", List.of()), () -> {
+        !activityOnly && profile.aiWeight ? metric("WEIGHT", "千克", "每日取最后一次测量", sources.getOrDefault("WEIGHT", List.of()), () -> {
           var stats = weight.statistics(userId, start, end, task.weightSource);
           return new Values(stats.validDays(), (long) stats.recordCount(), stats.daily().stream()
               .map(d -> new Day(d.date(), d.representative() == null ? null : d.representative().weightKg)).toList());
         }) : null,
-        profile.aiHeartRate ? metric("HEART_RATE", "次/分", "逐日计算实际采样均值", sources.getOrDefault("HEART_RATE", List.of()), () -> {
+        !activityOnly && profile.aiHeartRate ? metric("HEART_RATE", "次/分", "逐日计算实际采样均值", sources.getOrDefault("HEART_RATE", List.of()), () -> {
           var stats = heartRate.statistics(userId, start, end, task.heartRateSource);
           return new Values(stats.validDays(), stats.recordCount(),
               stats.daily().stream().map(d -> new Day(d.date(), d.averageBpm())).toList());

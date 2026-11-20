@@ -107,6 +107,14 @@ public final class Models {
   }
 
   public static class Task {
+    public static boolean isPlan(String kind) {
+      return "PLAN".equals(kind) || "ACTIVITY_PLAN".equals(kind);
+    }
+
+    public static boolean usesCombinedStatistics(String kind) {
+      return "COMBINED".equals(kind) || "ACTIVITY_PLAN".equals(kind);
+    }
+
     public String id;
     public String parentTaskId;
     @JsonIgnore public Long userId;

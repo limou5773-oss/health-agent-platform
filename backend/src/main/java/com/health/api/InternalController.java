@@ -44,18 +44,23 @@ public class InternalController {
   @GetMapping("/tools/profile")
   public Map<String, Object> profile(HttpServletRequest r) {
     Profile profile = (Profile) r.getAttribute(PROFILE);
+    Task task = (Task) r.getAttribute(TASK);
     Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("heightCm", profile.heightCm);
     fields.put("timezone", profile.timezone);
     fields.put("goal", profile.goal);
     fields.put("preferences", profile.preferences);
-    if (profile.aiWeight) fields.put("weightKg", profile.weightKg);
+    if (!"ACTIVITY_PLAN".equals(task.kind)) {
+      fields.put("heightCm", profile.heightCm);
+      if (profile.aiWeight) fields.put("weightKg", profile.weightKg);
+    }
     return fields;
   }
 
   @GetMapping("/tools/sleep-statistics")
   public Statistics statistics(HttpServletRequest r) {
     Task t = (Task) r.getAttribute(TASK);
+    if ("ACTIVITY_PLAN".equals(t.kind))
+      throw new ApiException(403, "TOOL_NOT_ENABLED", "运动计划读取步数和运动统计");
     if (!((Profile) r.getAttribute(PROFILE)).aiSleep)
       throw new ApiException(403, "AI_METRIC_NOT_ALLOWED", "未授权睡眠分析");
     return sleep.statistics(t.userId, t.startDate, t.endDate, t.sourceName);
@@ -64,8 +69,8 @@ public class InternalController {
   @GetMapping("/tools/sleep-records")
   public AgentSleepRecords sleepRecords(HttpServletRequest r) {
     Task t = (Task) r.getAttribute(TASK);
-    if ("COMBINED".equals(t.kind))
-      throw new ApiException(403, "TOOL_NOT_ENABLED", "综合分析任务只读取已授权的逐日统计");
+    if (Task.usesCombinedStatistics(t.kind))
+      throw new ApiException(403, "TOOL_NOT_ENABLED", "本任务只读取已授权的逐日指标统计");
     var query = new Requests.SleepQuery();
     query.pageSize = 20;
     query.startDate = t.startDate;
@@ -86,7 +91,8 @@ public class InternalController {
   @GetMapping("/tools/combined-statistics")
   public CombinedAnalysis combined(HttpServletRequest r) {
     Task task = (Task) r.getAttribute(TASK);
-    if (!"COMBINED".equals(task.kind)) throw new ApiException(403, "TOOL_NOT_ENABLED", "本任务未启用综合分析");
+    if (!Task.usesCombinedStatistics(task.kind))
+      throw new ApiException(403, "TOOL_NOT_ENABLED", "本任务未启用多指标统计");
     return combined.statistics(task, (Profile) r.getAttribute(PROFILE));
   }
 

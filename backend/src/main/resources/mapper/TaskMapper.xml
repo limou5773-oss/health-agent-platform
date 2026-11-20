@@ -55,7 +55,11 @@
  <delete id="deleteSteps">DELETE FROM agent_steps WHERE task_id=#{id}</delete>
  <update id="detachPlans">UPDATE plans SET task_id=NULL WHERE task_id=#{id}</update>
  <update id="detachReports">UPDATE reports SET task_id=NULL WHERE task_id=#{id}</update>
- <select id="affected" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} AND template_id IS NULL AND start_date &lt;= #{date} AND end_date &gt;= #{date} AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE</select>
+ <select id="affected" resultType="com.health.model.Models$Task">
+  SELECT * FROM agent_tasks WHERE user_id=#{userId} AND template_id IS NULL AND kind != 'ACTIVITY_PLAN'
+    AND start_date &lt;= #{date} AND end_date &gt;= #{date}
+    AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE
+ </select>
  <update id="invalidateReports">
   UPDATE reports SET source_deleted=TRUE,source_change=#{change},title='源记录已变更，报告已失效',content=NULL,statistics_json=NULL,references_json=NULL
   WHERE user_id=#{userId} AND source_deleted=FALSE
@@ -73,7 +77,8 @@
   SELECT * FROM agent_tasks WHERE <include refid="diaryDateFilter"/> ORDER BY id FOR UPDATE
  </select>
  <select id="affectedCombined" resultType="com.health.model.Models$Task">
-  SELECT * FROM agent_tasks WHERE user_id=#{userId} AND kind='COMBINED'
+  SELECT * FROM agent_tasks WHERE user_id=#{userId}
+    AND kind IN ('COMBINED'<if test="includeActivityPlans">,'ACTIVITY_PLAN'</if>)
     AND start_date &lt;= #{end} AND end_date &gt;= #{start}
   ORDER BY id FOR UPDATE
  </select>

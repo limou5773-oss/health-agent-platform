@@ -1,6 +1,7 @@
 package com.health.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.health.model.Models.Task;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -204,7 +205,7 @@ public final class Requests {
 
   public record TaskCreate(
       @NotBlank @Size(max = 2000) String goal,
-      @NotNull @Pattern(regexp = "ANALYZE|PLAN|REPORT|COMBINED") String kind,
+      @NotNull @Pattern(regexp = "ANALYZE|PLAN|REPORT|COMBINED|ACTIVITY_PLAN") String kind,
       @NotNull LocalDate startDate,
       @NotNull LocalDate endDate,
       @Size(max = 100) String sourceName,
@@ -215,10 +216,10 @@ public final class Requests {
       @Size(max = 100) String workoutSource,
       @Size(max = 100) String weightSource,
       @Size(max = 100) String heartRateSource) {
-    @AssertTrue(message = "PLAN须提供1至31天计划周期")
+    @AssertTrue(message = "制定计划须提供1至31天计划周期")
     @JsonIgnore
     public boolean isPlanRangeValid() {
-      return !"PLAN".equals(kind)
+      return !Task.isPlan(kind)
           || (planStartDate != null
               && planEndDate != null
               && validRange(planStartDate, planEndDate, 31));

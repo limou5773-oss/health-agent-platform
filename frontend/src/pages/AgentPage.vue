@@ -54,14 +54,15 @@ const selected = computed(() => {
   const id = route.query.task;
   return typeof id === "string" && id ? id : null;
 });
-const availableSourceFields = computed(() => form.kind === "COMBINED"
-  ? sourceFields.filter(({ permission }) => profile.value?.[permission])
-  : []);
+const isActivityPlan = computed(() => form.kind === "ACTIVITY_PLAN");
+const isPlan = computed(() => form.kind === "PLAN" || isActivityPlan.value);
+const availableSourceFields = computed(() => sourceFields.filter(({ permission }) =>
+  profile.value?.[permission] && (form.kind === "COMBINED" || (isActivityPlan.value && permission === "aiActivity"))));
 async function loadCombinedSources() {
   if (loadingSources.value) return;
   const pending = availableSourceFields.value.filter(({ field }) => !sourceOptions[field]);
-  if (!pending.length) return;
   sourceError.value = "";
+  if (!pending.length) return;
   loadingSources.value = true;
   try {
     const loaded = await Promise.all(pending.map(async ({ field, path }) =>
@@ -72,11 +73,14 @@ async function loadCombinedSources() {
   } finally {
     loadingSources.value = false;
   }
+  if (!sourceError.value && availableSourceFields.value.some(({ field }) => !sourceOptions[field]))
+    void loadCombinedSources();
 }
 watch(availableSourceFields, loadCombinedSources);
 const canCreate = computed(() => {
   const allowed = profile.value;
   if (!allowed?.aiConsent) return false;
+  if (isActivityPlan.value) return allowed.aiActivity;
   return form.kind === "COMBINED"
     ? allowed.aiSleep || allowed.aiActivity || allowed.aiWeight || allowed.aiHeartRate
     : allowed.aiSleep;
@@ -116,8 +120,8 @@ async function create() {
       json("POST", {
         ...rest,
         includeDiary: rest.includeDiary && !!profile.value?.aiDiary,
-        ...(sourceName && profile.value?.aiSleep ? { sourceName } : {}),
-        ...(form.kind === "PLAN" ? { planStartDate, planEndDate } : {}),
+        ...(sourceName && profile.value?.aiSleep && !isActivityPlan.value ? { sourceName } : {}),
+        ...(isPlan.value ? { planStartDate, planEndDate } : {}),
         ...Object.fromEntries(availableSourceFields.value.map(({ field }) => [field, combinedSources[field]])),
       }),
     );
@@ -181,6 +185,7 @@ onMounted(load);
               <option value="ANALYZE">睡眠分析</option>
               <option value="COMBINED">综合分析</option>
               <option value="PLAN">制定计划</option>
+              <option value="ACTIVITY_PLAN">制定运动计划</option>
               <option value="REPORT">生成睡眠周报</option>
             </select></label
           ><label
@@ -196,14 +201,14 @@ onMounted(load);
               required
               :min="form.startDate"
               :max="dateAfter(form.startDate, 365)" /></label
-          ><label v-if="profile?.aiSleep"
+          ><label v-if="profile?.aiSleep && !isActivityPlan"
             >睡眠数据来源<select v-model="form.sourceName">
               <option value="">全部来源（冲突时补充选择）</option>
               <option v-for="source in sources" :key="source">
                 {{ source }}
               </option>
             </select></label
-          ><template v-if="form.kind === 'PLAN'"
+          ><template v-if="isPlan"
             ><label
               >计划执行开始日期<input
                 v-model="form.planStartDate"
@@ -221,6 +226,9 @@ onMounted(load);
         </div>
         <p v-if="form.kind === 'COMBINED'" class="footnote">
           外部模型可使用所选日期内已授权的指标汇总。未指定来源的指标遇到冲突时会在结果里标出。
+        </p>
+        <p v-if="isActivityPlan" class="footnote">
+          使用所选日期内已授权的步数和运动统计生成草稿。遇到来源冲突时可选择来源后继续。
         </p>
         <div v-if="availableSourceFields.length" class="form-grid">
           <label v-for="{ field, label } in availableSourceFields" :key="field">

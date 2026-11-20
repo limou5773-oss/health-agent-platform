@@ -118,10 +118,12 @@ public class TaskServiceImpl implements TaskService {
     t.endDate = r.endDate();
     t.planStartDate = r.planStartDate();
     t.planEndDate = r.planEndDate();
-    t.sourceName = profile.aiSleep ? r.sourceName() : null;
-    if ("COMBINED".equals(t.kind)) {
+    t.sourceName = profile.aiSleep && !"ACTIVITY_PLAN".equals(t.kind) ? r.sourceName() : null;
+    if (Task.usesCombinedStatistics(t.kind)) {
       t.stepSource = profile.aiActivity ? r.stepSource() : null;
       t.workoutSource = profile.aiActivity ? r.workoutSource() : null;
+    }
+    if ("COMBINED".equals(t.kind)) {
       t.weightSource = profile.aiWeight ? r.weightSource() : null;
       t.heartRateSource = profile.aiHeartRate ? r.heartRateSource() : null;
     }
@@ -174,11 +176,14 @@ public class TaskServiceImpl implements TaskService {
     requireStatus(t, "WAITING_INPUT");
     t.pendingInput = r.input();
     t.operationId = UUID.randomUUID().toString();
-    if (t.parentTaskId == null && profile.aiSleep && r.sourceName() != null && !r.sourceName().isBlank())
+    if (t.parentTaskId == null && profile.aiSleep && !"ACTIVITY_PLAN".equals(t.kind)
+        && r.sourceName() != null && !r.sourceName().isBlank())
       t.sourceName = r.sourceName();
-    if (t.parentTaskId == null && "COMBINED".equals(t.kind)) {
+    if (t.parentTaskId == null && Task.usesCombinedStatistics(t.kind)) {
       if (profile.aiActivity && r.stepSource() != null && !r.stepSource().isBlank()) t.stepSource = r.stepSource();
       if (profile.aiActivity && r.workoutSource() != null && !r.workoutSource().isBlank()) t.workoutSource = r.workoutSource();
+    }
+    if (t.parentTaskId == null && "COMBINED".equals(t.kind)) {
       if (profile.aiWeight && r.weightSource() != null && !r.weightSource().isBlank()) t.weightSource = r.weightSource();
       if (profile.aiHeartRate && r.heartRateSource() != null && !r.heartRateSource().isBlank()) t.heartRateSource = r.heartRateSource();
     }
@@ -348,7 +353,7 @@ public class TaskServiceImpl implements TaskService {
     var runtime = systemSettings.get();
     result.put("modelName", runtime.modelName());
     result.put("modelTimeoutSeconds", runtime.modelTimeoutSeconds());
-    if ("PLAN".equals(t.kind) && "RUNNING".equals(t.status)) {
+    if (Task.isPlan(t.kind) && "RUNNING".equals(t.status)) {
       result.put("savedPreferences", preferences.list(t.userId));
       if (!p.goal.isBlank()) result.put("profileGoal", p.goal);
       if (!p.preferences.isBlank()) result.put("profilePreferences", p.preferences);
@@ -409,7 +414,12 @@ public class TaskServiceImpl implements TaskService {
 
   @Transactional
   public void invalidateCombined(Long uid, LocalDate start, LocalDate end) {
-    invalidateTasks(mapper.affectedCombined(uid, start, end), COMBINED_INVALIDATED);
+    invalidateTasks(mapper.affectedCombined(uid, start, end, false), COMBINED_INVALIDATED);
+  }
+
+  @Transactional
+  public void invalidateActivity(Long uid, LocalDate start, LocalDate end) {
+    invalidateTasks(mapper.affectedCombined(uid, start, end, true), "源活动记录已变更，任务内容已清除");
   }
 
   private void invalidateTasks(List<Task> tasks, String reason) {
@@ -524,7 +534,7 @@ public class TaskServiceImpl implements TaskService {
     if ("WAITING_INPUT".equals(status) && (t.question == null || t.question.isBlank()))
       throw invalidResult("待补充任务缺少问题");
     if ("WAITING_CONFIRMATION".equals(status)) {
-      if (!"PLAN".equals(t.kind) || !result.path("draft").isObject())
+      if (!Task.isPlan(t.kind) || !result.path("draft").isObject())
         throw invalidResult("待确认任务缺少计划草稿");
       ObjectNode node = (ObjectNode) result.get("draft");
       node.put("version", 1);
@@ -535,7 +545,7 @@ public class TaskServiceImpl implements TaskService {
       t.draftJson = node.toString();
     }
     if ("COMPLETED".equals(status)) {
-      if ("PLAN".equals(t.kind)) throw invalidResult("计划必须经用户确认");
+      if (Task.isPlan(t.kind)) throw invalidResult("计划必须经用户确认");
       if ("REPORT".equals(t.kind)) {
         JsonNode node = result.path("report");
         String title = text(node, "title"), content = text(node, "content");

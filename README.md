@@ -62,6 +62,8 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。接口与CSV表头见[运动管理说明](docs/activity-management.md)。Mi Fitness专用原始文件仍需脱敏样本适配。
 
+「健康助手 → 制定运动计划」按已授权的步数和运动统计生成待确认草稿。已有库执行 `database/migrations/040_activity_plan_tasks.sql`。详见[生成运动计划](docs/activity-management.md#生成运动计划)。
+
 在「运动管理 → 导入步数」也可上传苹果健康 XML / ZIP，按档案时区预览区间步数，再确认有效记录。已有库在适用的前序迁移后执行 `database/migrations/031_apple_step_import.sql`。新库只使用最新 `database/schema.sql`。
 
 睡眠、步数、体重和心率记录保存更正后保留原来源并显示更正标记。已有库需执行 `database/migrations/032_record_corrections.sql`，旧步数和体重记录初始未标记更正。

@@ -10,7 +10,12 @@ public final class AgentPermissions {
   public static void require(Profile profile, String kind, boolean includeDiary) {
     if (!profile.aiConsent)
       throw new ApiException(403, "AI_CONSENT_REQUIRED", "请先在个人档案中授权AI分析");
-    if ("COMBINED".equals(kind) ? !profile.canAnalyzeCombined() : !profile.aiSleep)
+    boolean allowed = switch (kind) {
+      case "COMBINED" -> profile.canAnalyzeCombined();
+      case "ACTIVITY_PLAN" -> profile.aiActivity;
+      default -> profile.aiSleep;
+    };
+    if (!allowed)
       throw new ApiException(403, "AI_METRIC_NOT_ALLOWED", "请先在个人档案中授权该任务所需的指标");
     if (includeDiary && !profile.aiDiary)
       throw new ApiException(403, "AI_DIARY_NOT_ALLOWED", "请先在个人档案中开启日记分析授权");

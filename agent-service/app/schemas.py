@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 TaskId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")]
-TaskKind = Literal["ANALYZE", "PLAN", "REPORT", "COMBINED"]
+TaskKind = Literal["ANALYZE", "PLAN", "REPORT", "COMBINED", "ACTIVITY_PLAN"]
 ResultStatus = Literal["COMPLETED", "WAITING_INPUT", "WAITING_CONFIRMATION"]
 
 
@@ -27,9 +27,9 @@ class TaskSpec(BaseModel):
     def date_ranges(self) -> Self:
         if not 0 <= (self.endDate - self.startDate).days < 366:
             raise ValueError("统计日期范围必须为1至366天")
-        if self.kind == "PLAN":
+        if self.kind in ("PLAN", "ACTIVITY_PLAN"):
             if self.planStartDate is None or self.planEndDate is None:
-                raise ValueError("PLAN必须显式提供planStartDate和planEndDate")
+                raise ValueError("计划任务必须显式提供planStartDate和planEndDate")
             if not 0 <= (self.planEndDate - self.planStartDate).days < 31:
                 raise ValueError("计划日期范围必须为1至31天")
         return self

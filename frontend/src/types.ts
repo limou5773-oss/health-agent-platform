@@ -191,7 +191,7 @@ export interface TaskDetail extends CombinedTaskSources {
   feedback: "HELPFUL" | "NOT_HELPFUL" | null;
   templateId: number | null;
   templateVersion: number | null;
-  kind: "ANALYZE" | "PLAN" | "REPORT" | "COMBINED";
+  kind: "ANALYZE" | "PLAN" | "REPORT" | "COMBINED" | "ACTIVITY_PLAN";
   goal: string;
   status: TaskStatus;
   startDate: string;

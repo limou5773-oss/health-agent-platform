@@ -80,10 +80,10 @@ public class ActivityServiceImpl implements ActivityService {
     record.sourceName = existing.sourceName;
     checkStep(record, mapper.stepDay(uid, record.activityDate, record.sourceName), false);
     mapper.updateStep(record);
-    tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
+    tasks.invalidateActivity(uid, existing.activityDate, existing.activityDate);
     plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate, ReportSourceChange.CORRECTED);
     if (!record.activityDate.equals(existing.activityDate)) {
-      tasks.invalidateCombined(uid, record.activityDate, record.activityDate);
+      tasks.invalidateActivity(uid, record.activityDate, record.activityDate);
       plans.invalidateHealthReports(uid, record.activityDate, record.activityDate, ReportSourceChange.CORRECTED);
     }
     return mapper.step(uid, id);
@@ -95,7 +95,7 @@ public class ActivityServiceImpl implements ActivityService {
     StepRecord existing = mapper.step(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteStep(uid, id);
-    tasks.invalidateCombined(uid, existing.activityDate, existing.activityDate);
+    tasks.invalidateActivity(uid, existing.activityDate, existing.activityDate);
     plans.invalidateHealthReports(uid, existing.activityDate, existing.activityDate, ReportSourceChange.DELETED);
   }
 
@@ -394,10 +394,10 @@ public class ActivityServiceImpl implements ActivityService {
     mapper.updateWorkout(record);
     LocalDate previousEnd = existing.endTime.minusNanos(1).toLocalDate();
     LocalDate currentEnd = record.endTime.minusNanos(1).toLocalDate();
-    tasks.invalidateCombined(uid, existing.activityDate, previousEnd);
+    tasks.invalidateActivity(uid, existing.activityDate, previousEnd);
     plans.invalidateHealthReports(uid, existing.activityDate, previousEnd, ReportSourceChange.CORRECTED);
     if (record.activityDate.isBefore(existing.activityDate) || currentEnd.isAfter(previousEnd)) {
-      tasks.invalidateCombined(uid, record.activityDate, currentEnd);
+      tasks.invalidateActivity(uid, record.activityDate, currentEnd);
       plans.invalidateHealthReports(uid, record.activityDate, currentEnd, ReportSourceChange.CORRECTED);
     }
     return mapper.workout(uid, id);
@@ -434,7 +434,7 @@ public class ActivityServiceImpl implements ActivityService {
     Workout existing = mapper.workout(uid, id);
     if (existing == null) throw ApiException.missing();
     mapper.deleteWorkout(uid, id);
-    tasks.invalidateCombined(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
+    tasks.invalidateActivity(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate());
     plans.invalidateHealthReports(uid, existing.activityDate, existing.endTime.minusNanos(1).toLocalDate(), ReportSourceChange.DELETED);
   }
 

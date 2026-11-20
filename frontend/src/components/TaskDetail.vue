@@ -208,15 +208,15 @@ onUnmounted(() => {
           <dt>分析数据</dt>
           <dd>{{ task.startDate }} 至 {{ task.endDate }}</dd>
         </div>
-        <div v-if="task.kind === 'PLAN'">
+        <div v-if="task.kind === 'PLAN' || task.kind === 'ACTIVITY_PLAN'">
           <dt>计划周期</dt>
           <dd>{{ task.planStartDate }} 至 {{ task.planEndDate }}</dd>
         </div>
-        <div v-if="!task.templateId">
+        <div v-if="!task.templateId && task.kind !== 'ACTIVITY_PLAN'">
           <dt>睡眠来源</dt>
           <dd>{{ task.sourceName || "未指定；多来源冲突时需要补充" }}</dd>
         </div>
-        <template v-if="task.kind === 'COMBINED'">
+        <template v-if="task.kind === 'COMBINED' || task.kind === 'ACTIVITY_PLAN'">
           <div v-if="task.stepSource"><dt>步数来源</dt><dd>{{ task.stepSource }}</dd></div>
           <div v-if="task.workoutSource"><dt>运动来源</dt><dd>{{ task.workoutSource }}</dd></div>
           <div v-if="task.weightSource"><dt>体重来源</dt><dd>{{ task.weightSource }}</dd></div>
@@ -245,6 +245,8 @@ onUnmounted(() => {
       <p v-if="task.aiConsentRevoked" class="feedback" role="status">
         此任务使用的 AI 授权已撤回。如需继续分析，请按当前授权新建任务。
       </p>
+      <p v-if="task.status === 'CANCELLED' && task.kind === 'ACTIVITY_PLAN' && task.error"
+        class="feedback" role="status">{{ task.error }}</p>
       <div v-if="task.status === 'FAILED'" class="feedback error" role="alert">
         <strong>任务未完成</strong>
         <p>{{ task.error }}</p>
@@ -275,7 +277,7 @@ onUnmounted(() => {
             maxlength="4000"
             placeholder="填写需要补充的信息"
           /></label
-        ><label v-if="!task.parentTaskId && task.kind !== 'COMBINED'"
+        ><label v-if="!task.parentTaskId && task.kind !== 'COMBINED' && task.kind !== 'ACTIVITY_PLAN'"
           >指定数据来源（需要时选择）<select v-model="sourceName">
             <option value="">保持当前来源</option>
             <option v-for="source in sources" :key="source">

@@ -108,6 +108,7 @@ export const statusText: Record<string, string> = {
 export const kindText: Record<string, string> = {
   ANALYZE: "睡眠分析",
   COMBINED: "综合分析",
+  ACTIVITY_PLAN: "制定运动计划",
   PLAN: "制定计划",
   REPORT: "睡眠周报",
 };

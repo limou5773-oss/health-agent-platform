@@ -45,6 +45,7 @@ public interface TaskService {
 
   void invalidateDiary(Long uid, Set<LocalDate> dates, ReportSourceChange change);
   void invalidateCombined(Long uid, LocalDate start, LocalDate end);
+  void invalidateActivity(Long uid, LocalDate start, LocalDate end);
   void invalidateCheckins(Long uid, LocalDate date);
 
   void recoverInterrupted();
