@@ -235,7 +235,15 @@ public final class Requests {
   public record TaskInput(
       @NotBlank @Size(max = 4000) String input, @Size(max = 100) String sourceName,
       @Size(max = 100) String stepSource, @Size(max = 100) String workoutSource,
-      @Size(max = 100) String weightSource, @Size(max = 100) String heartRateSource) {}
+      @Size(max = 100) String weightSource, @Size(max = 100) String heartRateSource,
+      LocalDate startDate, LocalDate endDate) {
+    @AssertTrue(message = "调整分析日期时须填写有效的起止日期")
+    @JsonIgnore
+    public boolean isRangeValid() {
+      return (startDate == null && endDate == null)
+          || (startDate != null && endDate != null && validRange(startDate, endDate, 366));
+    }
+  }
 
   public record Draft(
       @Min(1) int version,

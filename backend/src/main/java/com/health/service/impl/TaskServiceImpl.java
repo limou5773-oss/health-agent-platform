@@ -174,6 +174,19 @@ public class TaskServiceImpl implements TaskService {
     Profile profile = accounts.profile(uid);
     AgentPermissions.requireCurrent(profile, t);
     requireStatus(t, "WAITING_INPUT");
+    boolean narrowed = r.startDate() != null
+        && (!r.startDate().equals(t.startDate) || !r.endDate().equals(t.endDate));
+    if (narrowed) {
+      if (t.parentTaskId != null) throw ApiException.conflict("追问沿用原任务的分析日期");
+      if (r.startDate().isBefore(t.startDate) || r.endDate().isAfter(t.endDate))
+        throw new ApiException(400, "ANALYSIS_RANGE_EXPANDED", "只能在当前范围内缩短分析日期");
+      mapper.deleteSteps(t.id);
+      t.startDate = r.startDate();
+      t.endDate = r.endDate();
+      t.statisticsJson = null;
+      t.answer = null;
+      t.taskToken = newToken();
+    }
     t.pendingInput = r.input();
     t.operationId = UUID.randomUUID().toString();
     if (t.parentTaskId == null && profile.aiSleep && !"ACTIVITY_PLAN".equals(t.kind)
@@ -191,7 +204,8 @@ public class TaskServiceImpl implements TaskService {
     t.question = null;
     t.error = null;
     mapper.update(t);
-    afterCommit(() -> run(id, "INPUT"));
+    if (narrowed) deleteCheckpoint(t.id);
+    afterCommit(() -> run(id, narrowed ? "NARROW" : "INPUT"));
     return hydrate(t);
   }
 

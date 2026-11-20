@@ -42,15 +42,17 @@ class RunRequest(TaskSpec, RequestModel):
 
 class ResumeRequest(RequestModel):
     taskToken: str = Field(min_length=1, repr=False)
-    action: Literal["INPUT", "CONFIRM", "RETRY"]
+    action: Literal["INPUT", "NARROW", "CONFIRM", "RETRY"]
     input: str | None = Field(default=None, min_length=1, max_length=4000)
     inputId: str | None = Field(default=None, min_length=1, max_length=100)
     planId: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def action_payload(self) -> Self:
-        if self.action == "INPUT" and self.input is None:
-            raise ValueError("INPUT必须提供input")
+        if self.action in ("INPUT", "NARROW") and self.input is None:
+            raise ValueError("补充请求必须提供input")
+        if self.action == "NARROW" and self.inputId is None:
+            raise ValueError("缩短分析日期必须提供inputId")
         if self.inputId is not None and self.input is None:
             raise ValueError("inputId必须与input同时提供")
         if self.action == "CONFIRM" and self.planId is None:

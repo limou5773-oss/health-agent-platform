@@ -239,6 +239,11 @@ async def resume_run(task_id: TaskId, payload: ResumeRequest, request: Request) 
             if not snapshot.interrupts or snapshot.values["result"]["status"] != "WAITING_INPUT":
                 raise AgentError(409, "RUN_NOT_WAITING_INPUT", "检查点不处于待补充状态")
             command = Command(resume={"action": "INPUT", "input": payload.input, "inputId": payload.inputId})
+        elif payload.action == "NARROW":
+            if snapshot.values:
+                raise AgentError(409, "RUN_ALREADY_EXISTS", "旧分析范围的检查点尚未清除")
+            model = model_for(context.modelName, context.modelTimeoutSeconds)
+            command = initial_state(spec, payload.input, payload.inputId)
         else:
             # The graph may have produced a result before Java received its response.
             saved_result = snapshot.values.get("result")
@@ -258,7 +263,7 @@ async def resume_run(task_id: TaskId, payload: ResumeRequest, request: Request) 
             elif snapshot.interrupts or (snapshot.values and not snapshot.next):
                 raise AgentError(409, "RUN_NOT_FAILED", "该检查点不能手动重试")
             else:
-                command = None if snapshot.values else initial_state(spec)
+                command = None if snapshot.values else initial_state(spec, payload.input, payload.inputId)
             model = model_for(context.modelName, context.modelTimeoutSeconds)
         output = await graph.ainvoke(
             command, config=config, context=RunContext(gateway, spec, model), durability="sync",

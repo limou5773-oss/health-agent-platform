@@ -119,10 +119,10 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 - POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。
 - `ACTIVITY_PLAN` 使用同一创建接口，要求 AI 总授权及活动授权，填写实际执行日期 `planStartDate`、`planEndDate`，可指定 `stepSource`、`workoutSource`。内部 `get_combined_statistics` 只提供这两项活动指标。来源冲突时可用原任务补充接口重选；草稿、确认、版本和正式计划沿用既有接口。
 - COMBINED 任务创建及详情支持 `stepSource`、`workoutSource`、`weightSource`、`heartRateSource`。各字段可选，最长 100 字符。仅保存已授权指标的筛选值，追问沿用父任务的来源。
-- 等待补充的非追问 COMBINED 任务可通过 `POST /agent/tasks/{id}/input` 更新这些筛选值。空值保留当前选择，用户和分析日期沿用原任务，恢复后重新执行统计。
+- 等待补充的非追问 COMBINED 任务可通过 `POST /agent/tasks/{id}/input` 更新这些筛选值。空值保留当前选择，恢复后重新执行统计。
 - GET /agent/tasks → 当前用户TaskDetail概要数组（最多50条，按创建倒序）。
 - GET /agent/tasks/{id} → TaskDetail。
-- POST /agent/tasks/{id}/input {input,sourceName?} → 202 TaskDetail，待补充时继续同一任务；来源冲突时由用户明确选择sourceName，Java更新任务来源后恢复，模型不能擅自选择来源。
+- POST /agent/tasks/{id}/input {input,sourceName?,startDate?,endDate?} → 202 TaskDetail，待补充时继续同一任务。来源冲突由用户选择来源。非追问任务可同时提交两项日期，在当前分析范围内选取较短的区间。Java 保留任务编号和计划执行日期，清除旧范围的步骤、统计及 Python 检查点，再用新范围和本次补充执行。
 - PUT /agent/tasks/{id}/draft {version,title,reason,startDate,endDate,items} → TaskDetail，编辑只改草稿并递增版本，须WAITING_CONFIRMATION。
 - POST /agent/tasks/{id}/confirm {version,operationId} → {planId,taskId,status:"COMPLETED"}。锁任务行，校验有效草稿版本，同一任务最多一份正式计划，重复确认返回同份计划，旧版本409。
 - POST /agent/tasks/{id}/cancel → TaskDetail，取消后工具拒绝继续，已有正式结果不撤销。

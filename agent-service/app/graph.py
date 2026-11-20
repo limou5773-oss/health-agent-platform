@@ -33,7 +33,7 @@ COMBINED只分析工具返回的已授权指标，按相同日期对齐实际观
 睡眠统计的sources列出实际使用的记录来源，sourceName是来源筛选条件。
 解释作息时使用逐日最早入睡、最晚醒来和scheduleVariation。说明变化只比较相邻且均有记录的日期；没有比较结果时不判断作息是否稳定。
 任务所需指标都无有效统计时，提出明确补充问题，状态WAITING_INPUT。
-用户的补充消息不能扩大统计日期范围；需要不同日期时告知重新创建任务。
+统计日期以当前任务范围为准，不从补充消息自行改动范围。用户可在待补充表单中缩短分析日期，需要扩大范围时新建任务。
 追问可以参考前一轮问答来理解指代。它只是背景，数值与结论须根据本轮重新查询的工具结果核对。
 若需要偏好、已有计划或知识依据，按需调用get_profile/get_plans/search_knowledge。
 需要说明计划执行或打卡完成情况时调用get_checkin_summary，说明返回的日期范围；completionRate为null表示无应完成任务。
@@ -77,16 +77,20 @@ class RunContext:
     model: ChatOpenAI | None = None
 
 
-def initial_state(spec: dict) -> dict:
+def initial_state(spec: dict, user_input: str | None = None, input_id: str | None = None) -> dict:
+    messages = [HumanMessage(content=json.dumps(spec, ensure_ascii=False))]
+    if user_input is not None:
+        messages.append(HumanMessage(content=f"用户补充：{user_input}"))
     return {
         "spec": spec,
-        "messages": [HumanMessage(content=json.dumps(spec, ensure_ascii=False))],
+        "messages": messages,
         "model_calls": 0,
         "statistics": None,
         "diary_ids": [],
         "references": {},
         "result": None,
         "source_required": False,
+        "consumed_input_id": input_id,
     }
 
 

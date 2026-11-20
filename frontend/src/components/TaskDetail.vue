@@ -32,6 +32,13 @@ const sourceChanges = computed(() => Object.fromEntries(conflicts.value
   .filter(({ key }) => selectedSources.value[key])
   .map(({ key }) => [sourceFields[key], selectedSources.value[key]])));
 const hasSourceChanges = computed(() => Object.keys(sourceChanges.value).length > 0);
+const dateRange = ref<{ startDate: string; endDate: string } | null>(null);
+const hasNarrowerRange = computed(() => {
+  const range = dateRange.value;
+  const current = task.value;
+  return !!range?.startDate && !!range.endDate && !!current &&
+    (range.startDate !== current.startDate || range.endDate !== current.endDate);
+});
 let timer: number | undefined;
 let active = true;
 const feedbackBusy = ref(false);
@@ -95,11 +102,12 @@ async function action(name: "input" | "retry" | "cancel") {
         "POST",
         name === "input"
           ? {
-              input: hasSourceChanges.value && !input.value.trim()
-                ? "请按本次选择的来源重新查询并继续分析。"
+              input: (hasSourceChanges.value || hasNarrowerRange.value) && !input.value.trim()
+                ? "请按本次选择的范围和来源重新查询并继续。"
                 : input.value,
               ...(sourceName.value ? { sourceName: sourceName.value } : {}),
               ...sourceChanges.value,
+              ...(hasNarrowerRange.value ? dateRange.value : {}),
             }
           : undefined,
       ),
@@ -107,6 +115,7 @@ async function action(name: "input" | "retry" | "cancel") {
     input.value = "";
     sourceName.value = "";
     selectedSources.value = {};
+    dateRange.value = null;
     emit("changed");
     await load();
   } catch (cause) {
@@ -272,7 +281,7 @@ onUnmounted(() => {
         <label
           >补充说明<textarea
             v-model="input"
-            :required="!hasSourceChanges"
+            :required="!hasSourceChanges && !hasNarrowerRange"
             rows="3"
             maxlength="4000"
             placeholder="填写需要补充的信息"
@@ -292,6 +301,26 @@ onUnmounted(() => {
             <option v-for="source in metric.sources" :key="source" :value="source">{{ source }}</option>
           </select>
         </label>
+        <div v-if="!task.parentTaskId && task.startDate !== task.endDate">
+          <button v-if="!dateRange" type="button" class="secondary" :disabled="busy"
+            @click="dateRange = { startDate: task.startDate, endDate: task.endDate }">
+            缩短分析日期
+          </button>
+          <div v-else>
+            <div class="form-grid">
+              <label>分析开始日期
+                <input v-model="dateRange.startDate" type="date" :min="task.startDate"
+                  :max="dateRange.endDate || task.endDate" required :disabled="busy" />
+              </label>
+              <label>分析结束日期
+                <input v-model="dateRange.endDate" type="date" :min="dateRange.startDate || task.startDate"
+                  :max="task.endDate" required :disabled="busy" />
+              </label>
+            </div>
+            <p class="footnote">提交后按新日期重新取数，之前的统计和执行记录会被清除。</p>
+            <button type="button" class="secondary" :disabled="busy" @click="dateRange = null">保持当前日期</button>
+          </div>
+        </div>
         <button :disabled="busy">补充并继续</button>
       </form>
       <section v-if="task.answer" class="answer-section">
