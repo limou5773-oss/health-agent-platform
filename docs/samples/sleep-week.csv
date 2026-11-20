@@ -1,0 +1,8 @@
+startTime,endTime,sourceName,note
+2026-11-02T00:30:00,2026-11-02T06:30:00,Demo Sleep,Synthetic sample
+2026-11-02T23:30:00,2026-11-03T06:30:00,Demo Sleep,Synthetic overnight sample
+2026-11-03T22:30:00,2026-11-04T06:30:00,Demo Sleep,Synthetic sample
+2026-11-05T00:00:00,2026-11-05T06:30:00,Demo Sleep,Synthetic sample
+2026-11-05T23:00:00,2026-11-06T06:30:00,Demo Sleep,Synthetic sample
+2026-11-06T23:30:00,2026-11-07T06:30:00,Demo Sleep,Synthetic sample
+2026-11-07T23:30:00,2026-11-08T06:30:00,Demo Sleep,Synthetic sample

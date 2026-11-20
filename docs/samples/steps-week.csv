@@ -1,0 +1,5 @@
+startTime,endTime,steps,mode,sourceName,note
+2026-11-02T00:00:00,2026-11-02T21:00:00,4500,CUMULATIVE,Demo Steps,Synthetic sample
+2026-11-04T00:00:00,2026-11-04T21:00:00,6000,CUMULATIVE,Demo Steps,Synthetic sample
+2026-11-06T00:00:00,2026-11-06T21:00:00,7500,CUMULATIVE,Demo Steps,Synthetic sample
+2026-11-08T00:00:00,2026-11-08T21:00:00,6000,CUMULATIVE,Demo Steps,Synthetic sample

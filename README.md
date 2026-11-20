@@ -32,11 +32,13 @@ Vue 3 + Java 21 / Spring Boot + MyBatis XML + MySQL + FastAPI / LangGraph。以�
 
 注册普通账号后，在“健康档案”中明确开启模型分析授权。未配置外部模型时，普通录入、导入、统计和计划查询仍可使用；Agent 会报告配置缺失，不生成模拟健康分析。管理员只在同时提供 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 时初始化，没有默认管理员密码。
 
+启动后可按[演示与人工验收说明](docs/demo-guide.md)导入固定合成样例，演示睡眠改善、运动管理和综合周报，核对样例的统计结果。
+
 ## 数据与鉴权
 
 JWT 通过 `Authorization: Bearer <token>` 发送，签名、过期与账号状态在统一入口检查一次。前端保存于 `sessionStorage`，退出会清除；已签发令牌不提供额外的退出黑名单机制。业务按绑定用户身份隔离，模型不能指定其他用户。
 
-在“睡眠记录 → 可穿戴设备数据导入”选择来源App、品牌、手环或手表及型号，再选择通用CSV或苹果健康XML/ZIP，先预览再确认入库。小米、红米的Mi Fitness数据当前使用通用CSV；原始Mi Fitness导出包尚未适配，不支持直接上传。每批对应同一设备，设备说明保存在批次和正式记录中；不同设备应使用不同sourceName，设备说明不改变去重规则。详见[统一导入说明](docs/wearable-import.md)。
+在“睡眠记录 → 可穿戴设备数据导入”选择文件格式以及设备信息，先预览再确认入库。支持通用 CSV、苹果健康 XML/ZIP、小米运动健康（Mi Fitness）睡眠明细 CSV/ZIP 和华为运动健康专业睡眠明细 JSON。每批对应同一设备，设备说明保存在批次和正式记录中。通用 CSV 使用不同的 `sourceName` 区分设备。详见[统一导入说明](docs/wearable-import.md)。
 
 CSV表头为 `startTime,endTime,sourceName,note`，可下载空白模板；CSV最多10MB、10000行。苹果健康文件最多100MB、10000条睡眠记录，ZIP展开内容最多500MB、10000个条目，读取 `export.xml` 或 `apple_health_export/export.xml`。只将未分期、核心、深睡、REM计入睡眠，清醒、在床及其他指标跳过并计数，未知睡眠类型展示为不支持。
 
