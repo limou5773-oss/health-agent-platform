@@ -348,8 +348,13 @@ class CheckupItem(RequestModel):
     referenceRange: str = Field(max_length=200)
     location: str = Field(min_length=1, max_length=180)
     excerpt: str = Field(min_length=1, max_length=400)
+    pageNumber: int | None = Field(default=None, ge=1, le=5)
 
 
 class CheckupPreview(RequestModel):
     reportDate: date | None
     items: list[CheckupItem] = Field(max_length=50)
+
+
+class PagedCheckupPreview(CheckupPreview):
+    pageCount: int

@@ -33,7 +33,9 @@ public class CheckupServiceImpl implements CheckupService {
   }
 
   public Preview preview(Long userId, MultipartFile photo) {
-    Preview result = images.recognize(userId, photo, "/internal/model/checkup-photo", Preview.class);
+    Preview result = "application/pdf".equals(photo.getContentType())
+        ? images.recognizeCheckupPdf(userId, photo)
+        : images.recognize(userId, photo, "/internal/model/checkup-photo", Preview.class);
     if (result.items() == null || result.items().size() > 50
         || result.items().stream().anyMatch(item -> item == null || !validator.validate(item).isEmpty()))
       throw new ApiException(502, "INVALID_AGENT_RESULT", "体检报告提取结果格式无效");

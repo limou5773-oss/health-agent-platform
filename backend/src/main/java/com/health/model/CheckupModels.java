@@ -11,12 +11,13 @@ public final class CheckupModels {
 
   public record Item(@NotBlank @Size(max = 120) String name, @NotBlank @Size(max = 80) String value,
       @NotNull @Size(max = 50) String unit, @NotNull @Size(max = 200) String referenceRange,
-      @NotBlank @Size(max = 180) String location, @NotBlank @Size(max = 400) String excerpt) {}
+      @NotBlank @Size(max = 180) String location, @NotBlank @Size(max = 400) String excerpt,
+      @Min(1) @Max(5) Integer pageNumber) {}
 
   public record Draft(@NotNull LocalDate reportDate, @NotBlank @Size(max = 120) String title,
       @NotEmpty @Size(max = 50) List<@Valid @NotNull Item> items) {}
 
-  public record Preview(LocalDate reportDate, List<Item> items) {}
+  public record Preview(LocalDate reportDate, List<Item> items, Integer pageCount) {}
 
   public static class Report {
     public Long id;
