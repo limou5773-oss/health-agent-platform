@@ -2,11 +2,13 @@
 
 在「心率采样」录入、更正、删除及查询实际测量。时间按个人档案时区填写，精度为秒，统一使用次/分。更正保留来源并显示更正标记。同一用户、来源和测量时刻只保留一条记录。
 
-## CSV 导入
+## 文件导入
 
 页面提供 UTF-8 模板。列顺序为 `measuredAt,bpm,sourceName,note`，测量时间示例为 `2026-01-01T08:00:00`，备注可留空。小米、红米、苹果或其他设备的数据都可整理成同一模板。
 
-预览显示测量范围、来源、新增和重复条数。确认使用同一批已校验记录，事务内检查当前记录并写入。页面可查看最近 50 个批次和恢复未确认的预览。规则见[体重与心率 CSV 导入](measurement-imports.md)。设备原始心率文件解析尚未接入。
+也可以直接选择苹果健康 XML / ZIP 或 Mi Fitness CSV / ZIP。Mi Fitness 多设备文件须按设备来源 Sid 分批导入，测量时间转换到档案时区。
+
+预览显示测量范围、来源、新增和重复条数。确认使用同一批已校验记录，事务内检查当前记录并写入。页面可查看最近 50 个批次和恢复未确认的预览。规则见[体重与心率记录导入](measurement-imports.md)。
 
 ## 统计与时间线
 
@@ -14,7 +16,7 @@
 
 ## 接口与数据库
 
-接口位于 `/api/heart-rate`，沿用 JWT。已有库需执行 `database/migrations/022_heart_rate_samples.sql` 和 `database/migrations/023_measurement_imports.sql`，新库使用 `database/schema.sql`。表通过 `user_id` 逻辑关联。
+接口位于 `/api/heart-rate`，沿用 JWT。已有库需按顺序执行 `database/migrations/022_heart_rate_samples.sql`、`database/migrations/023_measurement_imports.sql` 和 `database/migrations/030_apple_measurement_import.sql` 中的对应迁移，新库使用 `database/schema.sql`。表通过 `user_id` 逻辑关联。
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |

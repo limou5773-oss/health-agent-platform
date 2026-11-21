@@ -6,6 +6,7 @@ import com.health.service.MeasurementImportService;
 import com.health.service.ImportAdminService;
 import com.health.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,11 +27,16 @@ public class MeasurementImportController {
 
   @PostMapping(value = "/preview", consumes = "multipart/form-data")
   public Preview upload(HttpServletRequest request, @PathVariable String module, @RequestPart MultipartFile file,
-      @RequestParam(defaultValue = "CSV") Format format) {
+      @RequestParam(defaultValue = "CSV") Format format,
+      @RequestParam(required = false) @Pattern(regexp = "[0-9]{1,32}") String miFitnessSid) {
     Long userId = Identity.user(request).id;
     Metric metric = metric(module);
     try {
-      return format == Format.APPLE_HEALTH ? service.previewApple(userId, metric, file) : service.preview(userId, metric, file);
+      return switch (format) {
+        case CSV -> service.preview(userId, metric, file);
+        case APPLE_HEALTH -> service.previewApple(userId, metric, file);
+        case MI_FITNESS -> service.previewMiFitness(userId, metric, file, miFitnessSid);
+      };
     } catch (ApiException e) {
       if (e.status == 400 || "MEASUREMENT_CONFLICT".equals(e.code)) {
         importAdmin.rejected(metric.importKind, userId, e.code);
@@ -40,7 +46,7 @@ public class MeasurementImportController {
     }
   }
 
-  public enum Format { CSV, APPLE_HEALTH }
+  public enum Format { CSV, APPLE_HEALTH, MI_FITNESS }
 
   @GetMapping("/{id}")
   public Preview preview(HttpServletRequest request, @PathVariable String module, @PathVariable Long id) {

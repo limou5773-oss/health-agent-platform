@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { api, errorMessage, json } from "../api";
+import { api, ApiError, errorMessage, json } from "../api";
 import { downloadImportTemplate, getImportTemplate } from "../import-template";
 import StateNotice from "./StateNotice.vue";
 
@@ -8,7 +8,7 @@ interface Batch {
   id: number;
   status: "PREVIEW" | "CONFIRMED";
   totalRows: number;
-  importFormat: "CSV" | "APPLE_HEALTH";
+  importFormat: "CSV" | "APPLE_HEALTH" | "MI_FITNESS";
   skippedRows: number;
   duplicateRows: number;
   insertedRows: number;
@@ -30,6 +30,12 @@ const metric = computed(() => props.module === "weight" ? "体重" : "心率");
 const unit = computed(() => props.module === "weight" ? "千克" : "次/分");
 const file = ref<File>();
 const format = ref<Batch["importFormat"]>("CSV");
+const formatLabels = { CSV: "CSV", APPLE_HEALTH: "苹果健康", MI_FITNESS: "Mi Fitness" };
+const usesMiFitnessArchive = computed(() => format.value === "MI_FITNESS" && /\.zip$/i.test(file.value?.name ?? ""));
+const sourceIds = ref<string[]>([]);
+const selectedSid = ref("");
+const zipPassword = ref("");
+const extractedCsv = ref<File>();
 const input = ref<HTMLInputElement>();
 const preview = ref<Preview>();
 const batches = ref<Batch[]>([]);
@@ -41,11 +47,21 @@ const historyLoading = ref(false);
 const templateBusy = ref(false);
 const templateError = ref("");
 const templateNote = ref("");
-watch(format, () => {
-  file.value = undefined;
+function resetPreview() {
   preview.value = undefined;
   error.value = "";
   message.value = "";
+}
+function resetFile() {
+  file.value = undefined;
+  sourceIds.value = [];
+  selectedSid.value = "";
+  zipPassword.value = "";
+  extractedCsv.value = undefined;
+}
+watch(format, () => {
+  resetFile();
+  resetPreview();
 });
 
 async function loadHistory() {
@@ -61,30 +77,49 @@ async function loadHistory() {
 }
 
 async function upload(selected: File) {
-  const body = new FormData();
-  body.append("file", selected);
-  await openPreview(`${path.value}/preview?format=${format.value}`, { method: "POST", body });
+  busy.value = true;
+  resetPreview();
+  try {
+    let uploadFile = selected;
+    if (usesMiFitnessArchive.value) {
+      if (!extractedCsv.value) {
+        const { extractMiFitnessCsv } = await import("../mi-fitness-archive");
+        extractedCsv.value = await extractMiFitnessCsv(selected, zipPassword.value);
+        zipPassword.value = "";
+      }
+      uploadFile = extractedCsv.value;
+    }
+    const body = new FormData();
+    body.append("file", uploadFile);
+    body.append("format", format.value);
+    if (selectedSid.value) body.append("miFitnessSid", selectedSid.value);
+    preview.value = await api<Preview>(`${path.value}/preview`, { method: "POST", body });
+    input.value!.value = "";
+    resetFile();
+    await loadHistory();
+  } catch (cause) {
+    if (cause instanceof ApiError && cause.code === "MI_FITNESS_SOURCE_REQUIRED" &&
+        Array.isArray(cause.details?.sourceIds)) {
+      sourceIds.value = cause.details.sourceIds;
+    } else {
+      error.value = errorMessage(cause);
+    }
+  } finally {
+    busy.value = false;
+  }
 }
 
 function selectFile(event: Event) {
+  resetFile();
+  resetPreview();
   file.value = (event.target as HTMLInputElement).files?.[0];
-  preview.value = undefined;
-  message.value = "";
-  error.value = "";
 }
 
-async function openPreview(url: string, options?: RequestInit) {
+async function openPreview(id: number) {
   busy.value = true;
-  preview.value = undefined;
-  message.value = "";
-  error.value = "";
+  resetPreview();
   try {
-    preview.value = await api<Preview>(url, options);
-    if (options) {
-      input.value!.value = "";
-      file.value = undefined;
-      await loadHistory();
-    }
+    preview.value = await api<Preview>(`${path.value}/${id}`);
   } catch (cause) {
     error.value = errorMessage(cause);
   } finally {
@@ -134,7 +169,8 @@ onMounted(loadHistory);
       <button v-if="format === 'CSV'" type="button" class="secondary" :disabled="templateBusy" @click="template">下载空白模板</button>
     </div>
     <p v-if="format === 'CSV'" class="muted">使用 UTF-8，测量时间按档案时区填写，如 2026-01-01T08:00:00。{{ metric }}单位为{{ unit }}。</p>
-    <p v-else class="muted">选择苹果健康的 export.xml 或导出 ZIP。本次仅读取{{ metric }}，原时间转换到档案时区。</p>
+    <p v-else-if="format === 'APPLE_HEALTH'" class="muted">选择苹果健康的 export.xml 或导出 ZIP。本次仅读取{{ metric }}，原时间转换到档案时区。</p>
+    <p v-else class="muted">选择小米运动健康导出的 ZIP 或健康明细 CSV。测量时间转换到档案时区。</p>
     <p v-if="templateNote" class="prose muted">{{ templateNote }}</p>
     <p v-if="templateError" class="feedback error" role="alert">{{ templateError }}</p>
     <form class="filter-bar" @submit.prevent="file && upload(file)">
@@ -142,11 +178,21 @@ onMounted(loadHistory);
         <select v-model="format" :disabled="busy">
           <option value="CSV">通用 CSV</option>
           <option value="APPLE_HEALTH">苹果健康 XML / ZIP</option>
+          <option v-if="props.module === 'heart-rate'" value="MI_FITNESS">Mi Fitness CSV / ZIP</option>
         </select>
       </label>
       <label>选择文件
-        <input :key="format" ref="input" type="file" :accept="format === 'CSV' ? '.csv,text/csv' : '.xml,.zip'" :disabled="busy" required
+        <input :key="format" ref="input" type="file" :accept="format === 'CSV' ? '.csv,text/csv' : format === 'MI_FITNESS' ? '.csv,.zip' : '.xml,.zip'" :disabled="busy" required
           @change="selectFile" />
+      </label>
+      <label v-if="usesMiFitnessArchive && !extractedCsv">ZIP 解压密码（如有）
+        <input v-model="zipPassword" type="password" autocomplete="off" :disabled="busy" />
+      </label>
+      <label v-if="sourceIds.length">本批设备来源
+        <select v-model="selectedSid" :disabled="busy" required @change="resetPreview">
+          <option value="" disabled>选择设备来源 Sid</option>
+          <option v-for="sid in sourceIds" :key="sid" :value="sid">{{ sid }}</option>
+        </select>
       </label>
       <button :disabled="busy || !file">上传并预览</button>
     </form>
@@ -157,12 +203,13 @@ onMounted(loadHistory);
       <p>测量时间 {{ time(preview.batch.firstMeasurement) }} 至 {{ time(preview.batch.lastMeasurement) }}</p>
       <p>来源 {{ preview.sources.join("、") }} · 可导入 {{ preview.batch.totalRows - preview.batch.duplicateRows }} 条 · 重复 {{ preview.batch.duplicateRows }} 条</p>
       <p v-if="preview.batch.importFormat === 'APPLE_HEALTH'">已跳过 {{ preview.batch.skippedRows }} 条其他指标记录。</p>
+      <p v-if="preview.batch.importFormat === 'MI_FITNESS'">已跳过 {{ preview.batch.skippedRows }} 条其他指标、其他设备或零值占位记录。</p>
       <details open>
         <summary>测量明细（文件内去重后，最多显示 20 条）</summary>
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th scope="col">{{ preview.batch.importFormat === "CSV" ? "CSV 位置（含表头）" : "记录序号" }}</th>
+              <th scope="col">{{ preview.batch.importFormat === "APPLE_HEALTH" ? "记录序号" : "CSV 位置（含表头）" }}</th>
               <th scope="col">测量时间（档案时区）</th><th scope="col">{{ metric }}（{{ unit }}）</th>
               <th scope="col">来源</th><th scope="col">备注</th>
             </tr></thead>
@@ -184,17 +231,17 @@ onMounted(loadHistory);
         <p v-if="!batches.length" class="muted">暂无导入批次。</p>
         <div v-else class="table-wrap">
           <table>
-            <thead><tr><th>批次</th><th>预览时间</th><th>文件行数</th><th>写入 / 重复</th><th>状态</th></tr></thead>
+            <thead><tr><th>批次</th><th>预览时间</th><th>测量条数</th><th>写入 / 重复</th><th>状态</th></tr></thead>
             <tbody>
               <tr v-for="batch in batches" :key="batch.id">
                 <td>#{{ batch.id }}</td>
                 <td>{{ time(batch.createdAt) }}</td>
-                <td>{{ batch.totalRows }} · {{ batch.importFormat === 'APPLE_HEALTH' ? '苹果健康' : 'CSV' }}</td>
+                <td>{{ batch.totalRows }} · {{ formatLabels[batch.importFormat] }}</td>
                 <td>{{ batch.status === "CONFIRMED" ? `${batch.insertedRows} / ${batch.duplicateRows}` : "—" }}</td>
                 <td>
                   <span v-if="batch.status === 'CONFIRMED'">已确认</span>
                   <button v-else type="button" class="secondary" :disabled="busy"
-                    @click="openPreview(`${path}/${batch.id}`)">继续确认</button>
+                    @click="openPreview(batch.id)">继续确认</button>
                 </td>
               </tr>
             </tbody>

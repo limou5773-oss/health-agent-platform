@@ -6,7 +6,7 @@
 
 | 数据来源 | 当前可导入文件 | 当前限制 |
 | --- | --- | --- |
-| Mi Fitness 中的小米、红米手环与手表 | Mi Fitness 导出 ZIP、健康明细 CSV，或对应指标的通用 CSV | 明细解析覆盖睡眠分期和分钟步数，真实设备样本待验收 |
+| Mi Fitness 中的小米、红米手环与手表 | Mi Fitness 导出 ZIP、健康明细 CSV，或对应指标的通用 CSV | 明细解析覆盖睡眠分期、分钟步数和心率采样，真实设备样本待验收 |
 | 苹果健康或写入苹果健康的设备 | export.xml 或规定目录的 ZIP | 支持在睡眠、步数、心率、体重页面分别导入，真实样本待用户验证 |
 | 华为运动健康 | 解压后的专业睡眠明细 JSON | 支持分期区间，单批对应一个设备，真实设备样本待验收 |
 | 其他来源 | 整理后的通用睡眠CSV | 不宣称支持其专用格式 |
@@ -37,6 +37,8 @@ ZIP 由浏览器本地读取，限 100 MB 和 10000 个条目。只提取唯一�
 
 在「运动管理 → 导入步数」选 Mi Fitness CSV / ZIP，可从同一明细文件读取 `Key=steps`。每条 `Value.steps` 对应从 Unix 秒 `Value.time` 开始的一分钟增量，缺少 `Value.time` 时使用行上的 `Time`。将区间换算为档案时区后，沿用步数预览的范围校验、区间冲突检查和重复确认。零值占位、其他指标及其他设备行计入跳过。档案时区的偏移切换或歧义会提示改用 UTC。多个来源按 Sid 分批确认。[公开明细字段说明](https://github.com/heshi2019/Mi-Fitness_DataAnalyze/blob/main/MiFitness_hlth_center_fitness_data.md) · [公开区间映射实现](https://github.com/soma-intelligence/open-health-sync/blob/cad8a65af0461f328931dbe65e03c635f701268c/connectors/xiaomi/mapper.go#L274)
 
+在「心率采样 → 导入心率记录」选 Mi Fitness CSV / ZIP，可读取 `heart_rate` 和 `single_heart_rate`。心率值取 `Value.bpm`，缺少时取 `Value.hr`。测量时间依次取 `Value.time`、`Value.date_time` 或行上的 `Time`，均为 Unix 秒。每批选一个 Sid，最多预览该来源 10000 条明细。ZIP 在浏览器解压，包上限 100 MB，提取的明细 CSV 上限 10 MB。其他设备、静息心率汇总、其他指标及零值占位计入跳过。错误和冲突提示对应 CSV 行，出现档案时区的夏令时歧义时提示改用 UTC。[公开明细字段说明](https://github.com/heshi2019/Mi-Fitness_DataAnalyze/blob/main/MiFitness_hlth_center_fitness_data.md#6-key-heart_rate心率数据) · [公开心率和时间映射](https://github.com/soma-intelligence/open-health-sync/blob/cad8a65af0461f328931dbe65e03c635f701268c/connectors/xiaomi/mapper.go#L132)
+
 [小米官方Mi Fitness数据导出说明](https://www.mi.com/ph/support/article/KA-11566/)
 
 [Open Health Sync 的公开导出字段说明](https://github.com/soma-intelligence/open-health-sync/blob/cad8a65af0461f328931dbe65e03c635f701268c/docs/connectors/xiaomi.md#7-mapping)
@@ -58,4 +60,4 @@ ZIP 由浏览器本地读取，限 100 MB 和 10000 个条目。只提取唯一�
 
 ## 验证分工
 
-开发运行 Java 编译打包、Vue 类型检查及生产构建。真实 Mi Fitness 文件验收由用户执行，需核对小米和红米设备样本的分期、醒来日期及重复导入结果。
+开发运行 Java 编译打包、Vue 类型检查及生产构建。真实 Mi Fitness 文件验收由用户执行，需核对小米和红米设备样本的分期、醒来日期、步数和心率，以及多设备选择与重复导入结果。

@@ -10,6 +10,7 @@ import com.health.model.MeasurementImportModels.*;
 import com.health.service.MeasurementImportService;
 import com.health.service.AccountService;
 import com.health.service.AppleHealthExportReader;
+import com.health.service.MiFitnessHeartRateImporter;
 import jakarta.validation.Validator;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -42,14 +43,16 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
   private final Validator validator;
   private final AccountService accounts;
   private final AppleHealthExportReader apple;
+  private final MiFitnessHeartRateImporter miFitness;
 
   public MeasurementImportServiceImpl(MeasurementImportMapper mapper, TaskMapper tasks, Validator validator,
-      AccountService accounts, AppleHealthExportReader apple) {
+      AccountService accounts, AppleHealthExportReader apple, MiFitnessHeartRateImporter miFitness) {
     this.mapper = mapper;
     this.tasks = tasks;
     this.validator = validator;
     this.accounts = accounts;
     this.apple = apple;
+    this.miFitness = miFitness;
   }
 
   @Transactional
@@ -135,6 +138,20 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
     return savePreview(userId, metric, batch, parsed);
   }
 
+  @Transactional
+  public Preview previewMiFitness(Long userId, Metric metric, MultipartFile file, String requestedSid) {
+    if (metric != Metric.HEART_RATE)
+      throw new ApiException(400, "UNSUPPORTED_IMPORT_FORMAT", "Mi Fitness 明细仅支持心率导入");
+    var profile = accounts.profile(userId);
+    if (profile == null) throw new ApiException(401, "ACCOUNT_UNAVAILABLE", "账号不可用");
+    var parsed = miFitness.parse(file, ZoneId.of(profile.timezone), requestedSid);
+    Batch batch = new Batch();
+    batch.importFormat = "MI_FITNESS";
+    batch.totalRows = parsed.rows().size();
+    batch.skippedRows = parsed.skippedRows();
+    return savePreview(userId, metric, batch, parsed.rows());
+  }
+
   private Preview savePreview(Long userId, Metric metric, Batch batch, List<Row> parsed) {
     record MeasurementKey(LocalDateTime measuredAt, String sourceName) {}
     var unique = new LinkedHashMap<MeasurementKey, Row>();
@@ -151,7 +168,8 @@ public class MeasurementImportServiceImpl implements MeasurementImportService {
         if (previous != null && previous.value().compareTo(row.value()) != 0)
           reason = "文件内同来源同一时刻有不同数值";
       }
-      if (reason != null) throw "CSV".equals(batch.importFormat) ? invalidRow(row.rowNumber(), reason) : appleRow(row.rowNumber(), reason);
+      if (reason != null)
+        throw "APPLE_HEALTH".equals(batch.importFormat) ? appleRow(row.rowNumber(), reason) : invalidRow(row.rowNumber(), reason);
     }
     batch.userId = userId;
     batch.metric = metric;
