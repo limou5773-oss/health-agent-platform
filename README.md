@@ -174,7 +174,7 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 ## Agent 分析追问
 
-已完成的睡眠分析或综合分析可沿用相同日期和来源继续追问。已有库执行 `database/migrations/027_agent_followups.sql`。详见[Agent 分析追问](docs/agent-followups.md)。
+已完成的分析、有效睡眠周报和已确认的 Agent 计划可沿用相同日期、授权和来源继续追问。已有库在适用的前序迁移后执行 `database/migrations/043_activity_followup.sql`。详见[Agent 分析追问](docs/agent-followups.md)。
 
 ## 开发约定
 

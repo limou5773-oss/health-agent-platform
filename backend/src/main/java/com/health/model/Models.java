@@ -115,7 +115,11 @@ public final class Models {
     }
 
     public static boolean usesCombinedStatistics(String kind) {
-      return "COMBINED".equals(kind) || "ACTIVITY_PLAN".equals(kind);
+      return "COMBINED".equals(kind) || activityOnly(kind);
+    }
+
+    public static boolean activityOnly(String kind) {
+      return "ACTIVITY_PLAN".equals(kind) || "ACTIVITY_ANALYZE".equals(kind);
     }
 
     public String id;

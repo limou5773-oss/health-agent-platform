@@ -16,7 +16,7 @@ public final class AgentPermissions {
     requireConsent(profile);
     boolean allowed = switch (kind) {
       case "COMBINED" -> profile.canAnalyzeCombined();
-      case "ACTIVITY_PLAN" -> profile.aiActivity;
+      case "ACTIVITY_PLAN", "ACTIVITY_ANALYZE" -> profile.aiActivity;
       default -> profile.aiSleep;
     };
     if (!allowed)

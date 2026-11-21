@@ -213,7 +213,7 @@ onUnmounted(() => {
           }}</span>
         </p>
         <RouterLink v-if="report.taskId" class="report-screen-only" :to="{ path: '/agent', query: { task: report.taskId } }">
-          查看生成任务
+          {{ report.sourceDeleted ? "查看生成任务" : "查看生成任务并追问" }}
         </RouterLink>
         <p v-if="report.includeDiary" class="footnote">
           生成时启用了授权日记背景，实际读取范围以正文说明为准。日记是用户自述，不作诊断；日记内容或授权变化会使相关报告失效。

@@ -49,7 +49,7 @@ public class InternalController {
     fields.put("timezone", profile.timezone);
     fields.put("goal", profile.goal);
     fields.put("preferences", profile.preferences);
-    if (!"ACTIVITY_PLAN".equals(task.kind)) {
+    if (!Task.activityOnly(task.kind)) {
       fields.put("heightCm", profile.heightCm);
       if (profile.aiWeight) fields.put("weightKg", profile.weightKg);
     }
@@ -59,8 +59,8 @@ public class InternalController {
   @GetMapping("/tools/sleep-statistics")
   public Statistics statistics(HttpServletRequest r) {
     Task t = (Task) r.getAttribute(TASK);
-    if ("ACTIVITY_PLAN".equals(t.kind))
-      throw new ApiException(403, "TOOL_NOT_ENABLED", "运动计划读取步数和运动统计");
+    if (Task.activityOnly(t.kind))
+      throw new ApiException(403, "TOOL_NOT_ENABLED", "此活动任务读取步数和运动统计");
     if (!((Profile) r.getAttribute(PROFILE)).aiSleep)
       throw new ApiException(403, "AI_METRIC_NOT_ALLOWED", "未授权睡眠分析");
     return sleep.statistics(t.userId, t.startDate, t.endDate, t.sourceName);

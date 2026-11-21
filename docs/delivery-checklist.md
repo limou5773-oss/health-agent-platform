@@ -8,7 +8,7 @@
 
 | 编号 | 状态 | 实现范围与依据 | 验收 |
 | --- | --- | --- | --- |
-| AG01 自然语言交互 | 部分完成 | 健康助手支持睡眠分析、综合分析、计划、睡眠周报和反馈。连续追问限已完成的两类分析，计划复盘走计划详情。[追问说明](agent-followups.md) · [健康助手页面](../frontend/src/pages/AgentPage.vue) | AC05、AC11 |
+| AG01 自然语言交互 | 部分完成 | 健康助手支持分析、计划、睡眠周报和反馈。已完成的分析、有效周报和已确认的 Agent 计划可继续追问。正式计划的周期复盘走计划详情。[追问说明](agent-followups.md) · [健康助手页面](../frontend/src/pages/AgentPage.vue) | AC05、AC11，另核对跨任务类型追问 |
 | AG02 目标理解与补问 | 已完成 | 可从目标文本识别任务类型和日期，缺失项由用户补充，创建后可在同一任务中补问、选择来源和缩短日期。[任务接口](api-contract.md) | AC06、AC11，另核对首次识别和补全日期 |
 | AG03 任务规划与调度 | 已完成 | LangGraph 调用真实工具并处理待补充和待确认，任务详情显示步骤与摘要。[任务图](../agent-service/app/graph.py) | AC06、AC10、AC11 |
 | AG04 真实业务工具调用 | 已完成 | Java 提供有范围的健康统计、睡眠明细、知识、计划、打卡和授权日记查询。[工具入口](../backend/src/main/java/com/health/api/InternalController.java) | AC05、AC15、AC17 |

@@ -5,7 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 TaskId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")]
-TaskKind = Literal["ANALYZE", "PLAN", "REPORT", "COMBINED", "ACTIVITY_PLAN"]
+CreatableTaskKind = Literal["ANALYZE", "PLAN", "REPORT", "COMBINED", "ACTIVITY_PLAN"]
+TaskKind = CreatableTaskKind | Literal["ACTIVITY_ANALYZE"]
 ResultStatus = Literal["COMPLETED", "WAITING_INPUT", "WAITING_CONFIRMATION"]
 
 
@@ -14,7 +15,7 @@ class RequestModel(BaseModel):
 
 
 class TaskIntent(RequestModel):
-    kind: TaskKind | None = None
+    kind: CreatableTaskKind | None = None
     startDate: date | None = None
     endDate: date | None = None
     planStartDate: date | None = None
@@ -85,6 +86,7 @@ class SavedPreference(BaseModel):
 class PreviousAnalysis(BaseModel):
     question: str
     answer: str
+    kind: TaskKind | None = None
 
 
 class TaskContext(TaskSpec):

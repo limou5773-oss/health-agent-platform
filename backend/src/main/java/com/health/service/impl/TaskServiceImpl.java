@@ -124,14 +124,41 @@ public class TaskServiceImpl implements TaskService {
     Identity.requireExisting(mapper.lockUser(uid));
     Task parent = owned(mapper.lock(parentId), uid);
     requireStatus(parent, "COMPLETED");
-    if (!Set.of("ANALYZE", "COMBINED").contains(parent.kind))
-      throw ApiException.conflict("仅已完成的睡眠分析和综合分析支持追问");
+    if (parent.templateId != null) throw ApiException.conflict("此计划来自本地模板，请新建分析任务");
     Profile profile = accounts.profile(uid);
     AgentPermissions.requireCurrent(profile, parent);
-    var request = new Requests.TaskCreate(question, parent.kind, parent.startDate, parent.endDate,
+    followupBackground(parent);
+    String analysisKind = switch (parent.kind) {
+      case "REPORT", "PLAN" -> "ANALYZE";
+      case "ACTIVITY_PLAN" -> "ACTIVITY_ANALYZE";
+      default -> parent.kind;
+    };
+    var request = new Requests.TaskCreate(question, analysisKind, parent.startDate, parent.endDate,
         parent.sourceName, null, null, parent.includeDiary,
         parent.stepSource, parent.workoutSource, parent.weightSource, parent.heartRateSource);
     return queue(uid, request, profile, parent.id);
+  }
+
+  private String followupBackground(Task parent) {
+    if ("REPORT".equals(parent.kind)) {
+      var report = plans.report(parent.userId, parent.reportId);
+      if (report == null || report.sourceDeleted) throw ApiException.conflict("原报告已失效或删除，请新建分析任务");
+      return report.content;
+    }
+    if (Task.isPlan(parent.kind)) {
+      if (parent.planId == null) throw ApiException.conflict("原计划尚未保存");
+      Requests.Draft confirmed = convert(read(parent.draftJson), Requests.Draft.class);
+      var snapshot = new LinkedHashMap<String, Object>();
+      snapshot.put("planId", parent.planId);
+      snapshot.put("title", confirmed.title());
+      snapshot.put("reason", confirmed.reason());
+      snapshot.put("startDate", confirmed.startDate());
+      snapshot.put("endDate", confirmed.endDate());
+      snapshot.put("items", confirmed.items().stream()
+          .map(item -> Map.of("date", item.date(), "time", item.time(), "title", item.title())).toList());
+      return json.valueToTree(snapshot).toString();
+    }
+    return parent.answer;
   }
 
   private Task queue(Long uid, Requests.TaskCreate r, Profile profile, String parentId) {
@@ -146,7 +173,7 @@ public class TaskServiceImpl implements TaskService {
     t.endDate = r.endDate();
     t.planStartDate = r.planStartDate();
     t.planEndDate = r.planEndDate();
-    t.sourceName = profile.aiSleep && !"ACTIVITY_PLAN".equals(t.kind) ? r.sourceName() : null;
+    t.sourceName = profile.aiSleep && !Task.activityOnly(t.kind) ? r.sourceName() : null;
     if (Task.usesCombinedStatistics(t.kind)) {
       t.stepSource = profile.aiActivity ? r.stepSource() : null;
       t.workoutSource = profile.aiActivity ? r.workoutSource() : null;
@@ -218,7 +245,7 @@ public class TaskServiceImpl implements TaskService {
     }
     t.pendingInput = r.input();
     t.operationId = UUID.randomUUID().toString();
-    if (t.parentTaskId == null && profile.aiSleep && !"ACTIVITY_PLAN".equals(t.kind)
+    if (t.parentTaskId == null && profile.aiSleep && !Task.activityOnly(t.kind)
         && r.sourceName() != null && !r.sourceName().isBlank())
       t.sourceName = r.sourceName();
     if (t.parentTaskId == null && Task.usesCombinedStatistics(t.kind)) {
@@ -391,7 +418,8 @@ public class TaskServiceImpl implements TaskService {
       Task parent = owned(mapper.get(t.parentTaskId), t.userId);
       AgentPermissions.requireCurrent(p, parent);
       requireStatus(parent, "COMPLETED");
-      result.put("previousAnalysis", Map.of("question", parent.goal, "answer", parent.answer));
+      result.put("previousAnalysis", Map.of("question", parent.goal, "answer", followupBackground(parent),
+          "kind", parent.kind));
     }
     var runtime = systemSettings.get();
     result.put("modelName", runtime.modelName());

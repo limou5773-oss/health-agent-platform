@@ -45,6 +45,7 @@ let active = true;
 const feedbackBusy = ref(false);
 const feedbackError = ref("");
 const followupQuestion = ref("");
+const isActivityOnly = computed(() => task.value?.kind === "ACTIVITY_PLAN" || task.value?.kind === "ACTIVITY_ANALYZE");
 async function askFollowup() {
   busy.value = true;
   actionError.value = "";
@@ -222,11 +223,11 @@ onUnmounted(() => {
           <dt>计划周期</dt>
           <dd>{{ task.planStartDate }} 至 {{ task.planEndDate }}</dd>
         </div>
-        <div v-if="!task.templateId && task.kind !== 'ACTIVITY_PLAN'">
+        <div v-if="!task.templateId && !isActivityOnly">
           <dt>睡眠来源</dt>
           <dd>{{ task.sourceName || "未指定；多来源冲突时需要补充" }}</dd>
         </div>
-        <template v-if="task.kind === 'COMBINED' || task.kind === 'ACTIVITY_PLAN'">
+        <template v-if="task.kind === 'COMBINED' || isActivityOnly">
           <div v-if="task.stepSource"><dt>步数来源</dt><dd>{{ task.stepSource }}</dd></div>
           <div v-if="task.workoutSource"><dt>运动来源</dt><dd>{{ task.workoutSource }}</dd></div>
           <div v-if="task.weightSource"><dt>体重来源</dt><dd>{{ task.weightSource }}</dd></div>
@@ -263,7 +264,7 @@ onUnmounted(() => {
       <p v-if="task.aiConsentRevoked" class="feedback" role="status">
         此任务使用的 AI 授权已撤回。如需继续分析，请按当前授权新建任务。
       </p>
-      <p v-if="task.status === 'CANCELLED' && task.kind === 'ACTIVITY_PLAN' && task.error"
+      <p v-if="task.status === 'CANCELLED' && isActivityOnly && task.error"
         class="feedback" role="status">{{ task.error }}</p>
       <div v-if="task.status === 'FAILED'" class="feedback error" role="alert">
         <strong>任务未完成</strong>
@@ -295,7 +296,7 @@ onUnmounted(() => {
             maxlength="4000"
             placeholder="填写需要补充的信息"
           /></label
-        ><label v-if="!task.parentTaskId && task.kind !== 'COMBINED' && task.kind !== 'ACTIVITY_PLAN'"
+        ><label v-if="!task.parentTaskId && task.kind !== 'COMBINED' && !isActivityOnly"
           >指定数据来源（需要时选择）<select v-model="sourceName">
             <option value="">保持当前来源</option>
             <option v-for="source in sources" :key="source">
@@ -356,14 +357,15 @@ onUnmounted(() => {
         @updated="update"
         @confirmed="confirmed"
       />
-      <form v-if="!task.aiConsentRevoked && task.status === 'COMPLETED' && (task.kind === 'ANALYZE' || task.kind === 'COMBINED')"
+      <form v-if="!task.aiConsentRevoked && task.status === 'COMPLETED' && !task.templateId &&
+        (task.kind !== 'REPORT' || task.reportId)"
         class="supplement-form" @submit.prevent="askFollowup">
         <label>继续追问
           <textarea v-model="followupQuestion" required maxlength="2000" rows="3"
             :disabled="busy" aria-describedby="followup-scope" />
         </label>
         <p id="followup-scope" class="small muted">
-          沿用 {{ task.startDate }} 至 {{ task.endDate }} 和原来源筛选，重新查询数据。
+          沿用 {{ task.startDate }} 至 {{ task.endDate }} 和原来源筛选，重新查询数据。追问为只读分析。
         </p>
         <button :disabled="busy">发送追问</button>
       </form>

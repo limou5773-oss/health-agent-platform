@@ -40,7 +40,7 @@ public class CombinedAnalysisServiceImpl implements CombinedAnalysisService {
     var start = task.startDate;
     var end = task.endDate;
     Long userId = task.userId;
-    boolean activityOnly = "ACTIVITY_PLAN".equals(task.kind);
+    boolean activityOnly = Task.activityOnly(task.kind);
     var filters = new Generate(null, null, task.sourceName, task.stepSource, task.workoutSource,
         null, null, task.weightSource, task.heartRateSource);
     var sources = reports.reportSources(userId, start, end, filters).stream()

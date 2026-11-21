@@ -65,7 +65,8 @@
  <update id="detachPlans">UPDATE plans SET task_id=NULL WHERE task_id=#{id}</update>
  <update id="detachReports">UPDATE reports SET task_id=NULL WHERE task_id=#{id}</update>
  <select id="affected" resultType="com.health.model.Models$Task">
-  SELECT * FROM agent_tasks WHERE user_id=#{userId} AND template_id IS NULL AND kind != 'ACTIVITY_PLAN'
+  SELECT * FROM agent_tasks WHERE user_id=#{userId} AND template_id IS NULL
+    AND kind NOT IN ('ACTIVITY_PLAN','ACTIVITY_ANALYZE')
     AND start_date &lt;= #{date} AND end_date &gt;= #{date}
     AND (source_name IS NULL OR source_name='' OR source_name=#{source}) FOR UPDATE
  </select>
@@ -87,7 +88,7 @@
  </select>
  <select id="affectedCombined" resultType="com.health.model.Models$Task">
   SELECT * FROM agent_tasks WHERE user_id=#{userId}
-    AND kind IN ('COMBINED'<if test="includeActivityPlans">,'ACTIVITY_PLAN'</if>)
+    AND kind IN ('COMBINED'<if test="includeActivityPlans">,'ACTIVITY_PLAN','ACTIVITY_ANALYZE'</if>)
     AND start_date &lt;= #{end} AND end_date &gt;= #{start}
   ORDER BY id FOR UPDATE
  </select>
