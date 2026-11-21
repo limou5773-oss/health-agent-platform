@@ -34,6 +34,8 @@ Vue 3 + Java 21 / Spring Boot + MyBatis XML + MySQL + FastAPI / LangGraph。以�
 
 启动后可按[演示与人工验收说明](docs/demo-guide.md)导入固定合成样例，演示睡眠改善、运动管理和综合周报，核对样例的统计结果。
 
+逐项实现范围、验收用例和待实测项目见[需求交付清单](docs/delivery-checklist.md)。
+
 ## 数据与鉴权
 
 JWT 通过 `Authorization: Bearer <token>` 发送，签名、过期与账号状态在统一入口检查一次。前端保存于 `sessionStorage`，退出会清除；已签发令牌不提供额外的退出黑名单机制。业务按绑定用户身份隔离，模型不能指定其他用户。
