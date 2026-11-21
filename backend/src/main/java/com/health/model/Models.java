@@ -157,6 +157,8 @@ public final class Models {
     public JsonNode knowledgeEvidence;
     public List<Long> publishedReferenceIds;
     public List<Step> steps;
+    public Long firstStepMs;
+    public Long durationMs;
   }
 
   public static class Step {

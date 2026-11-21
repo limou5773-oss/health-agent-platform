@@ -389,7 +389,10 @@ public class TaskServiceImpl implements TaskService {
         || !current.taskToken.equals(t.taskToken)) {
       throw ApiException.conflict("任务已结束或状态已变化，不能写入步骤");
     }
-    return insertStep(t.id, r);
+    Long stepId = insertStep(t.id, r);
+    if (current.firstStepMs == null && current.pendingInput == null)
+      mapper.recordFirstStep(t.id, stepId);
+    return stepId;
   }
 
   private Long insertStep(String taskId, Requests.Step r) {

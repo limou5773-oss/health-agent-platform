@@ -240,6 +240,14 @@ onUnmounted(() => {
             }}</span>
           </dd>
         </div>
+        <div v-if="!task.templateId">
+          <dt>首步反馈</dt>
+          <dd>{{ task.firstStepMs === null ? "暂无采样" : `${task.firstStepMs} 毫秒` }}</dd>
+        </div>
+        <div v-if="!task.templateId">
+          <dt>累计执行耗时</dt>
+          <dd>{{ task.durationMs === null ? "暂无采样" : `${task.durationMs} 毫秒` }}</dd>
+        </div>
       </dl>
       <p v-if="task.includeDiary" class="footnote">
         本次允许读取分析日期内逐条授权的日记，最多最近 20

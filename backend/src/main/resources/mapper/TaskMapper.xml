@@ -22,6 +22,14 @@
  <update id="addDuration">
   UPDATE agent_tasks SET duration_ms=COALESCE(duration_ms,0)+#{elapsedMs} WHERE id=#{id}
  </update>
+ <update id="recordFirstStep">
+  UPDATE agent_tasks t JOIN agent_steps s ON s.id=#{stepId} AND s.task_id=t.id
+  SET t.first_step_ms=TIMESTAMPDIFF(MICROSECOND,t.created_at,s.created_at) DIV 1000
+  WHERE t.id=#{id} AND NOT EXISTS (
+    SELECT 1 FROM agent_steps earlier WHERE earlier.task_id=t.id AND earlier.id &lt; s.id
+      AND earlier.name NOT IN ('任务执行失败','提交手动重试')
+  )
+ </update>
  <select id="list" resultType="com.health.model.Models$Task">SELECT * FROM agent_tasks WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT 50</select>
  <select id="descendants" resultType="com.health.model.Models$Task">
   WITH RECURSIVE related AS (

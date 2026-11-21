@@ -4,7 +4,7 @@
   <sql id="createdWindow">created_at &gt;= #{start} AND created_at &lt; #{until}</sql>
   <sql id="taskFilter"><include refid="createdWindow"/> AND status=#{status}</sql>
   <select id="tasks" resultType="com.health.model.RuntimeStats$TaskRow">
-    SELECT id,kind,created_at,duration_ms FROM agent_tasks WHERE <include refid="taskFilter"/>
+    SELECT id,kind,created_at,duration_ms,first_step_ms FROM agent_tasks WHERE <include refid="taskFilter"/>
     ORDER BY created_at DESC,id DESC LIMIT #{size} OFFSET #{offset}
   </select>
   <select id="taskCount" resultType="long">
@@ -15,7 +15,8 @@
     WHERE <include refid="createdWindow"/> GROUP BY status ORDER BY status
   </select>
   <select id="timing" resultType="com.health.model.RuntimeStats$Timing">
-    SELECT COUNT(duration_ms) AS timed_tasks,ROUND(AVG(duration_ms),2) AS average_duration_ms
+    SELECT COUNT(duration_ms) AS timed_tasks,ROUND(AVG(duration_ms),2) AS average_duration_ms,
+      COUNT(first_step_ms) AS first_step_tasks,ROUND(AVG(first_step_ms),2) AS average_first_step_ms
     FROM agent_tasks WHERE <include refid="createdWindow"/>
   </select>
   <select id="toolFailures" resultType="com.health.model.RuntimeStats$ToolFailure">

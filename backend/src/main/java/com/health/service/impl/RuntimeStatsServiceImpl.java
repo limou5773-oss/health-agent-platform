@@ -43,7 +43,8 @@ public class RuntimeStatsServiceImpl implements RuntimeStatsService {
     var completion = mapper.completion(start, until);
     return new RuntimeStats(start, end, statuses, timing.timedTasks(), timing.averageDurationMs(),
         percent(completed, terminal), mapper.toolFailures(start, until), mapper.imports(start, until),
-        completion.scheduled(), completion.completed(), percent(completion.completed(), completion.scheduled()));
+        completion.scheduled(), completion.completed(), percent(completion.completed(), completion.scheduled()),
+        timing.firstStepTasks(), timing.averageFirstStepMs());
   }
 
   private static BigDecimal percent(long count, long total) {

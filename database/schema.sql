@@ -142,7 +142,7 @@ CREATE TABLE agent_tasks (
  statistics_json JSON, draft_json JSON, knowledge_evidence_json JSON, task_token VARCHAR(100) NOT NULL, pending_input VARCHAR(4000),
  plan_id BIGINT, report_id BIGINT, confirmed_version INT, operation_id VARCHAR(100),
  template_id BIGINT, template_version INT,
- duration_ms BIGINT,
+ duration_ms BIGINT, first_step_ms BIGINT,
  confirmed_at DATETIME(6), feedback ENUM('HELPFUL','NOT_HELPFUL'), feedback_at DATETIME(6),
  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

@@ -205,6 +205,8 @@ export interface TaskDetail extends CombinedTaskSources {
   error: string | null;
   retryable: boolean;
   aiConsentRevoked: boolean;
+  firstStepMs: number | null;
+  durationMs: number | null;
   statistics: SleepStatistics | CombinedStatistics | null;
   knowledgeEvidence?: { matchedCount: number; references: KnowledgeReference[] } | null;
   publishedReferenceIds?: number[] | null;

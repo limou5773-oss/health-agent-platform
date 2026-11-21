@@ -12,6 +12,8 @@ type Stats = {
   taskStatuses: { status: string; count: number }[];
   timedTasks: number;
   averageDurationMs: number | null;
+  firstStepTasks: number;
+  averageFirstStepMs: number | null;
   completionRate: number | null;
   toolFailures: { tool: string; count: number }[];
   imports: { kind: ImportKind; batches: number; confirmed: number; rejected: number; inputRows: number; insertedRows: number }[];
@@ -24,7 +26,7 @@ const stats = ref<Stats | null>(null);
 const loading = ref(true);
 const error = ref("");
 const taskStates = ["COMPLETED", "FAILED", "CANCELLED", "QUEUED", "RUNNING", "WAITING_INPUT", "WAITING_CONFIRMATION"];
-type TaskRow = { id: string; kind: string; createdAt: string; durationMs: number | null };
+type TaskRow = { id: string; kind: string; createdAt: string; durationMs: number | null; firstStepMs: number | null };
 const taskStatus = ref("");
 const taskPage = ref(1);
 const taskRows = ref<Page<TaskRow> | null>(null);
@@ -101,7 +103,10 @@ onMounted(load);
       <p>平均执行耗时 <strong>{{ stats.averageDurationMs === null ? "暂无采样" : `${(stats.averageDurationMs / 1000).toFixed(2)} 秒` }}</strong>
         <span class="muted"> · {{ stats.timedTasks }} 项已采样任务</span>
       </p>
-      <p class="muted">按任务创建日期归集当前状态。完成率以完成、失败及取消数之和为分母。耗时累计实际执行轮次。</p>
+      <p>平均首步反馈 <strong>{{ stats.averageFirstStepMs === null ? "暂无采样" : `${(stats.averageFirstStepMs / 1000).toFixed(2)} 秒` }}</strong>
+        <span class="muted"> · {{ stats.firstStepTasks }} 项已采样任务</span>
+      </p>
+      <p class="muted">按任务创建日期归集当前状态。完成率以完成、失败及取消数之和为分母。首步从任务创建计时，执行耗时累计实际执行轮次。</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th scope="col">状态</th><th scope="col">任务数</th><th scope="col">核对</th></tr></thead>
@@ -123,11 +128,12 @@ onMounted(load);
         <div v-if="taskRows?.items.length" class="table-wrap">
           <table>
             <thead><tr><th scope="col">任务编号</th><th scope="col">类型</th><th scope="col">创建时间</th>
-              <th scope="col">执行耗时</th><th scope="col">操作</th></tr></thead>
+              <th scope="col">首步反馈</th><th scope="col">执行耗时</th><th scope="col">操作</th></tr></thead>
             <tbody>
               <tr v-for="task in taskRows.items" :key="task.id">
                 <td>#{{ task.id }}</td><td>{{ kindText[task.kind] }}</td>
                 <td>{{ task.createdAt.replace("T", " ").slice(0, 19) }}</td>
+                <td>{{ task.firstStepMs === null ? "暂无采样" : `${(task.firstStepMs / 1000).toFixed(2)} 秒` }}</td>
                 <td>{{ task.durationMs === null ? "暂无采样" : `${(task.durationMs / 1000).toFixed(2)} 秒` }}</td>
                 <td><button type="button" class="text-button" @click="auditId = task.id">查看审计</button></td>
               </tr>

@@ -21,6 +21,7 @@ public interface TaskMapper {
   List<TaskAudit.Step> auditSteps(String id);
   void saveFeedback(@Param("id") String id, @Param("feedback") TaskAudit.Feedback feedback);
   void addDuration(@Param("id") String id, @Param("elapsedMs") long elapsedMs);
+  void recordFirstStep(@Param("id") String id, @Param("stepId") Long stepId);
 
   void delete(String id);
 
