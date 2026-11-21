@@ -28,6 +28,13 @@ public class TaskController {
     return service.create(Identity.user(r).id, q);
   }
 
+  @PostMapping("/interpret")
+  public TaskIntent interpret(HttpServletRequest r, @Valid @RequestBody GoalInput q) {
+    return service.interpret(Identity.user(r).id, q.goal());
+  }
+
+  public record GoalInput(@NotBlank @Size(max = 2000) String goal) {}
+
   @GetMapping
   public List<Task> list(HttpServletRequest r) {
     return service.list(Identity.user(r).id);

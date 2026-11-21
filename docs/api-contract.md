@@ -117,6 +117,7 @@ Agent须同时具备档案AI授权、任务includeDiary=true和日记agentAllowe
 ## Agent任务
 
 - POST /agent/tasks {goal,kind,startDate,endDate,sourceName?,planStartDate?,planEndDate?,includeDiary?} → 202 TaskDetail；includeDiary默认为false，显式开启后只允许读取逐条授权的日记。kind ANALYZE / PLAN / REPORT。startDate/endDate为读取历史健康数据的分析窗口。PLAN另须传入planStartDate/planEndDate作为实际执行周期，最多31天；非PLAN省略这两项。P0不猜用户日期。
+- POST /agent/tasks/interpret {goal} → 200，返回可空的 `kind`、分析起止日期、计划起止日期及补问。需本人 JWT 及 AI 总授权。仅在用户主动点击识别时向模型发送目标文本和档案时区下的当天日期。用户可编辑结果，实际创建仍使用独立接口和相应指标授权。识别过程不创建任务、检查点或正式计划。
 - `ACTIVITY_PLAN` 使用同一创建接口，要求 AI 总授权及活动授权，填写实际执行日期 `planStartDate`、`planEndDate`，可指定 `stepSource`、`workoutSource`。内部 `get_combined_statistics` 只提供这两项活动指标。来源冲突时可用原任务补充接口重选；草稿、确认、版本和正式计划沿用既有接口。
 - COMBINED 任务创建及详情支持 `stepSource`、`workoutSource`、`weightSource`、`heartRateSource`。各字段可选，最长 100 字符。仅保存已授权指标的筛选值，追问沿用父任务的来源。
 - 等待补充的非追问 COMBINED 任务可通过 `POST /agent/tasks/{id}/input` 更新这些筛选值。空值保留当前选择，恢复后重新执行统计。

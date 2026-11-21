@@ -13,6 +13,23 @@ class RequestModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class TaskIntent(RequestModel):
+    kind: TaskKind | None = None
+    startDate: date | None = None
+    endDate: date | None = None
+    planStartDate: date | None = None
+    planEndDate: date | None = None
+    question: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def ranges(self) -> Self:
+        if self.startDate and self.endDate and not 0 <= (self.endDate - self.startDate).days < 366:
+            raise ValueError("分析日期范围必须为1至366天")
+        if self.planStartDate and self.planEndDate and not 0 <= (self.planEndDate - self.planStartDate).days < 31:
+            raise ValueError("计划日期范围必须为1至31天")
+        return self
+
+
 class TaskSpec(BaseModel):
     goal: str = Field(min_length=1, max_length=2000)
     kind: TaskKind

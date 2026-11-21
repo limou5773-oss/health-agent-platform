@@ -106,6 +106,9 @@ public final class Models {
     @JsonIgnore public String dedupKey;
   }
 
+  public record TaskIntent(String kind, LocalDate startDate, LocalDate endDate,
+      LocalDate planStartDate, LocalDate planEndDate, String question) {}
+
   public static class Task {
     public static boolean isPlan(String kind) {
       return "PLAN".equals(kind) || "ACTIVITY_PLAN".equals(kind);

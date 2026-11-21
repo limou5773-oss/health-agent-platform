@@ -10,6 +10,7 @@ import java.util.*;
 
 public interface TaskService {
   Task create(Long uid, Requests.TaskCreate r);
+  TaskIntent interpret(Long uid, String goal);
   Task followup(Long uid, String parentId, String question);
   Task createTemplateDraft(Long uid, Template template, Requests.Draft draft);
 

@@ -24,7 +24,7 @@ const planEnd = new Date(planStart);
 planEnd.setDate(planEnd.getDate() + 6);
 const form = reactive({
   goal: "",
-  kind: "ANALYZE",
+  kind: "ANALYZE" as Task["kind"] | "",
   ...recentRange(),
   sourceName: "",
   includeDiary: false,
@@ -50,6 +50,18 @@ const profile = ref<Profile | null>(null),
   error = ref(""),
   actionError = ref(""),
   busy = ref(false);
+const interpreting = ref(false);
+const intentNotice = ref("");
+watch(() => form.goal, () => { intentNotice.value = ""; });
+
+type TaskIntent = {
+  kind: Task["kind"] | null;
+  startDate: string | null;
+  endDate: string | null;
+  planStartDate: string | null;
+  planEndDate: string | null;
+  question: string | null;
+};
 const selected = computed(() => {
   const id = route.query.task;
   return typeof id === "string" && id ? id : null;
@@ -79,12 +91,32 @@ async function loadCombinedSources() {
 watch(availableSourceFields, loadCombinedSources);
 const canCreate = computed(() => {
   const allowed = profile.value;
-  if (!allowed?.aiConsent) return false;
+  if (!allowed?.aiConsent || !form.kind) return false;
   if (isActivityPlan.value) return allowed.aiActivity;
   return form.kind === "COMBINED"
     ? allowed.aiSleep || allowed.aiActivity || allowed.aiWeight || allowed.aiHeartRate
     : allowed.aiSleep;
 });
+async function interpret() {
+  interpreting.value = true;
+  actionError.value = "";
+  intentNotice.value = "";
+  try {
+    const intent = await api<TaskIntent>("/agent/tasks/interpret", json("POST", { goal: form.goal }));
+    form.kind = intent.kind ?? "";
+    form.startDate = intent.startDate ?? "";
+    form.endDate = intent.endDate ?? "";
+    if (isPlan.value) {
+      form.planStartDate = intent.planStartDate ?? "";
+      form.planEndDate = intent.planEndDate ?? "";
+    }
+    intentNotice.value = intent.question || "请核对已识别的任务类型和日期，补齐空项后创建任务。";
+  } catch (cause) {
+    actionError.value = errorMessage(cause);
+  } finally {
+    interpreting.value = false;
+  }
+}
 async function load() {
   loading.value = true;
   error.value = "";
@@ -176,12 +208,22 @@ onMounted(load);
             rows="3"
             required
             maxlength="2000"
+            :disabled="interpreting"
             placeholder="描述你的问题、目标，以及需要注意的偏好"
           />
         </label>
+        <div class="actions">
+          <button type="button" class="secondary"
+            :disabled="busy || interpreting || !profile?.aiConsent || !form.goal.trim()" @click="interpret">
+            {{ interpreting ? "正在识别…" : "识别任务类型和日期" }}
+          </button>
+          <span class="small muted">识别会将本次目标文本发送给已配置的模型。</span>
+        </div>
+        <p v-if="intentNotice" class="feedback" role="status">{{ intentNotice }}</p>
         <div class="form-grid three">
           <label
-            >任务类型<select v-model="form.kind">
+            >任务类型<select v-model="form.kind" required :disabled="interpreting">
+              <option value="" disabled>请选择任务类型</option>
               <option value="ANALYZE">睡眠分析</option>
               <option value="COMBINED">综合分析</option>
               <option value="PLAN">制定计划</option>
@@ -193,14 +235,16 @@ onMounted(load);
               v-model="form.startDate"
               type="date"
               required
+              :disabled="interpreting"
               :max="form.endDate" /></label
           ><label
             >分析结束日期<input
               v-model="form.endDate"
               type="date"
               required
+              :disabled="interpreting"
               :min="form.startDate"
-              :max="dateAfter(form.startDate, 365)" /></label
+              :max="form.startDate ? dateAfter(form.startDate, 365) : undefined" /></label
           ><label v-if="profile?.aiSleep && !isActivityPlan"
             >睡眠数据来源<select v-model="form.sourceName">
               <option value="">全部来源（冲突时补充选择）</option>
@@ -214,14 +258,16 @@ onMounted(load);
                 v-model="form.planStartDate"
                 type="date"
                 required
+                :disabled="interpreting"
                 :max="form.planEndDate" /></label
             ><label
               >计划执行结束日期<input
                 v-model="form.planEndDate"
                 type="date"
                 required
+                :disabled="interpreting"
                 :min="form.planStartDate"
-                :max="dateAfter(form.planStartDate, 30)" /></label
+                :max="form.planStartDate ? dateAfter(form.planStartDate, 30) : undefined" /></label
           ></template>
         </div>
         <p v-if="form.kind === 'COMBINED'" class="footnote">
@@ -260,10 +306,10 @@ onMounted(load);
         <p v-if="actionError" class="feedback error" role="alert">
           {{ actionError }}
         </p>
-        <p v-if="profile?.aiConsent && !canCreate" class="feedback">
+        <p v-if="profile?.aiConsent && form.kind && !canCreate" class="feedback">
           请在个人档案中授权当前任务所需的指标。
         </p>
-        <button :disabled="busy || !canCreate">
+        <button :disabled="busy || interpreting || !canCreate">
           {{ busy ? "正在创建…" : "创建任务" }}<ArrowUpRight :size="16" />
         </button>
       </form>

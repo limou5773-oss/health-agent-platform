@@ -49,6 +49,7 @@ public class TaskServiceImpl implements TaskService {
   private final TransactionTemplate tx;
   private final RestClient agent;
   private final RestClient cleanup;
+  private final RestClient model;
 
   public TaskServiceImpl(
       TaskMapper mapper,
@@ -84,6 +85,30 @@ public class TaskServiceImpl implements TaskService {
     var client = RestClient.builder().baseUrl(url).defaultHeader("X-Service-Key", key);
     this.agent = client.requestFactory(factory).build();
     this.cleanup = client.requestFactory(cleanupFactory).build();
+    var modelFactory = new JdkClientHttpRequestFactory(http);
+    modelFactory.setReadTimeout(Duration.ofSeconds(95));
+    this.model = client.requestFactory(modelFactory).build();
+  }
+
+  public TaskIntent interpret(Long uid, String goal) {
+    Profile profile = accounts.profile(uid);
+    AgentPermissions.requireConsent(profile);
+    var config = systemSettings.get();
+    var today = LocalDate.now(ZoneId.of(profile.timezone));
+    TaskIntent result;
+    try {
+      result = model.post().uri("/internal/model/task-intent")
+          .body(Map.of("goal", goal, "today", today, "modelName", config.modelName(),
+              "timeoutSeconds", config.modelTimeoutSeconds()))
+          .retrieve().body(TaskIntent.class);
+    } catch (RestClientException e) {
+      throw new ApiException(502, "TASK_INTENT_UNAVAILABLE", failure(e).message());
+    }
+    if (result == null) throw invalidResult("未收到任务识别结果");
+    accounts.identity(uid);
+    if (accounts.profile(uid).aiConsentVersion != profile.aiConsentVersion)
+      throw new ApiException(403, "AI_CONSENT_CHANGED", "AI授权已变化，请重新识别任务");
+    return result;
   }
 
   @Transactional

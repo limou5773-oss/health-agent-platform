@@ -7,9 +7,13 @@ import com.health.model.Models.Task;
 public final class AgentPermissions {
   private AgentPermissions() {}
 
-  public static void require(Profile profile, String kind, boolean includeDiary) {
+  public static void requireConsent(Profile profile) {
     if (!profile.aiConsent)
       throw new ApiException(403, "AI_CONSENT_REQUIRED", "请先在个人档案中授权AI分析");
+  }
+
+  public static void require(Profile profile, String kind, boolean includeDiary) {
+    requireConsent(profile);
     boolean allowed = switch (kind) {
       case "COMBINED" -> profile.canAnalyzeCombined();
       case "ACTIVITY_PLAN" -> profile.aiActivity;
