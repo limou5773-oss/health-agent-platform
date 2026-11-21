@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { Download, Upload } from "@lucide/vue";
-import { api, errorMessage, json } from "../api";
+import { api, ApiError, errorMessage, json } from "../api";
 import { downloadImportTemplate, getImportTemplate } from "../import-template";
 import type { StepImportBatch, StepImportPreview } from "../types";
 import StateNotice from "./StateNotice.vue";
@@ -9,7 +9,12 @@ const emit = defineEmits<{ imported: [] }>();
 const file = ref<File | null>(null),
   timezone = ref(""),
   format = ref<StepImportBatch["importFormat"]>("CSV");
-const formatText = { CSV: "通用 CSV", APPLE_HEALTH: "苹果健康 XML / ZIP" };
+const formatText = { CSV: "通用 CSV", APPLE_HEALTH: "苹果健康 XML / ZIP", MI_FITNESS: "Mi Fitness CSV / ZIP" };
+const usesMiFitnessArchive = computed(() => format.value === "MI_FITNESS" && /\.zip$/i.test(file.value?.name ?? ""));
+const sourceIds = ref<string[]>([]);
+const selectedSid = ref("");
+const zipPassword = ref("");
+const extractedCsv = ref<File>();
 const preview = ref<StepImportPreview | null>(null),
   result = ref<StepImportBatch | null>(null);
 const batches = ref<StepImportBatch[]>([]),
@@ -40,13 +45,22 @@ function resetPreview() {
 }
 function selectFile(event: Event) {
   file.value = (event.target as HTMLInputElement).files?.[0] ?? null;
+  sourceIds.value = [];
+  selectedSid.value = "";
+  zipPassword.value = "";
+  extractedCsv.value = undefined;
   resetPreview();
 }
 watch(timezone, resetPreview);
 watch(format, () => {
   file.value = null;
+  sourceIds.value = [];
+  selectedSid.value = "";
+  zipPassword.value = "";
+  extractedCsv.value = undefined;
   resetPreview();
 });
+watch(selectedSid, resetPreview);
 const templateNote = ref("");
 const templateError = ref("");
 async function template() {
@@ -74,12 +88,22 @@ async function upload() {
   if (!file.value) return;
   previewBusy.value = true;
   resetPreview();
-  const body = new FormData();
-  body.append("file", file.value);
-  body.append("format", format.value);
-  if (format.value === "CSV" && timezone.value.trim())
-    body.append("timezone", timezone.value.trim());
   try {
+    let uploadFile = file.value;
+    if (usesMiFitnessArchive.value) {
+      if (!extractedCsv.value) {
+        const { extractMiFitnessCsv } = await import("../mi-fitness-archive");
+        extractedCsv.value = await extractMiFitnessCsv(uploadFile, zipPassword.value);
+        zipPassword.value = "";
+      }
+      uploadFile = extractedCsv.value;
+    }
+    const body = new FormData();
+    body.append("file", uploadFile);
+    body.append("format", format.value);
+    if (format.value === "CSV" && timezone.value.trim())
+      body.append("timezone", timezone.value.trim());
+    if (selectedSid.value) body.append("miFitnessSid", selectedSid.value);
     preview.value = await api<StepImportPreview>(
       "/activity/step-imports/preview",
       { method: "POST", body },
@@ -87,7 +111,12 @@ async function upload() {
     previewPage.value = 1;
     await loadHistory();
   } catch (cause) {
-    previewError.value = errorMessage(cause);
+    if (cause instanceof ApiError && cause.code === "MI_FITNESS_SOURCE_REQUIRED" &&
+        Array.isArray(cause.details?.sourceIds)) {
+      sourceIds.value = cause.details.sourceIds;
+    } else {
+      previewError.value = errorMessage(cause);
+    }
   } finally {
     previewBusy.value = false;
   }
@@ -130,17 +159,27 @@ onMounted(loadHistory);
         <select v-model="format" :disabled="busy">
           <option value="CSV">{{ formatText.CSV }}</option>
           <option value="APPLE_HEALTH">{{ formatText.APPLE_HEALTH }}</option>
+          <option value="MI_FITNESS">{{ formatText.MI_FITNESS }}</option>
         </select>
       </label>
       <label
         >{{ formatText[format] }} 文件<input
           :key="format"
           type="file"
-          :accept="format === 'CSV' ? '.csv,text/csv' : '.xml,.zip'"
+          :accept="format === 'CSV' ? '.csv,text/csv' : format === 'MI_FITNESS' ? '.csv,.zip' : '.xml,.zip'"
           required
           :disabled="busy"
           @change="selectFile"
       /></label>
+      <label v-if="usesMiFitnessArchive && !extractedCsv">ZIP 解压密码（如有）
+        <input v-model="zipPassword" type="password" autocomplete="off" :disabled="busy" />
+      </label>
+      <label v-if="sourceIds.length">本批设备来源
+        <select v-model="selectedSid" :disabled="busy" required>
+          <option value="" disabled>选择设备来源 Sid</option>
+          <option v-for="sid in sourceIds" :key="sid" :value="sid">{{ sid }}</option>
+        </select>
+      </label>
       <label v-if="format === 'CSV'"
         >文件时区（选填）<input
           v-model="timezone"
@@ -157,8 +196,11 @@ onMounted(loadHistory);
       最多 10 MB、10,000 行；固定表头为
       startTime,endTime,steps,mode,sourceName,note。时间使用 ISO 本地时间或带
       offset 的时间，mode 填 CUMULATIVE 或
-      DELTA。下载模板只包含表头，请填写自己的真实数据。Mi Fitness
-      私有原始格式需要先整理为此模板。
+      DELTA。下载模板只包含表头，请填写自己的真实数据。
+    </p>
+    <p v-else-if="format === 'MI_FITNESS'" class="footnote">
+      上传 Mi Fitness 健康明细 CSV 或账号导出 ZIP。ZIP 在浏览器解压，每批按一个设备来源预览分钟步数。
+      多设备可对照导出包内的数据源表选择 Sid。真实设备样本待验收。
     </p>
     <p v-else class="footnote">
       上传苹果健康导出的 XML 或 ZIP，最多 100 MB、10,000 条步数记录。
@@ -184,7 +226,7 @@ onMounted(loadHistory);
             {{ preview.invalidRows }} · 重复
             {{ preview.duplicateRows }}（已包含在有效行中）
           </p>
-          <p v-if="preview.importFormat === 'APPLE_HEALTH'">已跳过其他指标 {{ preview.skippedRows }} 条。</p>
+          <p v-if="preview.importFormat !== 'CSV'">跳过 {{ preview.skippedRows }} 条（其他指标、未选设备或占位记录）。</p>
           <p v-if="preview.firstStartTime && preview.lastEndTime">
             有效记录时间（档案时区） {{ preview.firstStartTime.replace("T", " ") }}
             至 {{ preview.lastEndTime.replace("T", " ") }}

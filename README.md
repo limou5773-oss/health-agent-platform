@@ -62,7 +62,7 @@ Java 保存业务数据与权威统计；Python 通过受鉴权的任务工具�
 
 “运动管理”提供每日步数、运动记录、步数目标、通用步数CSV预览确认和计划任务关联。累计步数取当天同来源最新快照，增量步数只累计不重叠区间；同日多来源不直接相加，由用户选择。真实零步与缺失日期分别展示，未设置目标时不生成默认目标。
 
-运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。接口与CSV表头见[运动管理说明](docs/activity-management.md)。Mi Fitness专用原始文件仍需脱敏样本适配。
+运动记录可关联本人同日进行中的计划项目；录入或删除记录不自动打卡，用户另行确认。也可用 Mi Fitness CSV / ZIP 导入分钟步数，多个设备按 Sid 分批预览。详见[运动管理说明](docs/activity-management.md)和[可穿戴设备导入](docs/wearable-import.md)。
 
 「健康助手 → 制定运动计划」按已授权的步数和运动统计生成待确认草稿。已有库执行 `database/migrations/040_activity_plan_tasks.sql`。详见[生成运动计划](docs/activity-management.md#生成运动计划)。
 

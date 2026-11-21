@@ -6,25 +6,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.health.api.ApiException;
-import com.health.api.MiFitnessSourceRequired;
 import com.health.model.Models.ImportBatch;
 import com.health.model.Models.ImportRow;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.util.regex.Pattern;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class MiFitnessSleepImporter {
   private static final Set<String> SLEEP_KEYS = Set.of("sleep", "watch_night_sleep", "watch_daytime_sleep");
   private static final List<String> STAGES = List.of("深睡", "浅睡", "REM", "清醒");
-  private static final Pattern DEVICE_ID = Pattern.compile("[0-9]{1,32}");
   private static final String LIMIT_MESSAGE = "单批最多预览10000条睡眠明细，请缩小上传范围";
   private final ObjectReader json;
 
@@ -41,58 +28,14 @@ public class MiFitnessSleepImporter {
   }
 
   public ImportBatch parse(MultipartFile file, ZoneId zone, String requestedSid) {
-    if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024)
-      throw new ApiException(400, "INVALID_MI_FITNESS_CSV", "Mi Fitness 明细 CSV 不能为空且不能超过10MB");
+    var selected = MiFitnessCsv.select(file, SLEEP_KEYS, requestedSid, "睡眠");
     ImportBatch batch = new ImportBatch();
     batch.format = "MI_FITNESS";
     batch.rows = new ArrayList<>();
-    var deviceIds = new LinkedHashSet<String>();
-    var lines = new ArrayList<SleepLine>();
-    String device = requestedSid;
-    try (var reader = new BufferedReader(new InputStreamReader(file.getInputStream(),
-        StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)))) {
-      String first = reader.readLine();
-      if (first == null || first.isBlank()) throw invalidHeader();
-      var header = fields(first.startsWith("\uFEFF") ? first.substring(1) : first).stream()
-          .map(name -> name.strip().toLowerCase(Locale.ROOT)).toList();
-      int sid = header.indexOf("sid"), key = header.indexOf("key"), value = header.indexOf("value");
-      if (sid < 0 || key < 0 || value < 0 || !header.contains("time")) throw invalidHeader();
-
-      String line;
-      int lineNumber = 1;
-      while ((line = reader.readLine()) != null) {
-        lineNumber++;
-        if (line.isBlank()) continue;
-        batch.totalRows++;
-        var row = fields(line);
-        if (row.size() != header.size()) {
-          lines.add(new SleepLine(lineNumber, null, "CSV 列数与表头不一致"));
-          continue;
-        }
-        if (!SLEEP_KEYS.contains(row.get(key))) {
-          batch.skippedRows++;
-          continue;
-        }
-        String deviceId = row.get(sid);
-        if (!DEVICE_ID.matcher(deviceId).matches()) {
-          lines.add(new SleepLine(lineNumber, null, "缺少有效设备来源编号 Sid"));
-          continue;
-        }
-        deviceIds.add(deviceId);
-        if (device == null) device = deviceId;
-        if (device.equals(deviceId)) lines.add(new SleepLine(lineNumber, row.get(value), null));
-        else batch.skippedRows++;
-      }
-    } catch (IOException e) {
-      throw new ApiException(400, "INVALID_MI_FITNESS_CSV", "无法解析 Mi Fitness UTF-8 明细 CSV，请检查导出文件");
-    }
-    if (requestedSid == null && deviceIds.size() > 1)
-      throw new MiFitnessSourceRequired(List.copyOf(deviceIds));
-    if (requestedSid != null && !deviceIds.contains(requestedSid))
-      throw new ApiException(400, "MI_FITNESS_SOURCE_NOT_FOUND", "文件不含所选来源的睡眠数据，请重新选择文件或来源");
-
-    String source = device == null ? null : "Mi Fitness · " + device;
-    for (SleepLine line : lines) {
+    batch.totalRows = selected.totalRows();
+    batch.skippedRows = selected.skippedRows();
+    String source = selected.sourceName();
+    for (var line : selected.entries()) {
       if (line.error() != null) {
         addIssue(batch, line.number(), line.error(), false);
         continue;
@@ -120,8 +63,6 @@ public class MiFitnessSleepImporter {
       throw new ApiException(400, "MI_FITNESS_NO_SLEEP", "文件没有可预览的睡眠明细，请选择包含睡眠的明细 CSV");
     return batch;
   }
-
-  private record SleepLine(int number, String value, String error) {}
 
   private static void addSession(ImportBatch batch, JsonNode session, String source, ZoneId zone, int lineNumber) {
     JsonNode items = session.path("items");
@@ -200,26 +141,5 @@ public class MiFitnessSleepImporter {
     if (batch.rows.size() >= 10000) throw new ApiException(400, "MI_FITNESS_ROW_LIMIT", LIMIT_MESSAGE);
     row.rowNumber = batch.rows.size() + 1;
     batch.rows.add(row);
-  }
-
-  private static List<String> fields(String line) throws IOException {
-    // Mi Fitness documents seen in exports include both ordinary CSV and an extra pair of quotes around the row.
-    List<String> parsed;
-    try (var csv = CSVParser.parse(line, CSVFormat.DEFAULT)) {
-      parsed = csv.getRecords().getFirst().toList();
-    } catch (UncheckedIOException e) {
-      if (line.length() < 2 || !line.startsWith("\"") || !line.endsWith("\"")) throw e.getCause();
-      parsed = List.of(line.substring(1, line.length() - 1));
-    }
-    if (parsed.size() != 1 || !parsed.getFirst().contains(",")) return parsed;
-    try (var csv = CSVParser.parse(parsed.getFirst(), CSVFormat.DEFAULT)) {
-      return csv.getRecords().getFirst().toList();
-    } catch (UncheckedIOException e) {
-      throw e.getCause();
-    }
-  }
-
-  private static ApiException invalidHeader() {
-    return new ApiException(400, "INVALID_MI_FITNESS_HEADER", "请选择解压后含 Sid、Key、Time、Value 的 Mi Fitness 健康明细 CSV");
   }
 }

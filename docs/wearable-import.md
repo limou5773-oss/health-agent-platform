@@ -6,7 +6,7 @@
 
 | 数据来源 | 当前可导入文件 | 当前限制 |
 | --- | --- | --- |
-| Mi Fitness 中的小米、红米手环与手表 | Mi Fitness 导出 ZIP、健康明细 CSV，或整理后的通用睡眠 CSV | 明细解析覆盖睡眠分期，真实设备样本待验收 |
+| Mi Fitness 中的小米、红米手环与手表 | Mi Fitness 导出 ZIP、健康明细 CSV，或对应指标的通用 CSV | 明细解析覆盖睡眠分期和分钟步数，真实设备样本待验收 |
 | 苹果健康或写入苹果健康的设备 | export.xml 或规定目录的 ZIP | 支持在睡眠、步数、心率、体重页面分别导入，真实样本待用户验证 |
 | 华为运动健康 | 解压后的专业睡眠明细 JSON | 支持分期区间，单批对应一个设备，真实设备样本待验收 |
 | 其他来源 | 整理后的通用睡眠CSV | 不宣称支持其专用格式 |
@@ -35,9 +35,13 @@ ZIP 由浏览器本地读取，限 100 MB 和 10000 个条目。只提取唯一�
 
 单设备文件直接预览。文件含多个睡眠设备来源时，先按 `Sid` 选择本批设备，可对照导出包里的 `hlth_center_data_source.csv` 确认设备。每批只导入所选设备，可以使用同一份文件逐个选择和确认。来源使用 `Mi Fitness · Sid`，同一来源参与重复记录的去重。账号 ID 和其他指标原文不保存。单个明细 CSV 最多 10 MB、10000 个预览项。文件记录数、拆分后的睡眠区间数和跳过的行数分别统计，跳过项包括其他指标和其他设备的睡眠行。Mi Fitness 汇总表和自动同步仍待接入。
 
+在「运动管理 → 导入步数」选 Mi Fitness CSV / ZIP，可从同一明细文件读取 `Key=steps`。每条 `Value.steps` 对应从 Unix 秒 `Value.time` 开始的一分钟增量，缺少 `Value.time` 时使用行上的 `Time`。将区间换算为档案时区后，沿用步数预览的范围校验、区间冲突检查和重复确认。零值占位、其他指标及其他设备行计入跳过。档案时区的偏移切换或歧义会提示改用 UTC。多个来源按 Sid 分批确认。[公开明细字段说明](https://github.com/heshi2019/Mi-Fitness_DataAnalyze/blob/main/MiFitness_hlth_center_fitness_data.md) · [公开区间映射实现](https://github.com/soma-intelligence/open-health-sync/blob/cad8a65af0461f328931dbe65e03c635f701268c/connectors/xiaomi/mapper.go#L274)
+
 [小米官方Mi Fitness数据导出说明](https://www.mi.com/ph/support/article/KA-11566/)
 
 [Open Health Sync 的公开导出字段说明](https://github.com/soma-intelligence/open-health-sync/blob/cad8a65af0461f328931dbe65e03c635f701268c/docs/connectors/xiaomi.md#7-mapping)
+
+小米官方云同步需要先开通小米账号及运动健康服务，完成应用权限审批。账号本人授权后才能读取对应指标。当前交付为用户下载文件后预览确认。[小米服务端接入指南](https://dev.mi.com/xiaomihyperos/documentation/detail?pId=2333)
 
 ## 导入华为运动健康
 

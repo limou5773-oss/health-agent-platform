@@ -9,6 +9,7 @@ import com.health.service.ActivityService;
 import com.health.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -67,11 +68,15 @@ public class ActivityController {
 
   @PostMapping(value = "/step-imports/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public StepImportBatch preview(HttpServletRequest r, @RequestPart MultipartFile file,
-      @RequestParam(defaultValue = "CSV") StepImportFormat format, @RequestParam(required = false) String timezone) {
+      @RequestParam(defaultValue = "CSV") StepImportFormat format, @RequestParam(required = false) String timezone,
+      @RequestParam(required = false) @Pattern(regexp = "[0-9]{1,32}") String miFitnessSid) {
     Long userId = Identity.user(r).id;
     try {
-      return format == StepImportFormat.APPLE_HEALTH
-          ? service.previewApple(userId, file) : service.preview(userId, file, timezone);
+      return switch (format) {
+        case CSV -> service.preview(userId, file, timezone);
+        case APPLE_HEALTH -> service.previewApple(userId, file);
+        case MI_FITNESS -> service.previewMiFitness(userId, file, miFitnessSid);
+      };
     } catch (ApiException e) {
       if (e.status == 400) {
         importAdmin.rejected(Kind.STEPS, userId, e.code);

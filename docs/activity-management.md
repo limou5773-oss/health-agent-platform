@@ -28,7 +28,7 @@
 - GET /steps/sources → string[]。
 - GET /steps/statistics → {startDate,endDate,sourceName,periodDays,validDays,coverageRate,totalSteps,averageSteps,dailyGoal,goalDays,dataCutoff,daily:[{date,steps,sourceName,goalRate}]}。`dataCutoff` 为当前筛选下纳入统计的步数记录中最晚的区间结束时间，无记录时为 null。
 - GET /goal → {dailySteps:number|null}；PUT /goal {dailySteps:正整数} → 相同结构。
-- POST /step-imports/preview 接收 multipart file 和 format（默认 CSV，可选 APPLE_HEALTH）。CSV 接收可选 timezone，默认档案时区。文件为 UTF-8，最多 10 MB、10000 行，表头为 `startTime,endTime,steps,mode,sourceName,note`。时间使用 ISO 本地时间或带 offset 的时间，转换到档案时区后按日期和步数语义校验。
+- POST /step-imports/preview 接收 multipart file 和 format（默认 CSV，可选 APPLE_HEALTH、MI_FITNESS）。CSV 接收可选 timezone，默认档案时区。文件为 UTF-8，最多 10 MB、10000 行，表头为 `startTime,endTime,steps,mode,sourceName,note`。时间使用 ISO 本地时间或带 offset 的时间，转换到档案时区后按日期和步数语义校验。Mi Fitness 可传 `miFitnessSid`，出现多个来源时先返回候选，格式见[可穿戴设备导入](wearable-import.md)。
 - APPLE_HEALTH 读取导出的 XML 或 ZIP，最多 100 MB、10000 条步数记录，沿用苹果健康 ZIP 展开上限及路径要求。每条 StepCount 样本按起止时间和 count 单位保存为 DELTA，来源保留原始 sourceName，备注保留原始偏移时间。转换到档案时区后，跨日或同来源区间重叠的样本在预览中标为无效。档案时区发生偏移切换或端点时间有歧义时提示改用 UTC 时区重新导入。[Apple HealthKit StepCount](https://developer.apple.com/documentation/healthkit/hkquantitytypeidentifier/stepcount)
 - POST /step-imports/{id}/confirm → StepImportBatch；GET /step-imports → StepImportBatch[]。确认在事务内重新核对当前业务状态，同批确认幂等；预览后发生新的语义冲突时明确返回409，不吞错。成功确认后清理临时预览行，历史仅保留批次计数。
 - StepImportBatch={id,status,importFormat,totalRows,skippedRows,validRows,invalidRows,duplicateRows,insertedRows,createdAt,rows?}。`totalRows` 为预览记录数，`skippedRows` 为苹果文件中的其他指标数，`duplicateRows` 是有效数的子集。无效行可查看原始步数，有效的苹果步数显示为规范整数。升级已有库需执行 `031_apple_step_import.sql`，历史批次默认标为 CSV。
@@ -47,7 +47,7 @@ Workout={id,exerciseType,startTime,endTime,activityDate,durationMinutes,sourceNa
 2. 前端运动管理页：步数/运动双区、筛选分页、统计、目标、录入编辑删除、CSV模板预览确认、计划关联及显式打卡。
 3. 核对接口与差异，运行Java打包、Vue类型检查和构建，更新README及实现状态并同步GitHub。
 
-不新增自动化功能或回归测试，不连接真实数据库、模型或设备。功能和真实数据验收由用户执行。Mi Fitness专用原始文件仍需真实脱敏样本适配，活动CSV同样是明确的通用模板，不宣称直接解析其私有格式。
+功能和真实数据验收由用户执行。Mi Fitness 步数按公开明细格式实现，实际型号和导出文件待验收。
 
 新增校验仅对应步数整数与MySQL INT范围、累计/增量区间约定、字段长度、日期窗口和计划归属/状态。数据库保留索引、唯一约束、业务CHECK和事务；活动来源及运动类型按区分大小写与重音的规则保存，保持SQL来源身份与程序比较口径一致。没有新增重试、静默降级或通用异常包装。
 

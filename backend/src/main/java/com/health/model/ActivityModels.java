@@ -39,7 +39,7 @@ public final class ActivityModels {
     public LocalDateTime createdAt;
   }
 
-  public enum StepImportFormat { CSV, APPLE_HEALTH }
+  public enum StepImportFormat { CSV, APPLE_HEALTH, MI_FITNESS }
 
   public static class StepImportBatch {
     public Long id;

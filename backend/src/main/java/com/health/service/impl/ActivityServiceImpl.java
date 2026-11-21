@@ -12,6 +12,7 @@ import com.health.model.Models.ReportSourceChange;
 import com.health.service.AccountService;
 import com.health.service.ActivityService;
 import com.health.service.AppleHealthExportReader;
+import com.health.service.MiFitnessStepImporter;
 import com.health.service.NotificationService;
 import com.health.service.TaskService;
 import jakarta.validation.Validator;
@@ -43,10 +44,11 @@ public class ActivityServiceImpl implements ActivityService {
   private final ImportAdminService importAdmin;
   private final TaskService tasks;
   private final AppleHealthExportReader apple;
+  private final MiFitnessStepImporter miFitness;
 
   public ActivityServiceImpl(ActivityMapper mapper, PlanMapper plans, AccountService accounts,
       Validator validator, NotificationService notifications,
-      ImportAdminService importAdmin, TaskService tasks, AppleHealthExportReader apple) {
+      ImportAdminService importAdmin, TaskService tasks, AppleHealthExportReader apple, MiFitnessStepImporter miFitness) {
     this.mapper = mapper;
     this.plans = plans;
     this.accounts = accounts;
@@ -55,6 +57,7 @@ public class ActivityServiceImpl implements ActivityService {
     this.importAdmin = importAdmin;
     this.tasks = tasks;
     this.apple = apple;
+    this.miFitness = miFitness;
   }
 
   public Page<StepRecord> steps(Long uid, Requests.SleepQuery q) {
@@ -280,6 +283,32 @@ public class ActivityServiceImpl implements ActivityService {
     if (batch.rows.isEmpty())
       throw new ApiException(400, "APPLE_METRIC_MISSING",
           "文件中没有步数记录，已跳过 " + batch.skippedRows + " 条其他记录");
+    return saveStepPreview(batch);
+  }
+
+  @Transactional
+  public StepImportBatch previewMiFitness(Long uid, MultipartFile file, String requestedSid) {
+    Identity.requireExisting(mapper.lockUser(uid));
+    var parsed = miFitness.parse(file, ZoneId.of(accounts.profile(uid).timezone), requestedSid);
+    StepImportBatch batch = new StepImportBatch();
+    batch.userId = uid;
+    batch.status = "PREVIEW";
+    batch.importFormat = StepImportFormat.MI_FITNESS;
+    batch.skippedRows = parsed.skippedRows();
+    batch.rows = new ArrayList<>();
+    Map<StepDay, List<StepRecord>> buckets = new HashMap<>();
+    for (var row : parsed.rows()) {
+      if (row.error == null) {
+        var request = new ActivityRequests.Step(LocalDateTime.parse(row.startTime), LocalDateTime.parse(row.endTime),
+            new BigDecimal(row.steps), row.mode, row.sourceName, row.note);
+        try {
+          validatePreviewStep(batch, row, buckets, request);
+        } catch (ApiException e) {
+          row.error = e.getMessage();
+        }
+      }
+      addPreviewRow(batch, row);
+    }
     return saveStepPreview(batch);
   }
 

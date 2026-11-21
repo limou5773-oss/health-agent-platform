@@ -379,7 +379,7 @@ export interface StepImportRow {
 export interface StepImportBatch {
   id: number;
   status: string;
-  importFormat: "CSV" | "APPLE_HEALTH";
+  importFormat: "CSV" | "APPLE_HEALTH" | "MI_FITNESS";
   totalRows: number;
   skippedRows: number;
   validRows: number;

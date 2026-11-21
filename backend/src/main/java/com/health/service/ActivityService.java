@@ -19,6 +19,7 @@ public interface ActivityService {
   Goal updateGoal(Long uid, ActivityRequests.Goal request);
   StepImportBatch preview(Long uid, MultipartFile file, String timezone);
   StepImportBatch previewApple(Long uid, MultipartFile file);
+  StepImportBatch previewMiFitness(Long uid, MultipartFile file, String requestedSid);
   StepImportBatch confirm(Long uid, Long id);
   List<StepImportBatch> imports(Long uid);
   Page<Workout> workouts(Long uid, SleepQuery q);
