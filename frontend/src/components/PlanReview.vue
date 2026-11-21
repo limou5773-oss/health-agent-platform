@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import { api, dateAfter, dateString, errorMessage, json } from "../api";
-import type { Plan } from "../types";
+import type { Plan, PlanReviewQuery } from "../types";
 import { reportMetrics as metrics } from "../report-metrics";
 import StateNotice from "./StateNotice.vue";
 
 const props = defineProps<{ plan: Plan }>();
-const emit = defineEmits<{ propose: [items: Missed[], date: string, version: number] }>();
+const emit = defineEmits<{
+  propose: [items: Missed[], date: string, version: number];
+  reviewDraft: [query: PlanReviewQuery, version: number];
+}>();
 type Metric = keyof typeof metrics;
 type Period = {
   startDate: string; endDate: string; periodDays: number; validDays: number; average: number | null;
@@ -113,6 +116,17 @@ watch(() => props.plan, () => { if (review.value) void load(); });
         {{ number.format(review.comparison.difference) }} {{ metrics[review.comparison.metric][1] }}
       </p>
       <p v-else>至少一期覆盖未达到 70%，仅显示已有记录的统计。</p>
+
+      <button v-if="review.comparison.metric !== 'MEAL' && review.comparison.metric !== 'WATER'"
+        type="button" class="secondary"
+        @click="emit('reviewDraft', {
+          startDate: review.comparison.recent.startDate,
+          endDate: review.comparison.recent.endDate,
+          metric: review.comparison.metric,
+          sourceName: review.comparison.sourceName,
+        }, review.planVersion)">
+        用本次复盘生成修订草稿
+      </button>
 
       <h3>未打卡任务</h3>
       <p v-if="!review.missed.length">该周期没有未打卡任务。</p>

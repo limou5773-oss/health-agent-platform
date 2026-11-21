@@ -11,6 +11,7 @@ import com.health.model.Models.Plan;
 import com.health.model.Models.PlanItem;
 import com.health.model.PlanRevisionModels.*;
 import com.health.service.PlanRevisionService;
+import com.health.service.PlanReviewService;
 import com.health.service.PlanService;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -26,12 +27,15 @@ public class PlanRevisionServiceImpl implements PlanRevisionService {
   private final PlanService plans;
   private final ObjectMapper json;
   private final AccountMapper accounts;
+  private final PlanReviewService reviews;
 
-  public PlanRevisionServiceImpl(PlanMapper mapper, PlanService plans, ObjectMapper json, AccountMapper accounts) {
+  public PlanRevisionServiceImpl(PlanMapper mapper, PlanService plans, ObjectMapper json, AccountMapper accounts,
+      PlanReviewService reviews) {
     this.mapper = mapper;
     this.plans = plans;
     this.json = json;
     this.accounts = accounts;
+    this.reviews = reviews;
   }
 
   @Override
@@ -56,7 +60,7 @@ public class PlanRevisionServiceImpl implements PlanRevisionService {
   @Override
   @Transactional
   public Revision saveSuggestion(Long userId, Long planId, Save request, long consentVersion,
-      int activeVersion, boolean basedOnDraft) {
+      int activeVersion, boolean basedOnDraft, ReviewBasis review) {
     Plan plan = lockPlan(userId, planId);
     var profile = accounts.profile(userId);
     if (!profile.aiConsent || profile.aiConsentVersion != consentVersion)
@@ -66,6 +70,8 @@ public class PlanRevisionServiceImpl implements PlanRevisionService {
       Revision base = mapper.revision(planId, request.expectedVersion());
       if (base == null || !"DRAFT".equals(base.status)) throw stale();
     }
+    if (review != null && !reviews.review(userId, planId, review.query()).evidence().equals(review.evidence()))
+      throw new ApiException(409, "STALE_PLAN_REVIEW", "复盘统计已变化，请重新查询后生成草稿");
     return save(plan, request);
   }
 

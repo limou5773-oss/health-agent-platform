@@ -13,7 +13,13 @@ public final class PlanReviewModels {
       boolean completed, String missedReason) {}
 
   public record Review(int planVersion, LocalDate today, int scheduled, int completed,
-      BigDecimal completionRate, List<Item> missed, Comparison comparison) {}
+      BigDecimal completionRate, List<Item> missed, Comparison comparison) {
+    public Evidence evidence() {
+      return new Evidence(scheduled, completed, completionRate, comparison);
+    }
+  }
+
+  public record Evidence(int scheduled, int completed, BigDecimal completionRate, Comparison comparison) {}
 
   public record Outcome(int planVersion, LocalDate planStart, LocalDate planEnd, int scheduled,
       int completed, BigDecimal completionRate, Comparison comparison) {}

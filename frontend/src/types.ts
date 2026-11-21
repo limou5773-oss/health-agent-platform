@@ -223,6 +223,13 @@ export interface TaskDetail extends CombinedTaskSources {
   }[];
   createdAt: string;
 }
+export type PlanReviewQuery = {
+  startDate: string;
+  endDate: string;
+  metric: import("./report-metrics").ReportMetric;
+  sourceName: string | null;
+};
+
 export interface Plan {
   id: number;
   goalId: number | null;

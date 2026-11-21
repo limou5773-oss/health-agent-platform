@@ -324,6 +324,34 @@ class RevisionContent(RequestModel):
     items: list[RevisionItem] = Field(min_length=1, max_length=93)
 
 
+class ReviewPeriod(RequestModel):
+    startDate: date
+    endDate: date
+    periodDays: int
+    validDays: int
+    requiredDays: int
+    coverageRate: float
+    sufficient: bool
+    average: float | None
+    missingDates: list[date]
+    recordCount: int | None
+
+
+class ReviewComparison(RequestModel):
+    metric: Literal["SLEEP", "STEPS", "WORKOUT", "WEIGHT", "HEART_RATE"]
+    sourceName: str | None
+    recent: ReviewPeriod
+    historical: ReviewPeriod
+    difference: float | None
+
+
+class PlanReviewEvidence(RequestModel):
+    scheduled: int
+    completed: int
+    completionRate: float | None
+    comparison: ReviewComparison
+
+
 class RevisionSuggestion(RequestModel):
     note: str = Field(min_length=1, max_length=1000)
     content: RevisionContent

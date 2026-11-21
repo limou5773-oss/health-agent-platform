@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { api, dateAfter, errorMessage, json } from "../api";
-import type { DraftItem, Plan } from "../types";
+import type { DraftItem, Plan, PlanReviewQuery } from "../types";
+import { reportMetrics } from "../report-metrics";
 import StateNotice from "./StateNotice.vue";
 
 type Item = DraftItem & { id: number | null; reminderTime: string | null };
@@ -19,6 +20,7 @@ const error = ref("");
 const actionError = ref("");
 const busy = ref(false);
 const instruction = ref("");
+const reviewBasis = ref<PlanReviewQuery | null>(null);
 const section = ref<HTMLElement | null>(null);
 
 const current = computed<Content>(() => {
@@ -115,14 +117,31 @@ function proposeCoordination(content: Content, reason: string, version: number, 
   edit(content, reason);
 }
 
-defineExpose({ proposeMove, proposeCoordination });
+function proposeReview(query: PlanReviewQuery, version: number) {
+  section.value?.scrollIntoView({ block: "start" });
+  actionError.value = "";
+  if (!revisions.value || revisions.value.activeVersion !== version || props.plan.version !== version) {
+    actionError.value = "计划版本已变化，请刷新后重新复盘。";
+    return;
+  }
+  if (busy.value || editor.value) {
+    actionError.value = "请先完成当前修订操作。";
+    return;
+  }
+  reviewBasis.value = query;
+}
+
+defineExpose({ proposeMove, proposeCoordination, proposeReview });
 
 async function suggest(expectedVersion: number) {
   busy.value = true;
   actionError.value = "";
   try {
-    await api(`${endpoint}/suggestions`, json("POST", { expectedVersion, instruction: instruction.value }), 105_000);
+    await api(`${endpoint}/suggestions`, json("POST", {
+      expectedVersion, instruction: instruction.value, ...(reviewBasis.value ? { review: reviewBasis.value } : {}),
+    }), 105_000);
     instruction.value = "";
+    reviewBasis.value = null;
     selectedVersion.value = null;
     await load();
   } catch (cause) {
@@ -214,11 +233,15 @@ onMounted(load);
       </form>
       <template v-else>
         <form @submit.prevent="suggest(revisions.latestVersion)">
+          <div v-if="reviewBasis" class="feedback">
+            使用 {{ reviewBasis.startDate }} 至 {{ reviewBasis.endDate }} 的{{ reportMetrics[reviewBasis.metric][0] }}复盘
+            <button type="button" class="secondary" :disabled="busy" @click="reviewBasis = null">移除复盘依据</button>
+          </div>
           <label>用一句话修订
             <textarea v-model="instruction" required maxlength="2000" rows="2" :disabled="busy"
               placeholder="例如，把周五的散步改到晚上七点，提前十五分钟提醒" />
           </label>
-          <p class="small muted">会发送本份计划和调整要求给外部模型。生成后可比较草稿并另行确认。</p>
+          <p class="small muted">会发送本份计划和调整要求给外部模型。<span v-if="reviewBasis">本次也会发送所选复盘的打卡汇总和已授权指标统计。</span>生成后可比较草稿并另行确认。</p>
           <button class="secondary" :disabled="busy || !instruction.trim()">生成修订草稿</button>
         </form>
         <div class="actions">

@@ -28,7 +28,9 @@ from app.config import Settings
 from app.gateway import AgentError, JavaGateway
 from app.graph import RunContext, build_graph, initial_state
 from app.schemas import AgentResult, RequestModel, ResumeRequest, RunRequest, TaskContext, TaskId, TaskIntent, TaskSpec
-from app.schemas import CheckupPreview, MealPhotoPreview, PagedCheckupPreview, RevisionContent, RevisionSuggestion
+from app.schemas import (
+    CheckupPreview, MealPhotoPreview, PagedCheckupPreview, PlanReviewEvidence, RevisionContent, RevisionSuggestion,
+)
 
 
 logger = logging.getLogger("health_agent")
@@ -149,6 +151,7 @@ class PlanRevisionRequest(ModelCheck):
     instruction: str = Field(min_length=1, max_length=2000)
     plan: RevisionContent
     completedIds: list[int] = Field(max_length=93)
+    review: PlanReviewEvidence | None = None
 
 
 class ImageRecognitionRequest(ModelCheck):
@@ -230,9 +233,13 @@ async def suggest_plan_revision(payload: PlanRevisionRequest) -> RevisionSuggest
             "completedIds 所列任务必须逐字段原样保留。现有任务沿用 id，新任务的 id 为 null。"
             "计划为 1 至 31 天，每项日期须在周期内，提醒为空时为 null。"
             "新增或调整任务时，description应说明具体做法和可自行核对的完成条件。"
+            "如果提供review，调整说明须联系复盘周期、实际完成情况及指标覆盖。"
+            "使用提供的比较结果；difference为空时只描述已有观测，不计算差值，不把变化归因为计划。"
             "只调整日常健康计划，不作诊断或治疗建议。正式计划由用户另行确认。"
         )),
-        HumanMessage(content=payload.model_dump_json(include={"instruction", "plan", "completedIds"})),
+        HumanMessage(content=payload.model_dump_json(
+            include={"instruction", "plan", "completedIds", "review"},
+        )),
     ])
 
 
