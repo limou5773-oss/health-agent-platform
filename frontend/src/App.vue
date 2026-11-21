@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import {
   Activity,
@@ -29,6 +29,9 @@ const route = useRoute();
 const booting = ref(!!session.token);
 const bootstrapError = ref("");
 const menuOpen = ref(false);
+const menuToggle = ref<HTMLButtonElement>();
+const mainContent = ref<HTMLElement>();
+const mobileViewport = window.matchMedia("(max-width: 700px)");
 const links = [
   { to: "/", label: "综合健康看板", icon: Moon },
   { to: "/records", label: "睡眠记录", icon: List },
@@ -65,14 +68,40 @@ watch(
   },
 );
 watch(
-  () => route.path,
+  () => route.fullPath,
   () => {
-    menuOpen.value = false;
+    if (menuOpen.value && !route.hash) void focusContent();
+    else menuOpen.value = false;
   },
 );
 onMounted(() => {
+  mobileViewport.addEventListener("change", onViewportChange);
   if (session.token) void bootstrap();
 });
+onUnmounted(() => mobileViewport.removeEventListener("change", onViewportChange));
+
+function onViewportChange(event: MediaQueryListEvent) {
+  if (!event.matches) menuOpen.value = false;
+}
+
+async function focusContent() {
+  menuOpen.value = false;
+  await nextTick();
+  mainContent.value?.scrollIntoView({ block: "start" });
+  mainContent.value?.focus({ preventScroll: true });
+}
+
+function focusCurrentPage(target: string) {
+  if (menuOpen.value && route.fullPath === target) void focusContent();
+}
+
+function dismissMenu(event: KeyboardEvent) {
+  if (!menuOpen.value) return;
+  event.preventDefault();
+  menuOpen.value = false;
+  menuToggle.value?.focus();
+}
+
 function signOut() {
   logout();
   menuOpen.value = false;
@@ -89,21 +118,24 @@ function signOut() {
       ><button class="secondary" @click="signOut">返回登录</button></template
     >
   </div>
-  <div v-else class="app-shell">
-    <a class="skip-link" href="#main-content">跳转到主要内容</a>
+  <div v-else class="app-shell" @keydown.esc="dismissMenu">
+    <a class="skip-link" href="#main-content" @click.prevent="focusContent">跳转到主要内容</a>
     <div class="mobile-bar">
-      <RouterLink to="/" class="brand"
+      <RouterLink to="/" class="brand" @click.exact="focusCurrentPage('/')"
         ><Activity :size="24" /><span>眠序</span></RouterLink
       ><button
+        ref="menuToggle"
+        type="button"
         class="icon-button"
         :aria-expanded="menuOpen"
-        aria-label="切换导航"
+        aria-controls="primary-sidebar"
+        :aria-label="menuOpen ? '关闭导航' : '打开导航'"
         @click="menuOpen = !menuOpen"
       >
         <X v-if="menuOpen" /><Menu v-else />
       </button>
     </div>
-    <aside class="sidebar" :class="{ 'is-open': menuOpen }">
+    <aside id="primary-sidebar" class="sidebar" :class="{ 'is-open': menuOpen }">
       <RouterLink to="/" class="brand"
         ><span class="brand-symbol"><Activity :size="25" /></span
         ><span>眠序<small>睡眠健康管理</small></span></RouterLink
@@ -115,16 +147,18 @@ function signOut() {
           :key="link.to"
           :to="link.to"
           :exact-active-class="'active'"
+          @click.exact="focusCurrentPage(link.to)"
           ><component :is="link.icon" :size="19" />{{ link.label }}</RouterLink
         >
       </nav>
       <div class="sidebar-bottom">
-        <RouterLink to="/profile" active-class="active"
+        <RouterLink to="/profile" active-class="active" @click.exact="focusCurrentPage('/profile')"
           ><UserRound :size="18" />个人档案</RouterLink
         ><RouterLink
           v-if="session.user.role === 'ADMIN'"
           to="/admin"
           active-class="active"
+          @click.exact="focusCurrentPage('/admin')"
           ><Settings :size="18" />管理后台</RouterLink
         >
         <div class="user-line">
@@ -145,11 +179,12 @@ function signOut() {
         </div>
       </div>
     </aside>
-    <main id="main-content" class="main-content" tabindex="-1">
+    <main id="main-content" ref="mainContent" class="main-content" tabindex="-1"
+      aria-labelledby="page-title" :inert="menuOpen">
       <header class="page-header">
         <div>
           <p class="eyebrow">SLEEP & WELLBEING</p>
-          <h1>{{ route.meta.title }}</h1>
+          <h1 id="page-title">{{ route.meta.title }}</h1>
           <p class="muted">{{ route.meta.caption }}</p>
         </div>
         <span class="date-label">{{

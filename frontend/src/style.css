@@ -1635,6 +1635,7 @@ td .small {
     padding: 1rem 1.25rem;
     background: #fdfefb;
     overflow: auto;
+    overscroll-behavior: contain;
   }
   .sidebar.is-open {
     display: flex;
@@ -1655,6 +1656,7 @@ td .small {
   }
   .main-content {
     padding: 1.5rem 1.25rem 2rem;
+    scroll-margin-top: 62px;
   }
   .page-header {
     margin-bottom: 1.5rem;

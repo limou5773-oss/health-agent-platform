@@ -82,7 +82,7 @@
 | NF07 恢复与取消 | 已完成 | 失败分类、手动重试、检查点恢复和状态校验。[任务接口](api-contract.md) | AC10、AC11、AC18 |
 | NF08 可追溯性 | 已完成 | 关联任务编号、步骤、查询范围、确认和产物，后台审计有独立投影。[任务审计](task-audit.md) | AC05、AC10、AC15、AC19 |
 | NF09 易用性 | 已完成 | 公共加载、错误和无数据提示，导入预览和范围删除确认。[状态组件](../frontend/src/components/StateNotice.vue) · [时间线](timeline.md) | AC02、AC03、AC14 |
-| NF10 兼容性 | 部分完成 | 页面有响应式样式及表单，待用桌面、手机宽度和键盘完成主要流程验收。[应用布局](../frontend/src/App.vue) · [样式](../frontend/src/style.css) | 按三条演示流程核对键盘和布局 |
+| NF10 兼容性 | 部分完成 | 页面有响应式样式及表单。手机导航展开时，键盘不会进入被遮挡的正文控件。Escape 关闭并返回开关，选页和跳转链接可进入正文。[应用布局](../frontend/src/App.vue) · [样式](../frontend/src/style.css) | 按三条演示流程核对桌面、手机宽度和键盘操作 |
 | NF11 可部署性 | 已完成 | 环境示例、独立数据库脚本及 Windows 三端启动说明均已交付。[本地运行](../README.md#本地运行) · [启动脚本](../scripts/run.ps1) | AC20 |
 | NF12 数据生命周期 | 已完成 | 导入确认清理临时内容，删除源记录和账号时处理关联产物和检查点。[导入契约](api-contract.md) · [账号删除](account-deletion.md) | AC03、AC14、AC16 |
 
